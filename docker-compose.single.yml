@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  theater-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.single
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=localhost
+      - DB_USER=theater_user
+      - DB_PASSWORD=theater_password
+      - DB_NAME=theater_db
+      - DB_PORT=3306
+      - PORT=5000
+      - JWT_SECRET=your_production_jwt_secret_change_this
+      - JWT_EXPIRES_IN=24h
+      - FRONTEND_URL=http://localhost
+    volumes:
+      # Persist uploads and database data
+      - theater_uploads:/app/server/uploads
+      - theater_mysql:/var/lib/mysql
+      - theater_logs:/var/log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  theater_uploads:
+    driver: local
+  theater_mysql:
+    driver: local
+  theater_logs:
+    driver: local

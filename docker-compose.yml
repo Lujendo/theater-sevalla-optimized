@@ -1,0 +1,71 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_DATABASE=theater_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # Use a named volume to persist data between container rebuilds
+      # This ensures that the database data is not lost when rebuilding containers
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Frontend
+      - "5000:5000" # Backend
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=secret
+      - DB_NAME=theater_db
+      - JWT_SECRET=your_jwt_secret
+      - JWT_EXPIRES_IN=24h # 24 hours
+      - NODE_ENV=development
+      - FRONTEND_URL=http://localhost:3000
+      - VITE_API_URL=http://localhost:5000
+    volumes:
+      - uploads:/app/server/uploads
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - MYSQL_ROOT_PASSWORD=secret
+    networks:
+      - app-network
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  uploads:  # Persistent volume for uploaded files
+  mysql-data:  # Persistent volume for MySQL database data
+  # These named volumes ensure data persistence between container rebuilds
+  # IMPORTANT: Do not use 'docker-compose down -v' as it will remove these volumes and all data
+
+networks:
+  app-network:
+    driver: bridge

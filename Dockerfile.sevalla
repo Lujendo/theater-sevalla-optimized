@@ -1,0 +1,58 @@
+# Theater Equipment Catalog - Sevalla Deployment
+# Multi-stage build for production deployment
+
+# Stage 1: Build the React frontend
+FROM node:18-alpine AS frontend-build
+
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Prepare the backend
+FROM node:18-alpine AS backend-build
+
+WORKDIR /app/server
+COPY server/package*.json ./
+RUN npm ci --only=production
+COPY server/ ./
+
+# Stage 3: Final production image
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy backend files
+COPY --from=backend-build /app/server ./server
+COPY --from=backend-build /app/server/node_modules ./server/node_modules
+
+# Copy built frontend
+COPY --from=frontend-build /app/client/dist ./client/dist
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/server/uploads/images \
+             /app/server/uploads/audio \
+             /app/server/uploads/pdfs \
+             /app/server/uploads/thumbnails \
+             /app/server/logs \
+    && chown -R node:node /app
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Expose port (Sevalla will set PORT environment variable)
+EXPOSE $PORT
+
+# Switch to node user for security
+USER node
+
+# Start the application
+CMD ["node", "server/index.js"]

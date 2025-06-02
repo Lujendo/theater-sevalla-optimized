@@ -1,0 +1,89 @@
+# Multi-stage build for production single-container deployment
+# Stage 1: Build the React frontend
+FROM node:18-alpine AS frontend-build
+
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+# Stage 2: Prepare the backend
+FROM node:18-alpine AS backend-build
+
+WORKDIR /app/server
+COPY server/package*.json ./
+RUN npm ci --only=production
+COPY server/ ./
+
+# Stage 3: Final production image with MySQL, Node.js backend, and Nginx
+FROM ubuntu:22.04
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    mysql-server \
+    nginx \
+    curl \
+    supervisor \
+    gnupg2 \
+    ca-certificates \
+    lsb-release \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 18
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Create app directory
+WORKDIR /app
+
+# Copy backend files
+COPY --from=backend-build /app/server ./server
+COPY --from=backend-build /app/server/node_modules ./server/node_modules
+
+# Copy built frontend
+COPY --from=frontend-build /app/client/dist ./client/dist
+
+# Copy configuration files
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY nginx.conf /etc/nginx/sites-available/default
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Create necessary directories
+RUN mkdir -p /app/server/uploads/images \
+             /app/server/uploads/audio \
+             /app/server/uploads/pdfs \
+             /app/server/uploads/thumbnails \
+             /app/server/logs \
+             /var/log/supervisor
+
+# Set permissions
+RUN chmod +x /docker-entrypoint.sh \
+    && chown -R www-data:www-data /app/server/uploads \
+    && chown -R mysql:mysql /var/lib/mysql \
+    && chown -R www-data:www-data /var/log/nginx
+
+# Configure MySQL
+RUN echo "mysql-server mysql-server/root_password password root" | debconf-set-selections \
+    && echo "mysql-server mysql-server/root_password_again password root" | debconf-set-selections \
+    && usermod -d /var/lib/mysql/ mysql \
+    && mkdir -p /var/run/mysqld \
+    && chown mysql:mysql /var/run/mysqld
+
+# Set environment variables
+ENV NODE_ENV=production \
+    DB_HOST=localhost \
+    DB_USER=theater_user \
+    DB_PASSWORD=theater_password \
+    DB_NAME=theater_db \
+    DB_PORT=3306 \
+    PORT=5000 \
+    JWT_SECRET=your_production_jwt_secret_change_this \
+    JWT_EXPIRES_IN=24h \
+    FRONTEND_URL=*
+
+# Expose port 80 (Nginx will handle both frontend and API)
+EXPOSE 80
+
+# Use supervisor to manage multiple services
+CMD ["/docker-entrypoint.sh"]
