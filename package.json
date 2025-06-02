@@ -1,0 +1,41 @@
+{
+  "name": "theater-equipment-catalog",
+  "version": "1.0.0",
+  "description": "Theater Equipment Catalog Management System",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "build": "cd client && npm run build",
+    "install-client": "cd client && npm install",
+    "install-server": "cd server && npm install",
+    "install-all": "npm run install-server && npm run install-client",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:seed": "cd server && npm run db:seed"
+  },
+  "keywords": [
+    "theater",
+    "equipment",
+    "catalog",
+    "management",
+    "react",
+    "nodejs",
+    "mysql"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "react-datepicker": "^8.3.0",
+    "react-toastify": "^11.0.5"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
