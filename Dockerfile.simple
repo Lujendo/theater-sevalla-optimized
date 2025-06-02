@@ -1,0 +1,52 @@
+# Theater Equipment Catalog - Simple Dockerfile for Sevalla
+# Alternative approach if the main Dockerfile has issues
+
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    bash \
+    postgresql-client \
+    mysql-client \
+    && rm -rf /var/cache/apk/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy everything
+COPY . .
+
+# Install all dependencies
+RUN npm install
+RUN cd client && npm install
+RUN cd server && npm install --only=production
+
+# Build the frontend
+RUN cd client && npm run build
+
+# Create necessary directories
+RUN mkdir -p /app/server/uploads/images \
+             /app/server/uploads/audio \
+             /app/server/uploads/pdfs \
+             /app/server/uploads/thumbnails \
+             /app/server/logs
+
+# Clean up to reduce image size
+RUN rm -rf /app/client/node_modules \
+    && rm -rf /app/node_modules
+
+# Set permissions
+RUN chown -R node:node /app
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Expose port
+EXPOSE $PORT
+
+# Switch to node user
+USER node
+
+# Start the application
+CMD ["node", "server/index.js"]
