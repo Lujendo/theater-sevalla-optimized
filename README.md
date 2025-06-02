@@ -286,3 +286,4 @@ docker-compose up -d
 docker-compose start
 docker save -o theater-app-image.tar theater-app:latest
 
+# theater-equipment-catalog-deploy
