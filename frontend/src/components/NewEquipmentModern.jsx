@@ -29,6 +29,7 @@ const NewEquipmentModern = () => {
   });
 
   const [files, setFiles] = useState([]);
+  const [referenceImageFile, setReferenceImageFile] = useState(null);
   const [error, setError] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -184,6 +185,10 @@ const NewEquipmentModern = () => {
   };
 
   // Handle file deletion for new equipment
+  // Handle reference image file selection
+  const handleReferenceImageSelect = (file) => {
+    setReferenceImageFile(file);
+  };
   const handleFileDelete = (fileIndex) => {
     // For new equipment, we're just removing from the files array
     const newFiles = [...files];
@@ -212,8 +217,8 @@ const NewEquipmentModern = () => {
     }
 
     // Check if there's a reference image file
-    const referenceImageFile = formData.reference_image_id === 'new' && files.length > 0
-      ? files.find((_, index) => index === 0) // Just use the first file as reference image for simplicity
+    const referenceImageFile = formData.reference_image_id === 'new'
+      ? referenceImageFile
       : null;
 
     // Remove the reference image from files if it exists
@@ -258,6 +263,7 @@ const NewEquipmentModern = () => {
         files={files}
         uploadProgress={uploadProgress}
         handleSetReferenceImage={handleSetReferenceImage}
+        handleReferenceImageSelect={handleReferenceImageSelect}
         handleFileDelete={handleFileDelete}
       />
 

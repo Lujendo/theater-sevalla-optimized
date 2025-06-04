@@ -23,6 +23,7 @@ const EquipmentForm = ({
   existingFiles = [],
   handleFileDelete,
   handleSetReferenceImage,
+  handleReferenceImageSelect,
 }) => {
   const [referenceImage, setReferenceImage] = useState(null);
   const [referenceImageFile, setReferenceImageFile] = useState(null);
@@ -50,8 +51,14 @@ const EquipmentForm = ({
   }, [existingFiles, formData.reference_image_id]);
 
   // Handle reference image selection
-  const handleReferenceImageSelect = (file) => {
+  const handleReferenceImageSelectLocal = (file) => {
     setReferenceImageFile(file);
+
+    // Call the parent handler to pass the file back
+    if (handleReferenceImageSelect) {
+      handleReferenceImageSelect(file);
+    }
+
 
     if (file) {
       // Set a temporary ID for the reference image
@@ -235,7 +242,7 @@ const EquipmentForm = ({
               Upload a <strong>single reference image</strong> that best represents this equipment. This image will be displayed prominently on the equipment details page and in search results.
             </p>
             <ReferenceImageUpload
-              onImageSelect={handleReferenceImageSelect}
+              onImageSelect={handleReferenceImageSelectLocal}
               existingImage={referenceImage}
               onImageDelete={handleReferenceImageDelete}
             />
@@ -302,6 +309,7 @@ EquipmentForm.propTypes = {
   existingFiles: PropTypes.array,
   handleFileDelete: PropTypes.func,
   handleSetReferenceImage: PropTypes.func,
+  handleReferenceImageSelect: PropTypes.func,
 };
 
 export default EquipmentForm;
