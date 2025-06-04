@@ -181,8 +181,8 @@ const startServer = async () => {
     console.log('✅ Database models synced successfully');
     
     // Fix admin user password if needed
-    console.log('🔧 Checking admin user...');
-    await fixAdminUser();
+    // console.log('🔧 Checking admin user...'); // DISABLED
+    // await fixAdminUser(); // DISABLED - causing password conflicts
     
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
