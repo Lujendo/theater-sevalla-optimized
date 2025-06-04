@@ -235,4 +235,103 @@ router.delete('/users/:id', authenticate, isAdmin, async (req, res) => {
   }
 });
 
+
+// Impersonate user (admin only)
+router.post('/impersonate/:userId', authenticate, isAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log('🎭 POST /auth/impersonate/' + userId + ' - Admin:', req.user?.username);
+    
+    // Find the user to impersonate
+    const targetUser = await User.findByPk(userId, {
+      attributes: { exclude: ['password'] }
+    });
+    
+    if (!targetUser) {
+      console.log('❌ Target user not found:', userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // Don't allow impersonating another admin (security measure)
+    if (targetUser.role === 'admin') {
+      console.log('❌ Cannot impersonate admin user');
+      return res.status(403).json({ message: 'Cannot impersonate admin users' });
+    }
+    
+    // Create a new token for the impersonated user
+    const token = jwt.sign(
+      { 
+        userId: targetUser.id, 
+        username: targetUser.username, 
+        role: targetUser.role,
+        impersonated: true,
+        originalAdmin: req.user.id
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    console.log('✅ Impersonation successful:', req.user.username, '->', targetUser.username);
+    
+    res.json({
+      token,
+      user: {
+        id: targetUser.id,
+        username: targetUser.username,
+        role: targetUser.role,
+        impersonated: true,
+        originalAdmin: req.user.username
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error impersonating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Stop impersonation (return to original admin)
+router.post('/stop-impersonation', authenticate, async (req, res) => {
+  try {
+    console.log('🔄 POST /auth/stop-impersonation - User:', req.user?.username);
+    
+    if (!req.user.impersonated) {
+      return res.status(400).json({ message: 'Not currently impersonating' });
+    }
+    
+    // Find the original admin user
+    const originalAdmin = await User.findByPk(req.user.originalAdmin, {
+      attributes: { exclude: ['password'] }
+    });
+    
+    if (!originalAdmin) {
+      return res.status(404).json({ message: 'Original admin not found' });
+    }
+    
+    // Create a new token for the original admin
+    const token = jwt.sign(
+      { 
+        userId: originalAdmin.id, 
+        username: originalAdmin.username, 
+        role: originalAdmin.role
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    
+    console.log('✅ Stopped impersonation, returned to:', originalAdmin.username);
+    
+    res.json({
+      token,
+      user: {
+        id: originalAdmin.id,
+        username: originalAdmin.username,
+        role: originalAdmin.role,
+        impersonated: false
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error stopping impersonation:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 module.exports = router;

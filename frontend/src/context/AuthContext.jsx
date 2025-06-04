@@ -155,6 +155,29 @@ export const AuthProvider = ({ children }) => {
       throw err;
     } finally {
       setLoading(false);
+
+  // Stop impersonation and return to original admin
+  const stopImpersonation = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post('/api/auth/stop-impersonation');
+      const { token: newToken, user: userData } = response.data;
+
+      // Save token to localStorage
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+      setUser(userData);
+      setError(null);
+
+      return userData;
+    } catch (err) {
+      console.error('Stop impersonation error:', err);
+      setError(err.response?.data?.message || 'Failed to stop impersonation');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
     }
   };
 
@@ -183,6 +206,7 @@ export const AuthProvider = ({ children }) => {
     isBasic,
     canEditEquipment,
     isImpersonating,
+    stopImpersonation,
     impersonateUser,
     getUsers
   };
