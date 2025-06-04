@@ -185,7 +185,7 @@ const startServer = async () => {
     await fixAdminUser();
     
     // Start server
-    const server = app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, () => {
       const address = server.address();
       console.log(`🚀 Theater Equipment Catalog API Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
