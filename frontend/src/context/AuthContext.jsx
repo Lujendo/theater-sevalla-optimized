@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }) => {
   const getUsers = async () => {
     try {
       const response = await axios.get('/api/auth/users');
-      return response.data.users;
+      return response.data; // Return users array directly
     } catch (err) {
       console.error('Get users error:', err);
       setError(err.response?.data?.message || 'Failed to get users');
