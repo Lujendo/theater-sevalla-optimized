@@ -30,6 +30,13 @@ const flexAuth = (options = {}) => {
     const authHeader = req.headers.authorization;
     const token = authHeader ? authHeader.split(' ')[1] : req.cookies?.token;
 
+    console.log('🔍 FlexAuth Debug:', {
+      path: req.path,
+      authHeader: authHeader ? 'Present' : 'Missing',
+      token: token ? 'Present' : 'Missing',
+      required: config.required
+    });
+
     if (!token) {
       // If authentication is required but no token provided
       if (config.required) {
