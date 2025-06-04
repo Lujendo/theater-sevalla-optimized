@@ -8,10 +8,10 @@ export const getCategories = async () => {
   try {
     const response = await axios.get('/api/categories');
     // Wrap the array in an object with a categories property to match the expected structure
-    return { categories: response.data };
+    return response.data;
   } catch (error) {
     console.error('Error fetching categories:', error);
-    return { categories: [] }; // Return empty array on error
+    return []; // Return empty array on error
   }
 };
 
