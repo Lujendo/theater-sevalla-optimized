@@ -69,12 +69,13 @@ async function migrateFresh() {
 async function seedDefaultData() {
   const { User, EquipmentType, Location } = require('../models');
   
+  const bcrypt = require('bcryptjs');
   try {
     // Create admin user
     console.log('👤 Creating admin user...');
     await User.create({
       username: 'admin',
-      password: 'admin123', // Will be hashed by model hooks
+      password: await bcrypt.hash('admin123', 10),
       role: 'admin'
     });
     console.log('   ✅ Admin user created (admin/admin123)');

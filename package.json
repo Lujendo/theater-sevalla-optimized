@@ -12,6 +12,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "migrate": "cd backend && node scripts/migrate-fresh.js",
     "migrate:fresh": "cd backend && node scripts/migrate-fresh.js",
+    "create-admin": "cd backend && node scripts/create-admin.js",
     "seed": "cd backend && npm run seed"
   },
   "keywords": [
