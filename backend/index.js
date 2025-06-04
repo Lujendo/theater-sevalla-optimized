@@ -35,6 +35,23 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
+// Debug: Log all requests to auth endpoints
+app.use((req, res, next) => {
+  if (req.path.includes('/auth')) {
+    console.log(`🌐 ${req.method} ${req.path} - Headers:`, req.headers['content-type']);
+    console.log(`🌐 Request body:`, req.body);
+  }
+  next();
+});
+
+// Request logging middleware
+app.use((req, res, next) => {
+  if (req.path.includes('/auth/login')) {
+    console.log(`🌐 ${req.method} ${req.path} - Body:`, req.body);
+  }
+  next();
+});
+
 // Trust proxy for Sevalla
 if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', true);
