@@ -15,9 +15,7 @@ const PORT = process.env.PORT || 8080; // Sevalla default port
 console.log('🚀 Starting Theater Equipment Catalog API Server...');
 console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🌐 Port: ${PORT}`);
-console.log(`🔧 PORT environment variable: ${process.env.PORT ? `SET to ${process.env.PORT}` : "NOT SET, using default 8080"}`);
-      console.log(`🔗 Server address: ${address.address}:${address.port}`);
-      console.log(`🔗 Server family: ${address.family}`);
+console.log(`🔧 PORT environment variable: ${process.env.PORT ? `SET to ${process.env.PORT}` : 'NOT SET, using default 8080'}`);
 
 // CORS Configuration for Sevalla
 const corsOptions = {
@@ -122,12 +120,47 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Serve static files from frontend build
+const fs = require('fs');
+const frontendPath = path.join(__dirname, '../frontend/dist');
+console.log(`📁 Frontend path: ${frontendPath}`);
+console.log(`📁 Frontend exists: ${fs.existsSync(frontendPath)}`);
+
+app.use(express.static(frontendPath));
+
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({
     message: 'API endpoint not found',
     path: req.path
   });
+});
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'API endpoint not found' });
+  }
+  
+  const indexPath = path.join(frontendPath, 'index.html');
+  console.log(`📄 Serving index.html from: ${indexPath}`);
+  console.log(`📄 Index.html exists: ${fs.existsSync(indexPath)}`);
+  
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send(`
+      <h1>Frontend build not found</h1>
+      <p>The frontend build files are missing. Please check if the build was successful.</p>
+      <p><strong>Looking for:</strong> ${indexPath}</p>
+      <p><strong>Frontend directory exists:</strong> ${fs.existsSync(frontendPath)}</p>
+      ${fs.existsSync(frontendPath) ? `<p><strong>Frontend contents:</strong> ${fs.readdirSync(frontendPath).join(', ')}</p>` : ''}
+      <hr>
+      <p><strong>API Health Check:</strong> <a href="/api/health">/api/health</a></p>
+      <p><strong>Build Command:</strong> Run <code>npm run build</code> to build the frontend</p>
+    `);
+  }
 });
 
 // Sevalla-optimized startup
@@ -148,7 +181,6 @@ const startServer = async () => {
       console.log(`🚀 Theater Equipment Catalog API Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 CORS enabled for: ${corsOptions.origin}`);
-      console.log(`🔧 PORT environment variable: ${process.env.PORT ? 'SET by Sevalla' : 'Using default 8080'}`);
       console.log(`🔗 Server address: ${address.address}:${address.port}`);
       console.log(`🔗 Server family: ${address.family}`);
       console.log('✅ Server startup completed successfully');
@@ -171,28 +203,3 @@ const startServer = async () => {
 startServer();
 
 module.exports = app;
-
-// Frontend serving - added for deployment
-const fs = require('fs');
-const frontendPath = path.join(__dirname, '../frontend/dist');
-
-// Serve static files
-app.use(express.static(frontendPath));
-
-// Catch-all for React Router
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'API endpoint not found' });
-  }
-  
-  const indexPath = path.join(frontendPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send(`
-      <h1>Frontend build not found</h1>
-      <p>Build files missing. Run: <code>npm run build</code></p>
-      <p><a href="/api/health">API Health Check</a></p>
-    `);
-  }
-});
