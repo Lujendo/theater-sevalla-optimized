@@ -22,7 +22,7 @@ const BatchActionsContextMenu = ({
 
   // Fetch data for dropdowns
   const { data: typesData } = useQuery({
-    queryKey: ['equipment-types'],
+    queryKey: ['equipmentTypes'],
     queryFn: getEquipmentTypes,
     staleTime: 300000, // 5 minutes
   });

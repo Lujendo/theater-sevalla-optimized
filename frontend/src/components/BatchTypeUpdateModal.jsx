@@ -15,7 +15,7 @@ const BatchTypeUpdateModal = ({ isOpen, onClose, selectedItems = [] }) => {
 
   // Fetch equipment types for dropdown
   const { data: typesData, isLoading: isTypesLoading } = useQuery({
-    queryKey: ['equipment-types'],
+    queryKey: ['equipmentTypes'],
     queryFn: getEquipmentTypes,
     staleTime: 300000, // 5 minutes
   });

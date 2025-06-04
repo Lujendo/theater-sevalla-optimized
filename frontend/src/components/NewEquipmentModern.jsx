@@ -35,7 +35,7 @@ const NewEquipmentModern = () => {
 
   // Fetch equipment types for dropdown
   const { data: typesData } = useQuery({
-    queryKey: ['equipment-types'],
+    queryKey: ['equipmentTypes'],
     queryFn: getEquipmentTypes,
     staleTime: 300000, // 5 minutes
   });
