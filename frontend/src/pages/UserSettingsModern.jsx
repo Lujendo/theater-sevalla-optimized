@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import EquipmentTypeManagerModern from '../components/EquipmentTypeManagerModern';
 import CategoryManagerModern from '../components/CategoryManagerModern';
 import LocationManagement from '../components/LocationManagement';
+import DatabaseManager from '../components/DatabaseManager';
 import { Card, Button, Input } from '../components/ui';
 
 // Icons
