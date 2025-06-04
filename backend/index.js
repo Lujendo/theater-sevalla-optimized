@@ -197,6 +197,10 @@ const startServer = async () => {
     await sequelize.sync({ alter: false, force: false });
     console.log('✅ Database models synced successfully');
     
+    // Ensure EquipmentType table exists with default data
+    console.log('🔧 Checking EquipmentType table...');
+    await ensureEquipmentTypes();
+    
     // Fix admin user password if needed
     // console.log('🔧 Checking admin user...'); // DISABLED
     // await fixAdminUser(); // DISABLED - causing password conflicts
@@ -263,6 +267,38 @@ async function fixAdminUser() {
     }
   } catch (error) {
     console.error('❌ Failed to fix admin user:', error);
+    // Don't crash the server
+  }
+}
+
+// Ensure EquipmentType table exists with default data
+async function ensureEquipmentTypes() {
+  try {
+    const { EquipmentType } = require('./models');
+    
+    // Test if we can query the table
+    const count = await EquipmentType.count();
+    console.log('✅ EquipmentType table accessible, count:', count);
+    
+    if (count === 0) {
+      console.log('🔧 Adding default equipment types...');
+      const defaultTypes = [
+        'Lighting',
+        'Sound',
+        'Video',
+        'Stage Equipment',
+        'Rigging',
+        'Control Systems'
+      ];
+      
+      for (const typeName of defaultTypes) {
+        await EquipmentType.create({ name: typeName });
+      }
+      
+      console.log('✅ Default equipment types added');
+    }
+  } catch (error) {
+    console.error('❌ Error ensuring EquipmentType table:', error);
     // Don't crash the server
   }
 }

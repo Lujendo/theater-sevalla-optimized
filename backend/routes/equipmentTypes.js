@@ -10,6 +10,12 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
     console.log('🔍 GET /equipment-types - User:', req.user?.username);
     console.log('🔍 EquipmentType model available:', !!EquipmentType);
+    
+    // Check if table exists
+    console.log('🔍 Checking if EquipmentType table exists...');
+    const tableExists = await sequelize.getQueryInterface().showAllTables();
+    console.log('📊 Available tables:', tableExists);
+    console.log('🔍 EquipmentType table exists:', tableExists.includes('EquipmentTypes'));
   try {
     const types = await EquipmentType.findAll({
       order: [['name', 'ASC']]
