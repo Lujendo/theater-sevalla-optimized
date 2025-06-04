@@ -81,7 +81,7 @@ const NewEquipmentModern = () => {
     let updatedFormData = { ...formData, [name]: value };
 
     // Special handling for category_id
-    if (name === 'category_id' && value && categoriesData?.categories) {
+    if (name === 'category_id' && value && categoriesData) {
       // Find the category name from the selected category_id
       const selectedCategory = categoriesData.categories.find(cat => cat.id.toString() === value);
 
@@ -245,8 +245,8 @@ const NewEquipmentModern = () => {
 
       <EquipmentForm
         formData={formData}
-        equipmentTypes={typesData?.types || []}
-        categoriesData={categoriesData?.categories || []}
+        equipmentTypes={typesData || []}
+        categoriesData={categoriesData || []}
         statusOptions={statusOptions}
         locationsData={locationsData}
         handleInputChange={handleInputChange}
