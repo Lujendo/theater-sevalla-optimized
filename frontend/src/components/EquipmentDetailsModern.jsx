@@ -146,12 +146,12 @@ const EquipmentDetailsModern = () => {
   const refImageId = equipment.reference_image_id ? parseInt(equipment.reference_image_id) : null;
 
   // Check if reference image exists in files
+  const referenceImage = equipment.files?.find(file => file.id === refImageId);
   console.log('[EQUIPMENT DETAILS] refImageId:', refImageId);
   console.log('[EQUIPMENT DETAILS] referenceImage found:', referenceImage ? 'Yes' : 'No');
   if (referenceImage) {
     console.log('[EQUIPMENT DETAILS] referenceImage:', referenceImage);
   }
-  const referenceImage = equipment.files?.find(file => file.id === refImageId);
 
   return (
     <div className="space-y-6">
