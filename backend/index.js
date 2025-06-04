@@ -15,6 +15,7 @@ const PORT = process.env.PORT || 8080; // Sevalla default port
 console.log('🚀 Starting Theater Equipment Catalog API Server...');
 console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🌐 Port: ${PORT}`);
+console.log(`🔧 PORT environment variable: ${process.env.PORT ? `SET to ${process.env.PORT}` : "NOT SET, using default 8080"}`);
 
 // CORS Configuration for Sevalla
 const corsOptions = {
