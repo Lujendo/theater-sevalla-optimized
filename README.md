@@ -2,6 +2,8 @@
 
 A modern, full-stack application for managing theater audio and video equipment with a React frontend, Node.js/Express backend, and MySQL database. Optimized for deployment on Sevalla platform with enhanced performance and user experience.
 
+**Latest Update**: Added beautiful analytics summary with direct filtering to Dashboard! 🎯
+
 ## ✨ Key Features
 
 ### 🔐 Authentication & Security
