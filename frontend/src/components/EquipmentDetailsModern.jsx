@@ -137,10 +137,20 @@ const EquipmentDetailsModern = () => {
     }
   };
 
+  // Debug: Log equipment data
+  console.log('[EQUIPMENT DETAILS] Equipment data:', equipment);
+  console.log('[EQUIPMENT DETAILS] reference_image_id:', equipment.reference_image_id);
+  console.log('[EQUIPMENT DETAILS] files:', equipment.files);
+  console.log('[EQUIPMENT DETAILS] files count:', equipment.files?.length || 0);
   // Convert reference_image_id to number for proper comparison
   const refImageId = equipment.reference_image_id ? parseInt(equipment.reference_image_id) : null;
 
   // Check if reference image exists in files
+  console.log('[EQUIPMENT DETAILS] refImageId:', refImageId);
+  console.log('[EQUIPMENT DETAILS] referenceImage found:', referenceImage ? 'Yes' : 'No');
+  if (referenceImage) {
+    console.log('[EQUIPMENT DETAILS] referenceImage:', referenceImage);
+  }
   const referenceImage = equipment.files?.find(file => file.id === refImageId);
 
   return (

@@ -197,6 +197,8 @@ const mediaAccess = {
     try {
       const filePath = req.filePath;
 
+    console.log('[MEDIA-ACCESS] File exists check:', fs.existsSync(filePath));
+    console.log('[MEDIA-ACCESS] File stats:', fs.existsSync(filePath) ? fs.statSync(filePath) : 'File not found');
       console.log(`[MEDIA-ACCESS] Streaming file to response: ${filePath}`);
 
       // Stream file to response
