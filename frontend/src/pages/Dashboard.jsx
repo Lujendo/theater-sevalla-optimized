@@ -393,9 +393,6 @@ const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLo
 
   return (
     <div className="space-y-6">
-      {/* Filtered Equipment List */}
-      {renderFilteredEquipmentList()}
-
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -491,6 +488,9 @@ const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLo
           </svg>
         )}
       </div>
+
+      {/* Filtered Equipment List */}
+      {renderFilteredEquipmentList()}
     </div>
   );
 };
