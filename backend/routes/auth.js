@@ -5,6 +5,7 @@ const { authenticate, isAdmin, restrictTo, logImpersonation } = require('../midd
 const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+
 // CSRF token endpoint (for frontend compatibility)
 router.get('/csrf-token', (req, res) => {
   // For now, return a simple token - in production you might want proper CSRF protection
@@ -12,29 +13,41 @@ router.get('/csrf-token', (req, res) => {
   res.json({ csrfToken });
 });
 
-// Login route (rate limited)
+// Login route (rate limited) with debugging
 router.post('/login', authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    console.log('🔐 Login attempt:', { username, passwordLength: password?.length });
 
     // Validate input
     if (!username || !password) {
+      console.log('❌ Missing credentials');
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
     // Find user
     const user = await User.findOne({ where: { username } });
+    console.log('👤 User found:', user ? `ID: ${user.id}, Username: ${user.username}` : 'NOT FOUND');
 
     if (!user) {
+      console.log('❌ User not found in database');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    console.log('🔑 Password hash in DB:', user.password?.substring(0, 20) + '...');
+    console.log('🔑 Password length in DB:', user.password?.length);
 
     // Check password
     const isMatch = await user.checkPassword(password);
+    console.log('🔍 Password match result:', isMatch);
 
     if (!isMatch) {
+      console.log('❌ Password does not match');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    
+    console.log('✅ Login successful for user:', username);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -51,18 +64,89 @@ router.post('/login', authLimiter, async (req, res) => {
         role: user.role
       }
     });
+
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('❌ Login error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Register route (admin only)
-router.post('/register', authenticate, isAdmin, async (req, res) => {
+// Logout route
+router.post('/logout', (req, res) => {
+  res.json({ message: 'Logged out successfully' });
+});
+
+// Get current user
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Change password
+router.put('/change-password', authenticate, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const user = await User.findByPk(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check current password
+    const isMatch = await user.checkPassword(currentPassword);
+
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Admin routes
+router.get('/users', authenticate, isAdmin, async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/users', authenticate, isAdmin, async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // Validate input
     if (!username || !password) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
@@ -74,99 +158,74 @@ router.post('/register', authenticate, isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Username already exists' });
     }
 
-    // Create new user
     const user = await User.create({
       username,
       password,
       role: role || 'user'
     });
 
-    res.status(201).json({
-      message: 'User created successfully',
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role
-      }
-    });
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    res.status(201).json(userResponse);
+
   } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// Get current user route
-router.get('/me', authenticate, (req, res) => {
-  res.json({
-    user: {
-      id: req.user.id,
-      username: req.user.username,
-      role: req.user.role
-    }
-  });
-});
-
-/**
- * Impersonate user route (admin only)
- * Allows admin users to generate a token for another user
- */
-router.post('/impersonate/:userId', authLimiter, authenticate, restrictTo('admin'), logImpersonation, async (req, res) => {
+router.put('/users/:id', authenticate, isAdmin, async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { id } = req.params;
+    const { username, role, password } = req.body;
 
-    // Find target user
-    const targetUser = await User.findByPk(userId);
+    const user = await User.findByPk(id);
 
-    if (!targetUser) {
+    if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Generate JWT token for target user
-    const token = jwt.sign(
-      {
-        id: targetUser.id,
-        username: targetUser.username,
-        role: targetUser.role,
-        impersonatedBy: {
-          id: req.user.id,
-          username: req.user.username
-        }
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
+    // Update fields
+    if (username) user.username = username;
+    if (role) user.role = role;
+    if (password) user.password = password;
 
-    res.json({
-      token,
-      user: {
-        id: targetUser.id,
-        username: targetUser.username,
-        role: targetUser.role,
-        impersonated: true
-      },
-      message: `You are now impersonating ${targetUser.username}`
-    });
+    await user.save();
+
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    res.json(userResponse);
+
   } catch (error) {
-    console.error('Impersonation error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating user:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-/**
- * List users route (admin only)
- * Returns a list of all users for admin to choose who to impersonate
- */
-router.get('/users', authenticate, restrictTo('admin'), async (req, res) => {
+router.delete('/users/:id', authenticate, isAdmin, async (req, res) => {
   try {
-    const users = await User.findAll({
-      attributes: ['id', 'username', 'role', 'created_at'],
-      order: [['username', 'ASC']]
-    });
+    const { id } = req.params;
 
-    res.json({ users });
+    // Prevent deleting yourself
+    if (parseInt(id) === req.user.id) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await user.destroy();
+
+    res.json({ message: 'User deleted successfully' });
+
   } catch (error) {
-    console.error('List users error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error deleting user:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
