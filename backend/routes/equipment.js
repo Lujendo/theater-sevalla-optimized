@@ -272,6 +272,14 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
         console.log(`[EQUIPMENT CREATE] ${key}:`, req.files[key].length, 'files');
       });
     }
+    // Debug: Log all received files
+    console.log('[EQUIPMENT CREATE] req.files:', req.files ? Object.keys(req.files) : 'No files');
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        console.log(`[EQUIPMENT CREATE] ${key}:`, req.files[key].length, 'files');
+      });
+    }
+    console.log('[EQUIPMENT CREATE] req.body.reference_image_id:', req.body.reference_image_id);
     // Handle file uploads if any
     let createdFiles = [];
 
@@ -315,6 +323,9 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       createdFiles = await File.bulkCreate(fileRecords);
     }
 
+    // Debug: Check for reference image
+    console.log('[EQUIPMENT CREATE] Checking for reference image...');
+    console.log('[EQUIPMENT CREATE] req.files.referenceImage:', req.files?.referenceImage ? 'Present' : 'Not found');
     // Debug: Check for reference image
     console.log('[EQUIPMENT CREATE] Checking for reference image...');
     console.log('[EQUIPMENT CREATE] req.files.referenceImage:', req.files?.referenceImage ? 'Present' : 'Not found');
