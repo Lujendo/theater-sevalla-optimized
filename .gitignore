@@ -7,7 +7,7 @@ package-lock.json
 yarn.lock
 
 # Production builds
-client/dist/
+# client/dist/ - Temporarily commented out for Sevalla deployment
 client/build/
 server/dist/
 server/build/
