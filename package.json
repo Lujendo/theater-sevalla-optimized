@@ -1,0 +1,32 @@
+{
+  "name": "theater-equipment-sevalla",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Theater Equipment Catalog - Sevalla Connected Applications Optimized",
+  "main": "backend/index.js",
+  "scripts": {
+    "start": "cd backend && npm install && npm start",
+    "build": "cd frontend && npm install && npm run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "migrate": "cd backend && npm run migrate",
+    "seed": "cd backend && npm run seed"
+  },
+  "keywords": [
+    "theater",
+    "equipment",
+    "catalog",
+    "sevalla",
+    "connected-applications"
+  ],
+  "author": "Theater Management",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}
