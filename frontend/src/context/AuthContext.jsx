@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const response = await axios.get('/api/auth/me');
-        setUser(response.data);
+        setUser(response.data.user);
         setError(null);
       } catch (err) {
         console.error('Token verification failed:', err);
@@ -155,6 +155,20 @@ export const AuthProvider = ({ children }) => {
       throw err;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Get list of users (admin only)
+  const getUsers = async () => {
+    try {
+      const response = await axios.get('/api/auth/users');
+      return response.data; // Return users array directly
+    } catch (err) {
+      console.error('Get users error:', err);
+      setError(err.response?.data?.message || 'Failed to get users');
+      throw err;
+    }
+  };
 
   // Stop impersonation and return to original admin
   const stopImpersonation = async () => {
@@ -178,20 +192,6 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
-    }
-  };
-
-  // Get list of users (admin only)
-  const getUsers = async () => {
-    try {
-      const response = await axios.get('/api/auth/users');
-      return response.data; // Return users array directly
-    } catch (err) {
-      console.error('Get users error:', err);
-      setError(err.response?.data?.message || 'Failed to get users');
-      throw err;
-    }
-  };
 
   const value = {
     user,
@@ -206,8 +206,8 @@ export const AuthProvider = ({ children }) => {
     isBasic,
     canEditEquipment,
     isImpersonating,
-    stopImpersonation,
     impersonateUser,
+    stopImpersonation,
     getUsers
   };
 
