@@ -158,28 +158,3 @@ const startServer = async () => {
 startServer();
 
 module.exports = app;
-
-// Frontend serving - added for deployment
-const fs = require('fs');
-const frontendPath = path.join(__dirname, '../frontend/dist');
-
-// Serve static files
-app.use(express.static(frontendPath));
-
-// Catch-all for React Router
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'API endpoint not found' });
-  }
-  
-  const indexPath = path.join(frontendPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send(`
-      <h1>Frontend build not found</h1>
-      <p>Build files missing. Run: <code>npm run build</code></p>
-      <p><a href="/api/health">API Health Check</a></p>
-    `);
-  }
-});
