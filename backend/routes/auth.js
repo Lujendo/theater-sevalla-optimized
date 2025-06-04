@@ -49,6 +49,9 @@ router.post('/login', authLimiter, async (req, res) => {
     
     console.log('✅ Login successful for user:', username);
 
+    console.log('🔑 JWT secret exists:', process.env.JWT_SECRET ? 'YES' : 'NO');
+    console.log('🔑 JWT expires in:', process.env.JWT_EXPIRES_IN);
+
     // Generate JWT token
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
