@@ -75,6 +75,259 @@ const ChartBarIcon = () => (
   </svg>
 );
 
+// Filter Summary List Component
+const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLoading }) => {
+  // Calculate filter summaries from equipment data
+  const calculateFilterSummaries = () => {
+    if (!equipmentData || equipmentData.length === 0) {
+      return {
+        status: {},
+        categories: {},
+        types: {},
+        locations: {},
+        brands: {},
+        models: {}
+      };
+    }
+
+    const summaries = {
+      status: {},
+      categories: {},
+      types: {},
+      locations: {},
+      brands: {},
+      models: {}
+    };
+
+    equipmentData.forEach(item => {
+      // Count by status
+      const status = item.status || 'unknown';
+      summaries.status[status] = (summaries.status[status] || 0) + 1;
+
+      // Count by category
+      const category = item.category || 'Uncategorized';
+      summaries.categories[category] = (summaries.categories[category] || 0) + 1;
+
+      // Count by type
+      const type = item.type || 'Unknown';
+      summaries.types[type] = (summaries.types[type] || 0) + 1;
+
+      // Count by location
+      const location = item.location || 'No Location';
+      summaries.locations[location] = (summaries.locations[location] || 0) + 1;
+
+      // Count by brand
+      const brand = item.brand || 'Unknown';
+      summaries.brands[brand] = (summaries.brands[brand] || 0) + 1;
+
+      // Count by model
+      const model = item.model || 'Unknown';
+      summaries.models[model] = (summaries.models[model] || 0) + 1;
+    });
+
+    return summaries;
+  };
+
+  const summaries = calculateFilterSummaries();
+
+  // Get status badge color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available':
+        return 'text-green-700 bg-green-100 border-green-200';
+      case 'in-use':
+        return 'text-yellow-700 bg-yellow-100 border-yellow-200';
+      case 'maintenance':
+        return 'text-red-700 bg-red-100 border-red-200';
+      default:
+        return 'text-gray-700 bg-gray-100 border-gray-200';
+    }
+  };
+
+  // Check if a filter is active
+  const isFilterActive = (filterType, value) => {
+    switch (filterType) {
+      case 'status':
+        return currentFilters.status === value;
+      case 'category':
+        return currentFilters.category === value;
+      case 'type':
+        return currentFilters.type === value;
+      case 'location':
+        return currentFilters.location === value;
+      case 'brand':
+        return currentFilters.brand === value;
+      case 'model':
+        return currentFilters.model === value;
+      default:
+        return false;
+    }
+  };
+
+  // Handle filter click
+  const handleFilterClick = (filterType, value) => {
+    const newFilters = {};
+
+    // If the same filter is clicked, clear it; otherwise set it
+    if (isFilterActive(filterType, value)) {
+      newFilters[filterType] = '';
+    } else {
+      newFilters[filterType] = value;
+    }
+
+    onFilterChange(newFilters);
+  };
+
+  // Render filter section
+  const renderFilterSection = (title, data, filterType, icon) => {
+    const entries = Object.entries(data).sort((a, b) => b[1] - a[1]); // Sort by count descending
+
+    if (entries.length === 0) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200">
+          <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+            {icon}
+            {title}
+          </h3>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {entries.map(([value, count]) => {
+            const isActive = isFilterActive(filterType, value);
+            return (
+              <button
+                key={value}
+                onClick={() => handleFilterClick(filterType, value)}
+                className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${
+                  isActive ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {filterType === 'status' && (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(value)}`}>
+                        {value}
+                      </span>
+                    )}
+                    {filterType !== 'status' && (
+                      <span className="text-sm font-medium text-slate-800 capitalize">
+                        {value}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${isActive ? 'text-blue-700' : 'text-slate-600'}`}>
+                      {count}
+                    </span>
+                    {isActive && (
+                      <svg className="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+            <div className="animate-pulse">
+              <div className="h-4 bg-slate-200 rounded w-1/4 mb-3"></div>
+              <div className="space-y-2">
+                <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+                <div className="h-3 bg-slate-200 rounded w-1/2"></div>
+                <div className="h-3 bg-slate-200 rounded w-2/3"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h2 className="text-lg font-semibold text-blue-800 mb-2 flex items-center gap-2">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          Filter Summary View
+        </h2>
+        <p className="text-sm text-blue-700">
+          Click on any item below to filter the equipment list. Active filters are highlighted.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {renderFilterSection(
+          'Status',
+          summaries.status,
+          'status',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+
+        {renderFilterSection(
+          'Categories',
+          summaries.categories,
+          'category',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        )}
+
+        {renderFilterSection(
+          'Types',
+          summaries.types,
+          'type',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        )}
+
+        {renderFilterSection(
+          'Locations',
+          summaries.locations,
+          'location',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        )}
+
+        {renderFilterSection(
+          'Brands',
+          summaries.brands,
+          'brand',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        )}
+
+        {renderFilterSection(
+          'Models',
+          summaries.models,
+          'model',
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h2m0-8h2m-2 0V3m0 2v2m2-2h2a2 2 0 012 2v6a2 2 0 01-2 2h-2m0 0v2a2 2 0 01-2 2H9a2 2 0 01-2-2v-2m2 0h2" />
+          </svg>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Analytics Summary Component
 const AnalyticsSummary = ({ equipmentData, onFilterChange, currentFilters, isLoading }) => {
   // Calculate analytics from equipment data
@@ -989,7 +1242,7 @@ const AdvancedDashboard = () => {
                     ? 'bg-primary-600 text-white'
                     : 'bg-white text-slate-600 hover:bg-slate-50'
                 }`}
-                title="List view"
+                title="Filter Summary view"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -1068,113 +1321,14 @@ const AdvancedDashboard = () => {
               </div>
             )}
 
-            {/* List View */}
+            {/* List View - Filter Summary */}
             {viewMode === 'list' && (
-              <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Equipment
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Serial Number
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Location
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {equipmentList.map(equipment => (
-                        <tr 
-                          key={equipment.id} 
-                          className="hover:bg-slate-50 cursor-pointer"
-                          onClick={() => window.location.href = `/equipment/${equipment.id}`}
-                        >
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                {equipment.images && equipment.images.length > 0 ? (
-                                  <img
-                                    className="h-10 w-10 rounded-lg object-cover"
-                                    src={getFileUrl(equipment.images[0])}
-                                    alt={`${equipment.brand} ${equipment.model}`}
-                                  />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-lg bg-slate-200 flex items-center justify-center">
-                                    <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-slate-900">
-                                  {equipment.brand} {equipment.model}
-                                </div>
-                                {equipment.category && (
-                                  <div className="text-sm text-slate-500">
-                                    {equipment.category}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                            {equipment.type}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                            {equipment.serial_number}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={
-                              equipment.status === 'available' ? 'success' :
-                              equipment.status === 'in-use' ? 'info' :
-                              equipment.status === 'maintenance' ? 'warning' : 'secondary'
-                            }>
-                              {equipment.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                            {equipment.location || 'Not specified'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <Link
-                                to={`/equipment/${equipment.id}`}
-                                className="text-primary-600 hover:text-primary-900"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                View
-                              </Link>
-                              {canEditEquipment() && (
-                                <Link
-                                  to={`/equipment/${equipment.id}/edit`}
-                                  className="text-slate-600 hover:text-slate-900"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  Edit
-                                </Link>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <FilterSummaryList
+                equipmentData={allEquipmentData?.equipment || []}
+                onFilterChange={handleAnalyticsFilterChange}
+                currentFilters={filters}
+                isLoading={isLoading}
+              />
             )}            {/* Infinite scroll loading indicator */}
             <div ref={observerTarget} className="py-4 text-center">
               {isFetchingNextPage ? (
