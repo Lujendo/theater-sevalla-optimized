@@ -4,7 +4,7 @@ backend/node_modules/
 frontend/node_modules/
 
 # Build outputs
-frontend/dist/
+# frontend/dist/ - Include for Sevalla deployment
 backend/dist/
 build/
 
