@@ -133,6 +133,7 @@ router.put('/change-password', authenticate, async (req, res) => {
 
 // Admin routes
 router.get('/users', authenticate, isAdmin, async (req, res) => {
+    console.log('🔍 GET /auth/users - User:', req.user?.username, 'Role:', req.user?.role);
   try {
     const users = await User.findAll({
       attributes: { exclude: ['password'] },

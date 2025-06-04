@@ -8,6 +8,8 @@ const router = express.Router();
 
 // Get all equipment types
 router.get('/', authenticate, async (req, res) => {
+    console.log('🔍 GET /equipment-types - User:', req.user?.username);
+    console.log('🔍 EquipmentType model available:', !!EquipmentType);
   try {
     const types = await EquipmentType.findAll({
       order: [['name', 'ASC']]
