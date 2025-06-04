@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getEquipment } from '../services/equipmentService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
@@ -55,7 +55,6 @@ const Dashboard = () => {
   const [savedSearchName, setSavedSearchName] = useState('');
 
   // State for advanced filters
-  const [showFilters, setShowFilters] = useState(false);
 
   // Fetch equipment summary for stats
   const { data: summaryData, isLoading: isLoadingSummary } = useQuery(['equipment-summary'], () =>
@@ -498,145 +497,8 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Filter Panel */}
-      <div
-        id="filter-panel"
-        className={`bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden transition-all duration-300 ${
-          showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'
-        }`}
-      >
-        <div className="p-4">
-          <h2 className="text-lg font-medium text-slate-800 mb-4">Advanced Filters</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Type filter */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Equipment Type
-              </label>
-              <select
-                name="type"
-                value={filters.type}
-                onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              >
-                <option value="">All Types</option>
-                {typesData?.types && typesData.types.length > 0 ? (
-                  typesData.types.map((type) => (
-                    <option key={type.id} value={type.name.toLowerCase()}>
-                      {type.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="" disabled>Loading types...</option>
-                )}
-              </select>
-            </div>
-
-            {/* Brand filter */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Brand
-              </label>
-              <input
-                type="text"
-                name="brand"
-                value={filters.brand}
-                onChange={handleFilterChange}
-                placeholder="Filter by brand"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              />
-            </div>
-
-            {/* Status filter */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Status
-              </label>
-              <select
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              >
-                <option value="">All Statuses</option>
-                <option value="available">Available</option>
-                <option value="in-use">In Use</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-            </div>
-
-            {/* Location filter */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Location
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={filters.location}
-                onChange={handleFilterChange}
-                placeholder="Filter by location"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              />
-            </div>
-
-            {/* Date range filter */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Date Range
-              </label>
-              <DatePicker
-                selectsRange={true}
-                startDate={filters.dateRange.startDate}
-                endDate={filters.dateRange.endDate}
-                onChange={handleDateRangeChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-                placeholderText="Select date range"
-                isClearable
-              />
-            </div>
-
-            {/* Sort options */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Sort By
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              >
-                <option value="updated_at">Last Updated</option>
-                <option value="brand">Brand</option>
-                <option value="model">Model</option>
-                <option value="type">Type</option>
-                <option value="status">Status</option>
-                <option value="location">Location</option>
-              </select>
-            </div>
-
-            {/* Sort order */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Sort Order
-              </label>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-              >
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Results Table */}
-
-
+      {/* Search Results */}
       {hasSearched ? (
         <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-200 flex justify-between items-center">
@@ -654,41 +516,35 @@ const Dashboard = () => {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
-              Clear Filters
+              Clear Search
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 text-left">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    Equipment
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Brand
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Model
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Serial Number
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Location
-                  </th>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {isLoading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-slate-500">
+                    <td colSpan="5" className="px-6 py-4 text-center text-slate-500">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
                         Loading...
@@ -697,68 +553,58 @@ const Dashboard = () => {
                   </tr>
                 ) : isError ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-red-500">
+                    <td colSpan="5" className="px-6 py-4 text-center text-red-500">
                       Error loading equipment: {error.message}
                     </td>
                   </tr>
                 ) : equipmentList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-slate-500">
+                    <td colSpan="5" className="px-6 py-4 text-center text-slate-500">
                       No equipment found matching your search criteria
                     </td>
                   </tr>
                 ) : (
                   equipmentList.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50">
+                    <tr 
+                      key={item.id} 
+                      className="hover:bg-slate-50 cursor-pointer"
+                      onClick={() => navigate(`/equipment/${item.id}`)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">
+                              {item.brand} {item.model}
+                            </div>
+                            {item.category && (
+                              <div className="text-sm text-slate-500">
+                                {item.category}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                         {item.type}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.brand}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.model}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                         {item.serial_number}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            item.status === 'available'
-                              ? 'bg-green-100 text-green-800'
-                              : item.status === 'in-use'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          item.status === 'available' 
+                            ? 'bg-green-100 text-green-800'
+                            : item.status === 'in-use'
+                            ? 'bg-blue-100 text-blue-800'
+                            : item.status === 'maintenance'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
                           {item.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.location || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        <div className="flex space-x-2">
-                          <Link
-                            to={`/equipment/${item.id}`}
-                            className="text-primary-600 hover:text-primary-900"
-                            title="View details"
-                          >
-                            <ViewIcon className="w-5 h-5" />
-                          </Link>
-                          {canEditEquipment() && (
-                            <>
-                              <Link
-                                to={`/equipment/${item.id}/edit`}
-                                className="text-slate-600 hover:text-slate-900"
-                                title="Edit equipment"
-                              >
-                                <EditIcon className="w-5 h-5" />
-                              </Link>
-                            </>
-                          )}
-                        </div>
+                        {item.location || 'Not specified'}
                       </td>
                     </tr>
                   ))
@@ -782,14 +628,63 @@ const Dashboard = () => {
           </div>
         </div>
       ) : (
-        // Show dashboard summary when no search is performed
-        <div className="grid grid-cols-1 gap-6">
-          <DashboardSummary
-            stats={stats}
-            isLoading={isLoadingSummary}
-            onFilterByStatus={handleFilterByStatus}
-            onFilterByType={handleFilterByType}
-          />
+        /* Dashboard Overview */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-slate-600">Total Equipment</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.total}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-green-100 text-green-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-slate-600">Available</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.available}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-blue-100 text-blue-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-slate-600">In Use</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.inUse}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+            <div className="flex items-center">
+              <div className="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-slate-600">Maintenance</p>
+                <p className="text-2xl font-semibold text-slate-900">{stats.maintenance}</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
