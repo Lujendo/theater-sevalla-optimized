@@ -4,7 +4,7 @@ import axios from 'axios';
 export const getEquipmentTypes = async () => {
   try {
     const response = await axios.get('/api/equipment-types');
-    return response.data; // Return the whole data object which contains 'types' array
+    return response.data.types; // Return the types array directly
   } catch (error) {
     console.error('Error fetching equipment types:', error);
     throw error;
