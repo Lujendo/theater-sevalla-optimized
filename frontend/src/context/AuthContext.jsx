@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const response = await axios.get('/api/auth/me');
-        setUser(response.data.user);
+        setUser(response.data); // Backend returns user directly
         setError(null);
       } catch (err) {
         console.error('Token verification failed:', err);
