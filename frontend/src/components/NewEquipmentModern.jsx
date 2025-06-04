@@ -61,7 +61,7 @@ const NewEquipmentModern = () => {
     mutationFn: async (data) => {
       // We don't need to create a FormData object here
       // The createEquipment service function will handle that
-      return createEquipment(data.equipment, data.files);
+      return createEquipment(data.equipment, data.files, data.referenceImageFile);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['equipment']);
@@ -83,7 +83,7 @@ const NewEquipmentModern = () => {
     // Special handling for category_id
     if (name === 'category_id' && value && categoriesData) {
       // Find the category name from the selected category_id
-      const selectedCategory = categoriesData.categories.find(cat => cat.id.toString() === value);
+      const selectedCategory = categoriesData.find(cat => cat.id.toString() === value);
 
       if (selectedCategory) {
         console.log('Selected category:', selectedCategory);
@@ -225,7 +225,7 @@ const NewEquipmentModern = () => {
       equipment: {
         ...formData,
         // If reference_image_id is 'new', it will be handled by the backend
-        reference_image_id: formData.reference_image_id === 'new' ? 'new' : formData.reference_image_id,
+        // reference_image_id will be handled by the service
       },
       files: regularFiles,
       referenceImageFile: referenceImageFile,
