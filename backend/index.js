@@ -16,6 +16,8 @@ console.log('🚀 Starting Theater Equipment Catalog API Server...');
 console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 console.log(`🌐 Port: ${PORT}`);
 console.log(`🔧 PORT environment variable: ${process.env.PORT ? `SET to ${process.env.PORT}` : "NOT SET, using default 8080"}`);
+      console.log(`🔗 Server address: ${address.address}:${address.port}`);
+      console.log(`🔗 Server family: ${address.family}`);
 
 // CORS Configuration for Sevalla
 const corsOptions = {
@@ -141,12 +143,22 @@ const startServer = async () => {
     console.log('✅ Database models synced successfully');
     
     // Start server
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
+      const address = server.address();
       console.log(`🚀 Theater Equipment Catalog API Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🌐 CORS enabled for: ${corsOptions.origin}`);
       console.log(`🔧 PORT environment variable: ${process.env.PORT ? 'SET by Sevalla' : 'Using default 8080'}`);
+      console.log(`🔗 Server address: ${address.address}:${address.port}`);
+      console.log(`🔗 Server family: ${address.family}`);
       console.log('✅ Server startup completed successfully');
+    });
+    
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+      }
     });
     
   } catch (error) {
