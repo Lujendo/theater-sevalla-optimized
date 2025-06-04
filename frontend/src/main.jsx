@@ -9,11 +9,28 @@ import axios from 'axios'
 console.log('API URL:', import.meta.env.VITE_API_URL);
 
 // Set axios base URL from environment variable
-// In Docker environment, we need to use the correct service name
-// Do NOT include /api in the base URL as it's included in the route paths
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// In production (when served from the same domain), use relative URLs
+// In development, use localhost
+const getApiUrl = () => {
+  // If VITE_API_URL is explicitly set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // In production (when served from the same domain), use relative URLs
+  if (import.meta.env.PROD) {
+    return window.location.origin;
+  }
+  
+  // In development, use localhost
+  return 'http://localhost:5000';
+};
+
+const apiUrl = getApiUrl();
 axios.defaults.baseURL = apiUrl;
 console.log('Setting axios baseURL to:', apiUrl);
+console.log('Environment mode:', import.meta.env.MODE);
+console.log('Is production:', import.meta.env.PROD);
 
 // Configure axios with CSRF token before rendering the app
 const renderApp = async () => {
