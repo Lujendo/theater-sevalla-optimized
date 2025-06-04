@@ -265,6 +265,13 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     // Log the equipment creation
     await equipmentLogService.logCreation(equipment.id, req.user.id, equipmentData);
 
+    // Debug: Log all received files
+    console.log('[EQUIPMENT CREATE] req.files:', req.files ? Object.keys(req.files) : 'No files');
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        console.log(`[EQUIPMENT CREATE] ${key}:`, req.files[key].length, 'files');
+      });
+    }
     // Handle file uploads if any
     let createdFiles = [];
 
@@ -308,6 +315,9 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       createdFiles = await File.bulkCreate(fileRecords);
     }
 
+    // Debug: Check for reference image
+    console.log('[EQUIPMENT CREATE] Checking for reference image...');
+    console.log('[EQUIPMENT CREATE] req.files.referenceImage:', req.files?.referenceImage ? 'Present' : 'Not found');
     // Process reference image if provided
     if (req.files && req.files.referenceImage && req.files.referenceImage.length > 0) {
       const referenceImageFile = req.files.referenceImage[0];
@@ -571,6 +581,13 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       // Continue with the request even if file deletion fails
     }
 
+    // Debug: Log all received files
+    console.log('[EQUIPMENT CREATE] req.files:', req.files ? Object.keys(req.files) : 'No files');
+    if (req.files) {
+      Object.keys(req.files).forEach(key => {
+        console.log(`[EQUIPMENT CREATE] ${key}:`, req.files[key].length, 'files');
+      });
+    }
     // Handle file uploads if any
     let createdFiles = [];
 
@@ -614,6 +631,9 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       createdFiles = await File.bulkCreate(fileRecords);
     }
 
+    // Debug: Check for reference image
+    console.log('[EQUIPMENT CREATE] Checking for reference image...');
+    console.log('[EQUIPMENT CREATE] req.files.referenceImage:', req.files?.referenceImage ? 'Present' : 'Not found');
     // Process reference image if provided
     if (req.files && req.files.referenceImage && req.files.referenceImage.length > 0) {
       try {
