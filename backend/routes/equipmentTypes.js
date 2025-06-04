@@ -12,15 +12,14 @@ router.get('/', authenticate, async (req, res) => {
     console.log('🔍 EquipmentType model available:', !!EquipmentType);
     
     // Check if table exists
-    console.log('🔍 Checking if EquipmentType table exists...');
-    const tableExists = await sequelize.getQueryInterface().showAllTables();
-    console.log('📊 Available tables:', tableExists);
-    console.log('🔍 EquipmentType table exists:', tableExists.includes('EquipmentTypes'));
   try {
+    console.log('🔍 Starting EquipmentType.findAll query...');
     const types = await EquipmentType.findAll({
       order: [['name', 'ASC']]
     });
 
+    console.log('✅ Query successful, found types:', types.length);
+    console.log('📊 Types:', types.map(t => t.name));
     res.json({ types });
   } catch (error) {
     console.error('Get equipment types error:', error);
