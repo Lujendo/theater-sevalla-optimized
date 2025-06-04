@@ -134,12 +134,14 @@ router.put('/change-password', authenticate, async (req, res) => {
 // Admin routes
 router.get('/users', authenticate, isAdmin, async (req, res) => {
     console.log('🔍 GET /auth/users - User:', req.user?.username, 'Role:', req.user?.role);
+    console.log('🔍 Attempting to fetch users with created_at ordering...');
   try {
     const users = await User.findAll({
       attributes: { exclude: ['password'] },
-      order: [['createdAt', 'DESC']]
+      order: [['created_at', 'DESC']]
     });
 
+    console.log('✅ Users fetched successfully, count:', users.length);
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
