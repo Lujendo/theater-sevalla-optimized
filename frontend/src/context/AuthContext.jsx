@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true);
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await axios.post('/api/auth/users', userData);
       return response.data;
     } catch (err) {
       console.error('Register error:', err);
