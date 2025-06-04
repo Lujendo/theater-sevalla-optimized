@@ -5,6 +5,12 @@ const { authenticate, isAdmin, restrictTo, logImpersonation } = require('../midd
 const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
+// CSRF token endpoint (for frontend compatibility)
+router.get('/csrf-token', (req, res) => {
+  // For now, return a simple token - in production you might want proper CSRF protection
+  const csrfToken = 'theater-app-csrf-token';
+  res.json({ csrfToken });
+});
 
 // Login route (rate limited)
 router.post('/login', authLimiter, async (req, res) => {

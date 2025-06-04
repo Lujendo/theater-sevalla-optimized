@@ -39,6 +39,11 @@ app.use(cookieParser());
 if (process.env.TRUST_PROXY === 'true') {
   app.set('trust proxy', true);
   console.log('🔧 Trust proxy enabled for Sevalla');
+// CSRF token endpoint (for frontend compatibility)
+app.get('/api/csrf-token', (req, res) => {
+  const csrfToken = 'theater-app-csrf-token';
+  res.json({ csrfToken });
+});
 }
 
 // Health check endpoints
