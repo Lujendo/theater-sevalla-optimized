@@ -217,13 +217,13 @@ const NewEquipmentModern = () => {
     }
 
     // Check if there's a reference image file
-    const referenceImageFile = formData.reference_image_id === 'new'
+    const selectedReferenceImageFile = formData.reference_image_id === 'new'
       ? referenceImageFile
       : null;
 
     // Remove the reference image from files if it exists
-    const regularFiles = referenceImageFile
-      ? files.filter(file => file !== referenceImageFile)
+    const regularFiles = selectedReferenceImageFile
+      ? files.filter(file => file !== selectedReferenceImageFile)
       : files;
 
     createMutation.mutate({
@@ -233,7 +233,7 @@ const NewEquipmentModern = () => {
         // reference_image_id will be handled by the service
       },
       files: regularFiles,
-      referenceImageFile: referenceImageFile,
+      referenceImageFile: selectedReferenceImageFile,
     });
   };
 
