@@ -259,6 +259,10 @@ const AdvancedDashboard = () => {
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
+
+  // View mode state (list or card) - default to list view
+  const [viewMode, setViewMode] = useState('list');
+
   // State for saved search name
   const [savedSearchName, setSavedSearchName] = useState('');
   const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
@@ -721,7 +725,49 @@ const AdvancedDashboard = () => {
         </div>
       </div>
 
-      {/* Results Grid */}
+
+      {/* Results Header with View Toggle */}
+      <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 mb-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-lg font-medium text-slate-800">Equipment Results</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {equipmentList.length} items found
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            {/* View toggle buttons */}
+            <div className="flex border border-slate-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                title="List view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('card')}
+                className={`px-3 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'card'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                title="Card view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>      {/* Results Grid */}
       <div>
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -764,18 +810,128 @@ const AdvancedDashboard = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {equipmentList.map(equipment => (
-                <EquipmentCard
-                  key={equipment.id}
-                  equipment={equipment}
-                  canEdit={canEditEquipment()}
-                  searchTerm={filters.search}
-                />
-              ))}
-            </div>
+            {/* Card View */}
+            {viewMode === 'card' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {equipmentList.map(equipment => (
+                  <EquipmentCard
+                    key={equipment.id}
+                    equipment={equipment}
+                    canEdit={canEditEquipment()}
+                    searchTerm={filters.search}
+                  />
+                ))}
+              </div>
+            )}
 
-            {/* Infinite scroll loading indicator */}
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Equipment
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Serial Number
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Location
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {equipmentList.map(equipment => (
+                        <tr 
+                          key={equipment.id} 
+                          className="hover:bg-slate-50 cursor-pointer"
+                          onClick={() => window.location.href = `/equipment/${equipment.id}`}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                {equipment.images && equipment.images.length > 0 ? (
+                                  <img
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    src={getFileUrl(equipment.images[0])}
+                                    alt={`${equipment.brand} ${equipment.model}`}
+                                  />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-lg bg-slate-200 flex items-center justify-center">
+                                    <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-slate-900">
+                                  {equipment.brand} {equipment.model}
+                                </div>
+                                {equipment.category && (
+                                  <div className="text-sm text-slate-500">
+                                    {equipment.category}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {equipment.type}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {equipment.serial_number}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={
+                              equipment.status === 'available' ? 'success' :
+                              equipment.status === 'in-use' ? 'info' :
+                              equipment.status === 'maintenance' ? 'warning' : 'secondary'
+                            }>
+                              {equipment.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                            {equipment.location || 'Not specified'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <Link
+                                to={`/equipment/${equipment.id}`}
+                                className="text-primary-600 hover:text-primary-900"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View
+                              </Link>
+                              {canEditEquipment() && (
+                                <Link
+                                  to={`/equipment/${equipment.id}/edit`}
+                                  className="text-slate-600 hover:text-slate-900"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Edit
+                                </Link>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}            {/* Infinite scroll loading indicator */}
             <div ref={observerTarget} className="py-4 text-center">
               {isFetchingNextPage ? (
                 <div className="flex justify-center items-center space-x-2">
