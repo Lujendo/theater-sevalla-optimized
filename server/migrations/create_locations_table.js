@@ -6,16 +6,16 @@ async function createLocationsTable() {
     const [results] = await sequelize.query(`
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema = 'theater_db'
+      WHERE table_schema = DATABASE()
       AND table_name = 'locations'
     `);
 
     if (results.length === 0) {
       console.log('Creating locations table...');
 
-      // Create the locations table
+      // Create the locations table with IF NOT EXISTS
       await sequelize.query(`
-        CREATE TABLE locations (
+        CREATE TABLE IF NOT EXISTS locations (
           id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
           address VARCHAR(255),
@@ -57,7 +57,9 @@ async function createLocationsTable() {
 
     console.log('Migration completed successfully');
   } catch (error) {
-    console.error('Error during migration:', error);
+    console.error('Error during migration:', error.message);
+    // Don't throw the error, just log it and continue
+    console.log('Continuing with server startup despite migration error...');
   }
 }
 

@@ -51,13 +51,27 @@ cd theater-equipment-catalog
 
 ## 🗄️ Database Setup
 
-### Option 1: Sevalla MySQL Add-on
-1. In your Sevalla dashboard, add a MySQL add-on
-2. Use the provided connection details in your environment variables
+### Option 1: Sevalla Database Add-on (Recommended - Much Cheaper!)
 
-### Option 2: External MySQL (PlanetScale, Railway, etc.)
-1. Create a MySQL database on your preferred provider
-2. Add the connection details to your environment variables
+**PostgreSQL Add-on (Recommended)**
+1. In your Sevalla project dashboard, go to "Add-ons"
+2. Click "Add" next to PostgreSQL
+3. Choose your plan (usually starts free or very low cost)
+4. Once provisioned, copy the `DATABASE_URL` from the add-on details
+5. Set `DATABASE_URL` as an environment variable in Sevalla
+
+**MySQL Add-on (Alternative)**
+1. In your Sevalla project dashboard, go to "Add-ons"
+2. Click "Add" next to MySQL (if available)
+3. Choose your plan
+4. Copy the `DATABASE_URL` from the add-on details
+5. Set `DATABASE_URL` as an environment variable in Sevalla
+
+### Option 2: External Database (More Expensive)
+Only use if Sevalla add-ons don't meet your needs:
+- PlanetScale (PostgreSQL-compatible)
+- Railway (PostgreSQL/MySQL)
+- AWS RDS, Google Cloud SQL, etc.
 
 ### Database Schema
 The application will automatically:
@@ -67,15 +81,27 @@ The application will automatically:
 
 ## 🔧 Environment Variables Reference
 
+### For Sevalla Database Add-on (Recommended)
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `NODE_ENV` | Environment mode | `production` |
-| `PORT` | Server port | `10000` |
-| `DB_HOST` | MySQL host | `mysql.sevalla.app` |
-| `DB_USER` | MySQL username | `theater_user` |
-| `DB_PASSWORD` | MySQL password | `secure_password` |
+| `DATABASE_URL` | Database connection URL from Sevalla add-on | `postgres://user:pass@host:5432/db` |
+| `JWT_SECRET` | JWT signing secret | `your-super-secret-key` |
+| `JWT_EXPIRES_IN` | Token expiration | `24h` |
+| `FRONTEND_URL` | Frontend URL for CORS | `https://your-app.sevalla.app` |
+| `MAX_FILE_SIZE` | Max upload size (bytes) | `52428800` (50MB) |
+| `MAX_FILES` | Max files per upload | `5` |
+
+### For External Database (Alternative)
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment mode | `production` |
+| `DB_DIALECT` | Database type | `postgres` or `mysql` |
+| `DB_HOST` | Database host | `your-db-host.com` |
+| `DB_USER` | Database username | `theater_user` |
+| `DB_PASSWORD` | Database password | `secure_password` |
 | `DB_NAME` | Database name | `theater_db` |
-| `DB_PORT` | MySQL port | `3306` |
+| `DB_PORT` | Database port | `5432` (PostgreSQL) or `3306` (MySQL) |
 | `JWT_SECRET` | JWT signing secret | `your-super-secret-key` |
 | `JWT_EXPIRES_IN` | Token expiration | `24h` |
 | `FRONTEND_URL` | Frontend URL for CORS | `https://your-app.sevalla.app` |

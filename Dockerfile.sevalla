@@ -1,41 +1,40 @@
 # Theater Equipment Catalog - Sevalla Deployment
-# Multi-stage build for production deployment
+# Simplified single-stage build for reliable deployment
 
-# Stage 1: Build the React frontend
-FROM node:18-alpine AS frontend-build
-
-WORKDIR /app/client
-COPY client/package*.json ./
-RUN npm ci
-COPY client/ ./
-RUN npm run build
-
-# Stage 2: Prepare the backend
-FROM node:18-alpine AS backend-build
-
-WORKDIR /app/server
-COPY server/package*.json ./
-RUN npm ci --only=production
-COPY server/ ./
-
-# Stage 3: Final production image
 FROM node:18-alpine
 
-# Install system dependencies
+# Install system dependencies including PostgreSQL client
 RUN apk add --no-cache \
     curl \
     bash \
+    postgresql-client \
+    mysql-client \
     && rm -rf /var/cache/apk/*
 
 # Create app directory
 WORKDIR /app
 
-# Copy backend files
-COPY --from=backend-build /app/server ./server
-COPY --from=backend-build /app/server/node_modules ./server/node_modules
+# Copy package files first for better caching
+COPY package*.json ./
+COPY client/package*.json ./client/
+COPY server/package*.json ./server/
 
-# Copy built frontend
-COPY --from=frontend-build /app/client/dist ./client/dist
+# Install server dependencies (production only)
+RUN cd server && npm ci --only=production
+
+# Install client dependencies (including dev dependencies for build)
+RUN cd client && npm ci
+
+# Copy source code
+COPY client/ ./client/
+COPY server/ ./server/
+
+# Build the frontend (explicitly run from client directory)
+WORKDIR /app/client
+RUN npm run build
+
+# Switch back to app directory
+WORKDIR /app
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/server/uploads/images \
@@ -44,6 +43,9 @@ RUN mkdir -p /app/server/uploads/images \
              /app/server/uploads/thumbnails \
              /app/server/logs \
     && chown -R node:node /app
+
+# Clean up client node_modules to reduce image size
+RUN rm -rf /app/client/node_modules
 
 # Set environment variables
 ENV NODE_ENV=production

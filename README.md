@@ -1,21 +1,47 @@
 # Theater Equipment Catalog Management System
 
-A full-stack application for managing theater audio and video equipment with a React frontend, Node.js/Express backend, and MySQL database.
+A modern, full-stack application for managing theater audio and video equipment with a React frontend, Node.js/Express backend, and MySQL database. Optimized for deployment on Sevalla platform with enhanced performance and user experience.
 
-## Features
+## ✨ Key Features
 
-- User authentication with JWT
-- Role-based access control (admin/advanced/basic)
-- Equipment management (CRUD operations)
-- Advanced Dashboard with sophisticated search capabilities
-- Saved searches for quick access to frequently used filters
-- File uploads (images, audio, PDFs)
-- Inline editing of equipment details
-- User impersonation for admin users
-- Bulk import/export of equipment data (CSV, XLSX, JSON)
-- Responsive UI with Tailwind CSS
-- Dockerized development and production environment
-- phpMyAdmin for database management
+### 🔐 Authentication & Security
+- JWT-based user authentication
+- Role-based access control (admin/manager/user)
+- Secure API endpoints with middleware protection
+- User impersonation for admin troubleshooting
+
+### 📊 Equipment Management
+- Complete CRUD operations for equipment
+- Advanced search with real-time filtering
+- Simplified Dashboard with clean interface
+- Equipment details with comprehensive information
+- Status tracking (Available, In Use, Maintenance)
+
+### 🔍 Enhanced Search Experience
+- **Simplified Search Interface** - Clean, intuitive design
+- **Real-time Search** - Instant results as you type (300ms debounce)
+- **Clickable Results** - Click any equipment row to view details
+- **Smart Filtering** - Search across brand, model, serial number
+- **Infinite Scroll** - Seamless loading of more results
+
+### 📁 File Management
+- Multi-file uploads (images, audio, PDFs)
+- Secure file storage with access control
+- File gallery with preview capabilities
+- Drag-and-drop file upload interface
+
+### 📈 Data Management
+- Bulk import/export (CSV, XLSX, JSON)
+- Equipment categories and types management
+- Location management system
+- Equipment logs and history tracking
+
+### 🎨 Modern UI/UX
+- Responsive design with Tailwind CSS
+- Modern card-based layouts
+- Clean, professional interface
+- Mobile-optimized experience
+- Toast notifications for user feedback
 
 ## Tech Stack
 

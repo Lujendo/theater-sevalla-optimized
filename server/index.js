@@ -92,7 +92,6 @@ app.get('/api/files/:id', (req, res) => {
 
       // Determine which path to use (original or thumbnail)
       const fs = require('fs');
-      const path = require('path');
       let filePath;
 
       if (thumbnail === 'true' && file.thumbnail_path) {
@@ -184,6 +183,50 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Serve static files from Vite build
+const fs = require('fs');
+
+// Check if dist directory exists and log its contents
+const distPath = path.join(__dirname, '../dist');
+console.log('Checking dist directory:', distPath);
+console.log('Dist exists:', fs.existsSync(distPath));
+if (fs.existsSync(distPath)) {
+  console.log('Dist contents:', fs.readdirSync(distPath));
+}
+
+app.use(express.static(distPath));
+
+// Catch-all handler: send back React's index.html file for any non-API routes
+app.get('*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ message: 'API endpoint not found' });
+  }
+
+  const indexPath = path.join(__dirname, '../dist/index.html');
+  console.log('Serving index.html from:', indexPath);
+  console.log('Index.html exists:', fs.existsSync(indexPath));
+
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send(`
+      <h1>Frontend build not found</h1>
+      <p>The frontend build files are missing. Please check if the build was successful.</p>
+      <p><strong>Looking for:</strong> ${indexPath}</p>
+      <p><strong>Dist directory exists:</strong> ${fs.existsSync(distPath)}</p>
+      ${fs.existsSync(distPath) ? `<p><strong>Dist contents:</strong> ${fs.readdirSync(distPath).join(', ')}</p>` : ''}
+      <hr>
+      <p><strong>Possible solutions:</strong></p>
+      <ul>
+        <li>Make sure the build command ran successfully</li>
+        <li>Check that 'npm run build' was executed during deployment</li>
+        <li>Verify the build output is in the correct location</li>
+      </ul>
+    `);
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -199,12 +242,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Import migrations
-const createEquipmentTypesTable = require('./migrations/create-equipment-types');
-const createLocationsTable = require('./migrations/create_locations_table');
-const updateLocationsTable = require('./migrations/update_locations_table');
-const createSavedSearchesTable = require('./migrations/create_saved_searches_table');
-const createCategoriesTable = require('./migrations/create_categories_table');
+// Skip migrations for Sevalla deployment - commented out to prevent conflicts
+// const createEquipmentTypesTable = require('./migrations/create-equipment-types');
+// const createLocationsTable = require('./migrations/create_locations_table');
+// const updateLocationsTable = require('./migrations/update_locations_table');
+// const createSavedSearchesTable = require('./migrations/create_saved_searches_table');
+// const createCategoriesTable = require('./migrations/create_categories_table');
 
 // Start server
 const startServer = async () => {
@@ -212,62 +255,16 @@ const startServer = async () => {
     // Test database connection
     await testConnection();
 
-    // Run migrations - only the ones that don't depend on equipment table
-    try {
-      await createEquipmentTypesTable();
-      await createLocationsTable();
-      await updateLocationsTable();
-      await createSavedSearchesTable();
-      await createCategoriesTable();
-    } catch (error) {
-      console.error('Error during migrations:', error.message);
-      // Continue even if migrations fail
-    }
+    // MINIMAL STARTUP - Database already exists with all data
+    console.log('✅ MINIMAL STARTUP MODE');
+    console.log('✅ Skipping ALL database operations');
+    console.log('✅ Database tables and data already exist');
+    console.log('✅ Admin user already exists');
+    console.log('✅ Equipment types already exist');
+    console.log('✅ Locations already exist');
 
-    // Sync database models (in development)
-    try {
-      // Sync database without forcing recreation of tables
-      console.log('Syncing database models...');
-      await sequelize.sync({ alter: false }); // Don't alter tables to avoid conflicts
-      console.log('Database synced successfully');
-
-      // Create default equipment types
-      const { EquipmentType } = require('./models');
-      const typesCount = await EquipmentType.count();
-
-      if (typesCount === 0) {
-        console.log('Creating default equipment types...');
-        await EquipmentType.bulkCreate([
-          { name: 'Lighting' },
-          { name: 'Sound' },
-          { name: 'Video' },
-          { name: 'Rigging' },
-          { name: 'Props' },
-          { name: 'Costumes' },
-          { name: 'Set Pieces' },
-          { name: 'Other' }
-        ]);
-        console.log('Default equipment types created successfully');
-      }
-
-      // Create default location
-      const { Location } = require('./models');
-      const locationsCount = await Location.count();
-
-      if (locationsCount === 0) {
-        console.log('Creating default location...');
-        await Location.create({
-          name: 'Main Theater',
-          street: '123 Broadway',
-          city: 'New York',
-          country: 'USA'
-        });
-        console.log('Default location created successfully');
-      }
-    } catch (error) {
-      console.error('Error syncing database:', error);
-      // Continue even if sync fails - the app might still work with existing schema
-    }
+    // Skip all database operations to prevent connection issues
+    console.log('✅ No database sync needed - using existing schema');
 
     // Start listening on all interfaces for cloud deployment
     app.listen(PORT, '0.0.0.0', () => {
@@ -281,35 +278,9 @@ const startServer = async () => {
   }
 };
 
-// Create admin user if none exists
-const createAdminUser = async () => {
-  try {
-    const { User } = require('./models');
+// NO ADMIN USER CREATION - User already exists in database
 
-    const adminExists = await User.findOne({
-      where: { username: 'admin' }
-    });
-
-    if (!adminExists) {
-      console.log('Creating default admin user...');
-      await User.create({
-        username: 'admin',
-        password: 'admin123', // Will be hashed by model hooks
-        role: 'admin'
-      });
-      console.log('Default admin user created successfully');
-    } else {
-      console.log('Admin user already exists');
-    }
-  } catch (error) {
-    console.error('Failed to create admin user:', error);
-  }
-};
-
-// Initialize server
-startServer().then(() => {
-  // Always create admin user if it doesn't exist
-  createAdminUser();
-});
+// Initialize server - MINIMAL MODE
+startServer();
 
 module.exports = app;

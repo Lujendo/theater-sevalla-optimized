@@ -1,14 +1,13 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: 'mysql',
-    port: process.env.DB_PORT || 3306,
+// Determine database configuration
+let sequelizeConfig;
+
+if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL if provided (common for Sevalla add-ons)
+  sequelizeConfig = {
+    url: process.env.DATABASE_URL,
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {
       max: 5,
@@ -16,10 +15,43 @@ const sequelize = new Sequelize(
       idle: 10000
     },
     dialectOptions: {
-      connectTimeout: 60000
+      ssl: process.env.NODE_ENV === 'production' ? {
+        require: true,
+        rejectUnauthorized: false
+      } : false
     }
-  }
-);
+  };
+} else {
+  // Use individual environment variables
+  const dialect = process.env.DB_DIALECT || 'mysql';
+  const port = dialect === 'postgres' ? 5432 : 3306;
+
+  sequelizeConfig = {
+    database: process.env.DB_NAME,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    host: process.env.DB_HOST,
+    dialect: dialect,
+    port: process.env.DB_PORT || port,
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    pool: {
+      max: 5,
+      acquire: 30000,
+      idle: 10000
+    },
+    dialectOptions: {
+      connectTimeout: 60000,
+      ssl: process.env.NODE_ENV === 'production' && dialect === 'postgres' ? {
+        require: true,
+        rejectUnauthorized: false
+      } : undefined
+    }
+  };
+}
+
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(sequelizeConfig.url, sequelizeConfig)
+  : new Sequelize(sequelizeConfig);
 
 const testConnection = async () => {
   try {
