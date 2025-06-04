@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getEquipment } from '../services/equipmentService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
+import { getCategories } from '../services/categoryService';
 import { getSavedSearches, saveSearch, deleteSavedSearch } from '../services/savedSearchService';
+import { Card, Button, Input, Select, Badge } from '../components/ui';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import DatePicker from 'react-datepicker';
@@ -16,10 +18,231 @@ import {
   ViewIcon,
   EditIcon,
 } from '../components/Icons';
-import DashboardSummary from '../components/DashboardSummary';
 
 // Import SavedSearchChip component
 import SavedSearchChip from '../components/SavedSearchChip';
+
+const TrendingUpIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+  </svg>
+);
+
+const ChartBarIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+  </svg>
+);
+
+// Analytics Summary Component
+const AnalyticsSummary = ({ equipmentData, onFilterChange, currentFilters, isLoading }) => {
+  // Calculate analytics from equipment data
+  const calculateAnalytics = () => {
+    if (!equipmentData || equipmentData.length === 0) {
+      return {
+        total: 0,
+        available: 0,
+        inUse: 0,
+        maintenance: 0,
+        categories: {},
+        types: {},
+        locations: {},
+        brands: {},
+        recentlyAdded: 0
+      };
+    }
+
+    const analytics = {
+      total: equipmentData.length,
+      available: 0,
+      inUse: 0,
+      maintenance: 0,
+      categories: {},
+      types: {},
+      locations: {},
+      brands: {},
+      recentlyAdded: 0
+    };
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    equipmentData.forEach(item => {
+      // Count by status
+      if (item.status === 'available') analytics.available++;
+      else if (item.status === 'in-use') analytics.inUse++;
+      else if (item.status === 'maintenance') analytics.maintenance++;
+
+      // Count by category
+      const category = item.category || 'Uncategorized';
+      analytics.categories[category] = (analytics.categories[category] || 0) + 1;
+
+      // Count by type
+      const type = item.type || 'Unknown';
+      analytics.types[type] = (analytics.types[type] || 0) + 1;
+
+      // Count by location
+      const location = item.location || 'No Location';
+      analytics.locations[location] = (analytics.locations[location] || 0) + 1;
+
+      // Count by brand
+      const brand = item.brand || 'Unknown';
+      analytics.brands[brand] = (analytics.brands[brand] || 0) + 1;
+
+      // Count recently added (last 7 days)
+      if (new Date(item.created_at) > oneWeekAgo) {
+        analytics.recentlyAdded++;
+      }
+    });
+
+    return analytics;
+  };
+
+  const analytics = calculateAnalytics();
+
+  // Status cards data
+  const statusCards = [
+    {
+      title: 'Total Equipment',
+      value: analytics.total,
+      icon: <ChartBarIcon />,
+      color: 'blue',
+      filter: { status: '' },
+      description: 'All equipment in system'
+    },
+    {
+      title: 'Available',
+      value: analytics.available,
+      icon: <TrendingUpIcon />,
+      color: 'green',
+      filter: { status: 'available' },
+      description: 'Ready for use'
+    },
+    {
+      title: 'In Use',
+      value: analytics.inUse,
+      icon: <TrendingUpIcon />,
+      color: 'yellow',
+      filter: { status: 'in-use' },
+      description: 'Currently deployed'
+    },
+    {
+      title: 'Maintenance',
+      value: analytics.maintenance,
+      icon: <TrendingUpIcon />,
+      color: 'red',
+      filter: { status: 'maintenance' },
+      description: 'Under repair'
+    }
+  ];
+
+  // Get color classes for different variants
+  const getColorClasses = (color, isActive = false) => {
+    const colors = {
+      blue: {
+        bg: isActive ? 'bg-blue-100 border-blue-500' : 'bg-blue-50 hover:bg-blue-100',
+        text: 'text-blue-700',
+        border: 'border-l-4 border-blue-500',
+        icon: 'text-blue-600'
+      },
+      green: {
+        bg: isActive ? 'bg-green-100 border-green-500' : 'bg-green-50 hover:bg-green-100',
+        text: 'text-green-700',
+        border: 'border-l-4 border-green-500',
+        icon: 'text-green-600'
+      },
+      yellow: {
+        bg: isActive ? 'bg-yellow-100 border-yellow-500' : 'bg-yellow-50 hover:bg-yellow-100',
+        text: 'text-yellow-700',
+        border: 'border-l-4 border-yellow-500',
+        icon: 'text-yellow-600'
+      },
+      red: {
+        bg: isActive ? 'bg-red-100 border-red-500' : 'bg-red-50 hover:bg-red-100',
+        text: 'text-red-700',
+        border: 'border-l-4 border-red-500',
+        icon: 'text-red-600'
+      }
+    };
+    return colors[color] || colors.blue;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status Overview Cards */}
+      <div>
+        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+          <ChartBarIcon />
+          Equipment Analytics
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {statusCards.map((card, index) => {
+            const isActive = currentFilters.status === card.filter.status;
+            const colorClasses = getColorClasses(card.color, isActive);
+
+            return (
+              <button
+                key={index}
+                onClick={() => onFilterChange(card.filter)}
+                className={`${colorClasses.bg} ${colorClasses.border} p-4 rounded-lg transition-all duration-200 hover:shadow-md cursor-pointer text-left group ${
+                  isActive ? 'ring-2 ring-offset-2 ring-blue-500' : ''
+                }`}
+                title={`Filter by ${card.title.toLowerCase()}: ${card.description}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className={`text-sm font-medium ${colorClasses.text} mb-1`}>
+                      {card.title}
+                    </h3>
+                    <p className={`text-2xl font-bold ${colorClasses.text}`}>
+                      {isLoading ? '...' : card.value.toLocaleString()}
+                    </p>
+                    <p className={`text-xs ${colorClasses.text} opacity-75 mt-1`}>
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className={`${colorClasses.icon} group-hover:scale-110 transition-transform`}>
+                    {card.icon}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Quick Stats Bar */}
+      <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold text-primary-700">
+              {Object.keys(analytics.brands).length}
+            </p>
+            <p className="text-sm text-primary-600">Brands</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-primary-700">
+              {Object.keys(analytics.types).length}
+            </p>
+            <p className="text-sm text-primary-600">Types</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-primary-700">
+              {Object.keys(analytics.locations).length}
+            </p>
+            <p className="text-sm text-primary-600">Locations</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-green-700">
+              {analytics.recentlyAdded}
+            </p>
+            <p className="text-sm text-green-600">Added This Week</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { user, canEditEquipment } = useAuth();
@@ -158,6 +381,21 @@ const Dashboard = () => {
     staleTime: 300000, // 5 minutes
   });
 
+  // Fetch categories for filter
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories
+  });
+
+  // Fetch all equipment for analytics (without pagination)
+  const { data: allEquipmentData } = useQuery(
+    ['equipment-analytics'],
+    () => getEquipment({ limit: 10000 }), // Get all equipment for analytics
+    {
+      keepPreviousData: true,
+    }
+  );
+
   // Debounced search handler
   const debouncedSearch = useCallback(
     debounce((value) => {
@@ -245,6 +483,18 @@ const Dashboard = () => {
     setFilters(updatedFilters);
 
     // Set hasSearched to true since we're filtering by type
+    setHasSearched(true);
+
+    // Show filters panel when filtering
+    setShowFilters(true);
+  };
+
+  // Handle analytics filter changes
+  const handleAnalyticsFilterChange = (newFilters) => {
+    const updatedFilters = { ...filters, ...newFilters };
+    setFilters(updatedFilters);
+
+    // Set hasSearched to true when filtering from analytics
     setHasSearched(true);
 
     // Show filters panel when filtering
@@ -782,13 +1032,13 @@ const Dashboard = () => {
           </div>
         </div>
       ) : (
-        // Show dashboard summary when no search is performed
+        // Show analytics summary when no search is performed
         <div className="grid grid-cols-1 gap-6">
-          <DashboardSummary
-            stats={stats}
+          <AnalyticsSummary
+            equipmentData={allEquipmentData?.equipment || []}
+            onFilterChange={handleAnalyticsFilterChange}
+            currentFilters={filters}
             isLoading={isLoadingSummary}
-            onFilterByStatus={handleFilterByStatus}
-            onFilterByType={handleFilterByType}
           />
         </div>
       )}
