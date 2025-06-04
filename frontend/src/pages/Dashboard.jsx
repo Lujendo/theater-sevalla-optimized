@@ -294,7 +294,8 @@ const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLo
               </h3>
               <div className="flex flex-wrap gap-2 mt-2">
                 {Object.entries(currentFilters).map(([key, value]) => {
-                  if (!value || (typeof value === 'string' && value.trim() === '')) return null;
+                  // Skip dateRange object and empty values
+                  if (!value || key === 'dateRange' || (typeof value === 'string' && value.trim() === '')) return null;
                   return (
                     <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                       <span className="capitalize">{key}:</span>
@@ -929,7 +930,7 @@ const AdvancedDashboard = () => {
       };
 
       // Format date range if present
-      if (filters.dateRange.startDate && filters.dateRange.endDate) {
+      if (filters.dateRange && filters.dateRange.startDate && filters.dateRange.endDate) {
         params.startDate = filters.dateRange.startDate.toISOString();
         params.endDate = filters.dateRange.endDate.toISOString();
       }
@@ -1381,8 +1382,8 @@ const AdvancedDashboard = () => {
               </label>
               <DatePicker
                 selectsRange={true}
-                startDate={filters.dateRange.startDate}
-                endDate={filters.dateRange.endDate}
+                startDate={filters.dateRange?.startDate || null}
+                endDate={filters.dateRange?.endDate || null}
                 onChange={handleDateRangeChange}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
                 placeholderText="Select date range"
