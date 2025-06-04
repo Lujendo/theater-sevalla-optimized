@@ -9,10 +9,13 @@ const { authenticate, restrictTo } = require('../middleware/auth');
  * @access Private
  */
 router.get('/', authenticate, async (req, res) => {
+    console.log('🔍 GET /categories - User:', req.user?.username);
   try {
     const categories = await Category.findAll({
       order: [['name', 'ASC']]
     });
+    console.log('✅ Categories fetched successfully, count:', categories.length);
+    console.log('📊 Categories:', categories.map(c => c.name));
     res.json(categories);
   } catch (error) {
     console.error('Error fetching categories:', error);

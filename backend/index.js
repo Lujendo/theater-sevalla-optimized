@@ -201,6 +201,10 @@ const startServer = async () => {
     console.log('🔧 Checking EquipmentType table...');
     await ensureEquipmentTypes();
     
+    // Ensure Categories table exists with default data
+    console.log('🔧 Checking Categories table...');
+    await ensureCategories();
+    
     // Fix admin user password if needed
     // console.log('🔧 Checking admin user...'); // DISABLED
     // await fixAdminUser(); // DISABLED - causing password conflicts
@@ -299,6 +303,38 @@ async function ensureEquipmentTypes() {
     }
   } catch (error) {
     console.error('❌ Error ensuring EquipmentType table:', error);
+    // Don't crash the server
+  }
+}
+
+// Ensure Categories table exists with default data
+async function ensureCategories() {
+  try {
+    const { Category } = require('./models');
+    
+    // Test if we can query the table
+    const count = await Category.count();
+    console.log('✅ Category table accessible, count:', count);
+    
+    if (count === 0) {
+      console.log('🔧 Adding default categories...');
+      const defaultCategories = [
+        { name: 'Audio Equipment', description: 'Microphones, speakers, mixers, and audio processing equipment' },
+        { name: 'Lighting Equipment', description: 'Stage lights, LED panels, controllers, and lighting accessories' },
+        { name: 'Video Equipment', description: 'Cameras, projectors, screens, and video processing equipment' },
+        { name: 'Stage Equipment', description: 'Rigging, truss, staging platforms, and structural equipment' },
+        { name: 'Control Systems', description: 'DMX controllers, network equipment, and automation systems' },
+        { name: 'Cables & Accessories', description: 'Audio cables, power cables, adapters, and small accessories' }
+      ];
+      
+      for (const categoryData of defaultCategories) {
+        await Category.create(categoryData);
+      }
+      
+      console.log('✅ Default categories added');
+    }
+  } catch (error) {
+    console.error('❌ Error ensuring Category table:', error);
     // Don't crash the server
   }
 }
