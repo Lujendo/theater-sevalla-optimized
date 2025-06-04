@@ -255,7 +255,7 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     };
 
     // Only add reference_image_id if it's not empty
-    if (reference_image_id && reference_image_id !== '') {
+    if (reference_image_id && reference_image_id !== '' && reference_image_id !== 'new') {
       equipmentData.reference_image_id = reference_image_id;
     }
 
