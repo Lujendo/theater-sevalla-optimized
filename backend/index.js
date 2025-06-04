@@ -180,6 +180,10 @@ const startServer = async () => {
     await sequelize.sync({ alter: false, force: false });
     console.log('✅ Database models synced successfully');
     
+    // Fix admin user password if needed
+    console.log('🔧 Checking admin user...');
+    await fixAdminUser();
+    
     // Start server
     const server = app.listen(PORT, '0.0.0.0', () => {
       const address = server.address();
@@ -208,3 +212,40 @@ const startServer = async () => {
 startServer();
 
 module.exports = app;
+
+// Fix admin user function
+async function fixAdminUser() {
+  try {
+    const { User } = require('./models');
+    const bcrypt = require('bcryptjs');
+    
+    const adminUser = await User.findOne({ where: { username: 'admin' } });
+    
+    if (!adminUser) {
+      console.log('⚠️  No admin user found, creating one...');
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await User.create({
+        username: 'admin',
+        password: hashedPassword,
+        role: 'admin',
+        email: 'admin@theater.local'
+      });
+      console.log('✅ Admin user created successfully!');
+      return;
+    }
+    
+    // Test password
+    const isMatch = await bcrypt.compare('admin123', adminUser.password);
+    if (!isMatch) {
+      console.log('🔧 Fixing admin password...');
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+      await adminUser.update({ password: hashedPassword });
+      console.log('✅ Admin password fixed successfully!');
+    } else {
+      console.log('✅ Admin user password is correct');
+    }
+  } catch (error) {
+    console.error('❌ Failed to fix admin user:', error);
+    // Don't crash the server
+  }
+}
