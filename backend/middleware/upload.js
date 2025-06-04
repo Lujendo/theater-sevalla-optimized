@@ -19,7 +19,7 @@ const IMAGE_THUMBNAIL_SIZE = 300; // 300px width for thumbnails
 const IMAGE_QUALITY = 80; // JPEG quality (0-100)
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = process.env.UPLOADS_DIR || '/var/lib/data/tonlager/uploads';
 const imageDir = path.join(uploadsDir, 'images');
 const audioDir = path.join(uploadsDir, 'audio');
 const pdfDir = path.join(uploadsDir, 'pdfs');
