@@ -1,18 +1,23 @@
 const { sequelize, testConnection } = require('../config/database');
-const mysql = require('mysql2/promise');
 
 // Fresh migration script - creates new database and all tables
+// Optimized for MySQL 9.0
 async function migrateFresh() {
-  console.log('🚀 Starting fresh database migration...');
+  console.log('🚀 Starting fresh database migration for MySQL 9.0...');
   
   try {
     // Test connection first
     console.log('🔗 Testing database connection...');
     await testConnection();
     
-    // Drop all tables if they exist
+    // Check MySQL version
+    const [results] = await sequelize.query('SELECT VERSION() as version');
+    console.log(`📊 MySQL Version: ${results[0].version}`);
+    
+    // Drop all tables if they exist (MySQL 9.0 optimized)
     console.log('🗑️  Dropping existing tables...');
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    await sequelize.query('SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO"');
     
     const tables = [
       'equipment_logs',
@@ -35,17 +40,25 @@ async function migrateFresh() {
     
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
     
-    // Create all tables fresh
-    console.log('🏗️  Creating fresh database schema...');
-    await sequelize.sync({ force: true });
+    // Create all tables fresh with MySQL 9.0 optimizations
+    console.log('🏗️  Creating fresh database schema with MySQL 9.0 optimizations...');
+    await sequelize.sync({ 
+      force: true,
+      alter: false,
+      logging: console.log
+    });
     console.log('✅ Database schema created successfully');
     
     // Create default data
     console.log('🌱 Seeding default data...');
     await seedDefaultData();
     
+    // Optimize tables for MySQL 9.0
+    console.log('⚡ Optimizing tables for MySQL 9.0...');
+    await optimizeTables();
+    
     console.log('🎉 Fresh migration completed successfully!');
-    console.log('📊 Database is ready for use');
+    console.log('📊 Database is ready for use with MySQL 9.0');
     
   } catch (error) {
     console.error('❌ Migration failed:', error);
@@ -97,6 +110,40 @@ async function seedDefaultData() {
   } catch (error) {
     console.error('❌ Seeding failed:', error);
     throw error;
+  }
+}
+
+async function optimizeTables() {
+  try {
+    const tables = [
+      'users',
+      'equipment_types',
+      'locations',
+      'equipment',
+      'equipment_logs',
+      'equipment_categories',
+      'saved_searches'
+    ];
+    
+    for (const table of tables) {
+      try {
+        // Analyze table for MySQL 9.0 optimization
+        await sequelize.query(`ANALYZE TABLE ${table}`);
+        console.log(`   ✅ Analyzed table: ${table}`);
+        
+        // Optimize table structure
+        await sequelize.query(`OPTIMIZE TABLE ${table}`);
+        console.log(`   ⚡ Optimized table: ${table}`);
+      } catch (error) {
+        console.log(`   ⚠️  Could not optimize table ${table}: ${error.message}`);
+      }
+    }
+    
+    console.log('✅ Table optimization completed');
+    
+  } catch (error) {
+    console.error('❌ Table optimization failed:', error);
+    // Don't throw - optimization is not critical
   }
 }
 
