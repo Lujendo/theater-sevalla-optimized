@@ -261,7 +261,7 @@ router.post('/impersonate/:userId', authenticate, isAdmin, async (req, res) => {
     // Create a new token for the impersonated user
     const token = jwt.sign(
       { 
-        userId: targetUser.id, 
+        id: targetUser.id, 
         username: targetUser.username, 
         role: targetUser.role,
         impersonated: true,
@@ -310,7 +310,7 @@ router.post('/stop-impersonation', authenticate, async (req, res) => {
     // Create a new token for the original admin
     const token = jwt.sign(
       { 
-        userId: originalAdmin.id, 
+        id: originalAdmin.id, 
         username: originalAdmin.username, 
         role: originalAdmin.role
       },
