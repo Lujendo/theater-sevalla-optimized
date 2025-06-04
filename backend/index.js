@@ -181,7 +181,7 @@ const startServer = async () => {
     console.log('✅ Database models synced successfully');
     
     // Start server
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       const address = server.address();
       console.log(`🚀 Theater Equipment Catalog API Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);

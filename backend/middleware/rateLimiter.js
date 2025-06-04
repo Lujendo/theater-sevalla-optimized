@@ -9,6 +9,7 @@ const authLimiter = rateLimit({
   max: 5, // 5 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true, // Trust proxy for Kinsta/Sevalla
   message: {
     status: 429,
     message: 'Too many login attempts. Please try again after 1 minute.'
@@ -25,6 +26,7 @@ const apiLimiter = rateLimit({
   max: 100, // 100 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true, // Trust proxy for Kinsta/Sevalla
   message: {
     status: 429,
     message: 'Too many requests. Please try again after 1 minute.'
