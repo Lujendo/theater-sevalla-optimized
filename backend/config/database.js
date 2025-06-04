@@ -6,9 +6,20 @@ require('dotenv').config();
 // DATABASE_HOST, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME, DATABASE_PORT
 
 const getDatabaseConfig = () => {
+  // Debug: Log all database-related environment variables
+  console.log('🔍 Environment Variables Debug:');
+  console.log(`   - NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`   - DATABASE_HOST: ${process.env.DATABASE_HOST ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DATABASE_USER: ${process.env.DATABASE_USER ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DATABASE_NAME: ${process.env.DATABASE_NAME ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DB_HOST: ${process.env.DB_HOST ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DB_USER: ${process.env.DB_USER ? 'SET' : 'NOT SET'}`);
+  console.log(`   - DB_NAME: ${process.env.DB_NAME ? 'SET' : 'NOT SET'}`);
+
   // Check for Sevalla Connected Applications environment variables
   if (process.env.DATABASE_HOST) {
-    console.log('🔗 Using Sevalla Connected Applications database configuration');
+    console.log('�� Using Sevalla Connected Applications database configuration');
     console.log(`📊 Database connection details detected:`);
     console.log(`   - Host: ${process.env.DATABASE_HOST}`);
     console.log(`   - User: ${process.env.DATABASE_USER}`);
@@ -28,14 +39,35 @@ const getDatabaseConfig = () => {
   // Fallback to DATABASE_URL
   if (process.env.DATABASE_URL) {
     console.log('🔗 Using DATABASE_URL configuration');
+    console.log(`📊 DATABASE_URL detected: ${process.env.DATABASE_URL.substring(0, 20)}...`);
     return {
       type: 'url',
       url: process.env.DATABASE_URL
     };
   }
   
-  // Manual configuration fallback
-  console.log('🔗 Using manual database configuration');
+  // Check for individual DB environment variables (Kinsta style)
+  if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
+    console.log('🔗 Using individual DB environment variables (Kinsta style)');
+    console.log(`📊 Database connection details:`);
+    console.log(`   - Host: ${process.env.DB_HOST}`);
+    console.log(`   - User: ${process.env.DB_USER}`);
+    console.log(`   - Database: ${process.env.DB_NAME}`);
+    console.log(`   - Port: ${process.env.DB_PORT || 3306}`);
+    
+    return {
+      type: 'object',
+      host: process.env.DB_HOST,
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      port: process.env.DB_PORT || 3306
+    };
+  }
+  
+  // Manual configuration fallback (should not be used in production)
+  console.log('⚠️  Using manual database configuration fallback');
+  console.log('⚠️  This should not happen in production - check environment variables!');
   return {
     type: 'object',
     host: process.env.DB_HOST || 'localhost',
@@ -103,7 +135,8 @@ const testConnection = async () => {
     console.log(`📊 Environment: ${process.env.NODE_ENV}`);
     return true;
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
+    console.error('❌ Unable to connect to the database:', error.message);
+    console.error('❌ Full error details:', error);
     throw error;
   }
 };
