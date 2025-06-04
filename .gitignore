@@ -68,3 +68,7 @@ temp/
 
 # Sevalla deployment files
 .sevalla/
+
+# Docker images and tar files
+*.tar
+theater-*.tar
