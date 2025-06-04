@@ -254,19 +254,181 @@ const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLo
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h2 className="text-lg font-semibold text-blue-800 mb-2 flex items-center gap-2">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-          Filter Summary View
-        </h2>
-        <p className="text-sm text-blue-700">
-          Click on any item below to filter the equipment list. Active filters are highlighted.
-        </p>
+  // Get filtered equipment based on current filters
+  const getFilteredEquipment = () => {
+    if (!equipmentData || equipmentData.length === 0) return [];
+
+    return equipmentData.filter(item => {
+      // Apply all current filters
+      if (currentFilters.status && item.status !== currentFilters.status) return false;
+      if (currentFilters.category && item.category !== currentFilters.category) return false;
+      if (currentFilters.type && item.type !== currentFilters.type) return false;
+      if (currentFilters.location && item.location !== currentFilters.location) return false;
+      if (currentFilters.brand && item.brand !== currentFilters.brand) return false;
+      if (currentFilters.model && item.model !== currentFilters.model) return false;
+      if (currentFilters.search && !`${item.brand} ${item.model} ${item.serial_number} ${item.type} ${item.category}`.toLowerCase().includes(currentFilters.search.toLowerCase())) return false;
+
+      return true;
+    });
+  };
+
+  const filteredEquipment = getFilteredEquipment();
+  const hasActiveFilters = Object.values(currentFilters).some(val =>
+    val && (typeof val === 'string' ? val.trim() !== '' : true)
+  );
+
+  // Render filtered equipment list
+  const renderFilteredEquipmentList = () => {
+    if (!hasActiveFilters || filteredEquipment.length === 0) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-3 border-b border-slate-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h2m0-8h2m-2 0V3m0 2v2m2-2h2a2 2 0 012 2v6a2 2 0 01-2 2h-2m0 0v2a2 2 0 01-2 2H9a2 2 0 01-2-2v-2m2 0h2" />
+                </svg>
+                Filtered Equipment ({filteredEquipment.length} items)
+              </h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {Object.entries(currentFilters).map(([key, value]) => {
+                  if (!value || (typeof value === 'string' && value.trim() === '')) return null;
+                  return (
+                    <span key={key} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                      <span className="capitalize">{key}:</span>
+                      <span className="font-medium">{value}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onFilterChange({ [key]: '' });
+                        }}
+                        className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-slate-600">
+                {filteredEquipment.length} of {equipmentData.length} total
+              </p>
+              <p className="text-xs text-slate-500">
+                Click items to view details
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-h-96 overflow-y-auto">
+          <div className="divide-y divide-slate-100">
+            {filteredEquipment.map((equipment, index) => (
+              <div
+                key={equipment.id}
+                className="p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                onClick={() => window.location.href = `/equipment/${equipment.id}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 h-12 w-12">
+                      {equipment.images && equipment.images.length > 0 ? (
+                        <img
+                          className="h-12 w-12 rounded-lg object-cover"
+                          src={`${import.meta.env.VITE_API_URL}/uploads/${equipment.images[0]}`}
+                          alt={`${equipment.brand} ${equipment.model}`}
+                        />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center">
+                          <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-slate-800">
+                        {equipment.brand} {equipment.model}
+                      </h4>
+                      <p className="text-sm text-slate-600">
+                        {equipment.type} • SN: {equipment.serial_number}
+                      </p>
+                      {equipment.location && (
+                        <p className="text-xs text-slate-500">
+                          📍 {equipment.location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(equipment.status)}`}>
+                      {equipment.status}
+                    </span>
+                    <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {filteredEquipment.length > 10 && (
+          <div className="bg-slate-50 px-4 py-2 text-center">
+            <p className="text-xs text-slate-500">
+              Showing {Math.min(10, filteredEquipment.length)} of {filteredEquipment.length} items
+            </p>
+          </div>
+        )}
       </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-blue-800 mb-2 flex items-center gap-2">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filter Summary View
+            </h2>
+            <p className="text-sm text-blue-700">
+              Click on any item below to filter the equipment list. Active filters are highlighted.
+            </p>
+          </div>
+          {hasActiveFilters && (
+            <button
+              onClick={() => onFilterChange({
+                status: '',
+                category: '',
+                type: '',
+                location: '',
+                brand: '',
+                model: '',
+                search: ''
+              })}
+              className="px-4 py-2 bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear All Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filtered Equipment List */}
+      {renderFilteredEquipmentList()}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {renderFilterSection(
