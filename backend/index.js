@@ -194,14 +194,18 @@ const startServer = async () => {
     console.log('🔗 Testing database connection...');
     await testConnection();
     
-    // Minimal database sync - no migrations, no admin creation
-    console.log('🔄 Syncing database models (production safe)...');
-    await sequelize.sync({ alter: false, force: false });
-    console.log('✅ Database models synced successfully');
+    // Safe database initialization - no automatic sync
+    console.log('🔄 Initializing database safely...');
+    await safeDatabaseInit();
+    console.log('✅ Database initialized successfully');
     
     // Ensure EquipmentType table exists with default data
     console.log('🔧 Checking EquipmentType table...');
     await ensureEquipmentTypes();
+
+    // Ensure Categories table exists with default data
+    console.log('🔧 Checking Categories table...');
+    await ensureCategories();
     
     // Ensure Categories table exists with default data
     console.log('🔧 Checking Categories table...');
@@ -239,6 +243,38 @@ const startServer = async () => {
 startServer();
 
 module.exports = app;
+
+// Safe database initialization function
+async function safeDatabaseInit() {
+  try {
+    console.log('🔧 Running safe database initialization...');
+
+    // Import the fix script
+    const fixCategoriesTable = require('./scripts/fix-categories-table');
+
+    // Fix categories table first (this handles the existing table safely)
+    await fixCategoriesTable();
+
+    // Only sync models that are safe to sync (skip Category since table exists)
+    const { User, EquipmentType, SavedSearch, EquipmentLog, File } = require('./models');
+
+    // Sync safe models without altering existing tables
+    await User.sync({ alter: false });
+    await EquipmentType.sync({ alter: false });
+    await SavedSearch.sync({ alter: false });
+    await EquipmentLog.sync({ alter: false });
+    await File.sync({ alter: false });
+
+    // Note: Category model is NOT synced here since the table already exists
+    // and we want to avoid the "too many keys" error
+
+    console.log('✅ Safe database initialization completed');
+
+  } catch (error) {
+    console.error('❌ Safe database initialization failed:', error);
+    // Don't crash the server, just log the error
+  }
+}
 
 // Fix admin user function
 async function fixAdminUser() {

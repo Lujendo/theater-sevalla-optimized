@@ -10,7 +10,8 @@ const Category = sequelize.define('Category', {
   name: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    // Remove unique constraint from model to avoid sync issues
+    // The database table already has the constraint
     validate: {
       notEmpty: true
     }
