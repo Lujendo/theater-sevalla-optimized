@@ -29,7 +29,7 @@ const EditEquipmentModern = () => {
   const [showFileUploadModal, setShowFileUploadModal] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   const [layout, setLayout] = useState('grid');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true); // Start in edit mode
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -95,7 +95,7 @@ const EditEquipmentModern = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['equipment']);
-      setIsEditing(false);
+      navigate(`/equipment/${id}`);
       toast.success('Equipment updated successfully');
     },
     onError: (error) => {
@@ -124,11 +124,6 @@ const EditEquipmentModern = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle edit button click
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
   // Handle save button click
   const handleSave = () => {
     // Validate required fields
@@ -140,25 +135,9 @@ const EditEquipmentModern = () => {
     updateMutation.mutate(formData);
   };
 
-  // Handle cancel edit
+  // Handle cancel edit - go back to Equipment Details
   const handleCancelEdit = () => {
-    // Reset form data to original equipment data
-    if (equipment) {
-      setFormData({
-        type_id: equipment.type_id ? equipment.type_id.toString() : '',
-        category_id: equipment.category_id ? equipment.category_id.toString() : '',
-        category: equipment.category || '',
-        brand: equipment.brand || '',
-        model: equipment.model || '',
-        serial_number: equipment.serial_number || '',
-        status: equipment.status || 'available',
-        location: equipment.location || '',
-        description: equipment.description || '',
-        reference_image_id: equipment.reference_image_id ? equipment.reference_image_id.toString() : '',
-      });
-    }
-    setIsEditing(false);
-    setError('');
+    navigate(`/equipment/${id}`);
   };
 
   // Handle file upload success
@@ -287,46 +266,31 @@ const EditEquipmentModern = () => {
             </svg>
             Back to Details
           </Button>
-          {isEditing ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleCancelEdit}
-                className="flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                disabled={updateMutation.isLoading}
-                className="flex items-center"
-              >
-                {updateMutation.isLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="primary"
-              onClick={handleEdit}
-              className="flex items-center"
-            >
+          <Button
+            variant="outline"
+            onClick={handleCancelEdit}
+            className="flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            disabled={updateMutation.isLoading}
+            className="flex items-center"
+          >
+            {updateMutation.isLoading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-1"></div>
+            ) : (
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Edit Equipment
-            </Button>
-          )}
+            )}
+            Save Changes
+          </Button>
           {user?.role === 'admin' && (
             <Button
               variant="danger"
@@ -433,128 +397,94 @@ const EditEquipmentModern = () => {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Category</h3>
-                              {isEditing ? (
-                                <Select
-                                  name="category_id"
-                                  value={formData.category_id}
-                                  onChange={handleInputChange}
-                                  options={[
-                                    { value: '', label: 'Select Category' },
-                                    ...(categoriesData?.categories || []).map(category => ({
-                                      value: category.id.toString(),
-                                      label: category.name
-                                    }))
-                                  ]}
-                                  className="mt-1"
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.category || 'Not specified'}</p>
-                              )}
+                              <Select
+                                name="category_id"
+                                value={formData.category_id}
+                                onChange={handleInputChange}
+                                options={[
+                                  { value: '', label: 'Select Category' },
+                                  ...(categoriesData?.categories || []).map(category => ({
+                                    value: category.id.toString(),
+                                    label: category.name
+                                  }))
+                                ]}
+                                className="mt-1"
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Type</h3>
-                              {isEditing ? (
-                                <Select
-                                  name="type_id"
-                                  value={formData.type_id}
-                                  onChange={handleInputChange}
-                                  options={[
-                                    { value: '', label: 'Select Type' },
-                                    ...(typesData?.types || []).map(type => ({
-                                      value: type.id.toString(),
-                                      label: type.name
-                                    }))
-                                  ]}
-                                  className="mt-1"
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.type}</p>
-                              )}
+                              <Select
+                                name="type_id"
+                                value={formData.type_id}
+                                onChange={handleInputChange}
+                                options={[
+                                  { value: '', label: 'Select Type' },
+                                  ...(typesData?.types || []).map(type => ({
+                                    value: type.id.toString(),
+                                    label: type.name
+                                  }))
+                                ]}
+                                className="mt-1"
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Brand</h3>
-                              {isEditing ? (
-                                <Input
-                                  name="brand"
-                                  value={formData.brand}
-                                  onChange={handleInputChange}
-                                  className="mt-1"
-                                  required
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.brand}</p>
-                              )}
+                              <Input
+                                name="brand"
+                                value={formData.brand}
+                                onChange={handleInputChange}
+                                className="mt-1"
+                                required
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Model</h3>
-                              {isEditing ? (
-                                <Input
-                                  name="model"
-                                  value={formData.model}
-                                  onChange={handleInputChange}
-                                  className="mt-1"
-                                  required
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.model}</p>
-                              )}
+                              <Input
+                                name="model"
+                                value={formData.model}
+                                onChange={handleInputChange}
+                                className="mt-1"
+                                required
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Serial Number</h3>
-                              {isEditing ? (
-                                <Input
-                                  name="serial_number"
-                                  value={formData.serial_number}
-                                  onChange={handleInputChange}
-                                  className="mt-1"
-                                  required
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.serial_number}</p>
-                              )}
+                              <Input
+                                name="serial_number"
+                                value={formData.serial_number}
+                                onChange={handleInputChange}
+                                className="mt-1"
+                                required
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Status</h3>
-                              {isEditing ? (
-                                <Select
-                                  name="status"
-                                  value={formData.status}
-                                  onChange={handleInputChange}
-                                  options={statusOptions.map(status => ({
-                                    value: status,
-                                    label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
-                                  }))}
-                                  className="mt-1"
-                                />
-                              ) : (
-                                <div className="mt-1">
-                                  {equipment?.status && (
-                                    <Badge variant={getStatusVariant(equipment.status)} size="md">
-                                      {equipment.status.charAt(0).toUpperCase() + equipment.status.slice(1).replace('-', ' ')}
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
+                              <Select
+                                name="status"
+                                value={formData.status}
+                                onChange={handleInputChange}
+                                options={statusOptions.map(status => ({
+                                  value: status,
+                                  label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
+                                }))}
+                                className="mt-1"
+                              />
                             </div>
 
                             <div>
                               <h3 className="text-sm font-medium text-slate-500">Location</h3>
-                              {isEditing ? (
-                                <Input
-                                  name="location"
-                                  value={formData.location}
-                                  onChange={handleInputChange}
-                                  className="mt-1"
-                                  placeholder="Enter location"
-                                />
-                              ) : (
-                                <p className="mt-1 text-base font-medium text-slate-900">{equipment?.location || 'Not specified'}</p>
-                              )}
+                              <Input
+                                name="location"
+                                value={formData.location}
+                                onChange={handleInputChange}
+                                className="mt-1"
+                                placeholder="Enter location"
+                              />
                             </div>
                           </div>
 
@@ -566,18 +496,14 @@ const EditEquipmentModern = () => {
                               <h3 className="text-sm font-medium text-slate-700">Description</h3>
                             </div>
                             <div className="bg-slate-50 p-4 rounded-lg">
-                              {isEditing ? (
-                                <textarea
-                                  name="description"
-                                  value={formData.description}
-                                  onChange={handleInputChange}
-                                  rows={4}
-                                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
-                                  placeholder="Enter equipment description..."
-                                />
-                              ) : (
-                                <p className="text-base text-slate-800 whitespace-pre-line">{equipment?.description || 'No description provided'}</p>
-                              )}
+                              <textarea
+                                name="description"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                rows={4}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white"
+                                placeholder="Enter equipment description..."
+                              />
                             </div>
                           </div>
                         </Card.Body>
