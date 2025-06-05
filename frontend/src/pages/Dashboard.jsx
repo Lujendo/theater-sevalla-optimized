@@ -902,8 +902,7 @@ const Dashboard = () => {
   const [sortOrder, setSortOrder] = useState('desc');
 
 
-  // View mode state (list or card) - default to list view
-  const [viewMode, setViewMode] = useState('list');
+
 
   // State for saved search name
   const [savedSearchName, setSavedSearchName] = useState('');
@@ -1337,6 +1336,17 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Filter Summary View */}
+          <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
+            <h2 className="text-lg font-medium text-slate-800 mb-4">Filter Summary & Equipment Browser</h2>
+            <FilterSummaryList
+              equipmentData={allEquipmentData?.equipment || []}
+              onFilterChange={handleAnalyticsFilterChange}
+              currentFilters={filters}
+              isLoading={isLoading}
+            />
+          </div>
+
           {/* Saved Searches (for admin/advanced users) */}
           {canEditEquipment() && (
             <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
@@ -1404,7 +1414,7 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Results Header with View Toggle */}
+      {/* Results Header */}
       <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 mb-6">
         <div className="flex justify-between items-center">
           <div>
@@ -1414,34 +1424,8 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            {/* View toggle buttons */}
-            <div className="flex border border-slate-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-3 py-2 text-sm font-medium transition-all ${
-                  viewMode === 'list'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-                title="Filter Summary view"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode('card')}
-                className={`px-3 py-2 text-sm font-medium transition-all ${
-                  viewMode === 'card'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-                title="Card view"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-              </button>
+            <div className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+              Card View
             </div>
           </div>
         </div>
@@ -1488,29 +1472,19 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Card View */}
-            {viewMode === 'card' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {equipmentList.map(equipment => (
-                  <EquipmentCard
-                    key={equipment.id}
-                    equipment={equipment}
-                    canEdit={canEditEquipment()}
-                    searchTerm={filters.search}
-                  />
-                ))}
-              </div>
-            )}
+            {/* Equipment Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {equipmentList.map(equipment => (
+                <EquipmentCard
+                  key={equipment.id}
+                  equipment={equipment}
+                  canEdit={canEditEquipment()}
+                  searchTerm={filters.search}
+                />
+              ))}
+            </div>
 
-            {/* List View - Filter Summary */}
-            {viewMode === 'list' && (
-              <FilterSummaryList
-                equipmentData={allEquipmentData?.equipment || []}
-                onFilterChange={handleAnalyticsFilterChange}
-                currentFilters={filters}
-                isLoading={isLoading}
-              />
-            )}            {/* Infinite scroll loading indicator */}
+            {/* Infinite scroll loading indicator */}
             <div ref={observerTarget} className="py-4 text-center">
               {isFetchingNextPage ? (
                 <div className="flex justify-center items-center space-x-2">
