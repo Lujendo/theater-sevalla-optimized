@@ -872,7 +872,7 @@ const SavedSearchChip = ({ search, onApply, onDelete }) => (
 );
 
 // Main Dashboard component
-const AdvancedDashboard = () => {
+const Dashboard = () => {
   const { user, canEditEquipment } = useAuth();
   const queryClient = useQueryClient();
   const observerTarget = useRef(null);
@@ -893,9 +893,6 @@ const AdvancedDashboard = () => {
   // State for search suggestions
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-
-  // State for filter panel visibility
-  const [showFilters, setShowFilters] = useState(false);
 
   // State for advanced research visibility
   const [showAdvancedResearch, setShowAdvancedResearch] = useState(false);
@@ -1192,20 +1189,8 @@ const AdvancedDashboard = () => {
             </div>
           )}
 
-          {/* Filter toggle button */}
+          {/* Action buttons */}
           <div className="flex mt-2 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-1"
-              aria-expanded={showFilters}
-              aria-controls="filter-panel"
-            >
-              <FilterIcon />
-              <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
-            </Button>
-
             {Object.values(filters).some(val =>
               val && (typeof val === 'string' ? val.trim() !== '' : true)
             ) && (
@@ -1234,9 +1219,23 @@ const AdvancedDashboard = () => {
               </svg>
               <span>{showAdvancedResearch ? 'Hide Advanced Research' : 'Show Advanced Research'}</span>
             </Button>
+          </div>
+        </div>
+      </div>
 
-            {/* Sort dropdown */}
-            <div className="ml-auto">
+      {/* Advanced Research Panel */}
+      <div
+        id="advanced-research-panel"
+        className={`transition-all duration-300 overflow-hidden ${
+          showAdvancedResearch ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="space-y-6 mt-4">
+          {/* Sort Options */}
+          <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
+            <h2 className="text-lg font-medium text-slate-800 mb-4">Sort Options</h2>
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium text-slate-700">Sort by:</label>
               <Select
                 id="sort"
                 name="sort"
@@ -1254,170 +1253,155 @@ const AdvancedDashboard = () => {
                   { value: 'model-asc', label: 'Model (A-Z)' },
                   { value: 'model-desc', label: 'Model (Z-A)' },
                 ]}
-                className="w-40"
+                className="w-48"
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Advanced Research Panel */}
-      <div
-        id="advanced-research-panel"
-        className={`transition-all duration-300 overflow-hidden ${
-          showAdvancedResearch ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
-        }`}
-      >
-        {/* Saved Searches (for admin/advanced users) */}
-        {canEditEquipment() && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-medium text-slate-800">Saved Searches</h2>
+          {/* Advanced Filters */}
+          <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
+            <h2 className="text-lg font-medium text-slate-800 mb-4">Advanced Filters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category filter */}
+              <Select
+                id="category"
+                name="category"
+                label="Category"
+                value={filters.category}
+                onChange={handleFilterChange}
+                options={[
+                  { value: '', label: 'All Categories' },
+                  ...(categories || []).map(category => ({
+                    value: category.name,
+                    label: category.name
+                  }))
+                ]}
+              />
 
-            {!showSaveSearchInput ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSaveSearchInput(true)}
-                className="flex items-center gap-1"
-              >
-                <SaveIcon />
-                <span>Save Current Search</span>
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Input
-                  id="savedSearchName"
-                  name="savedSearchName"
-                  placeholder="Enter search name"
-                  value={savedSearchName}
-                  onChange={(e) => setSavedSearchName(e.target.value)}
-                  className="w-48"
+              {/* Type filter */}
+              <Select
+                id="type"
+                name="type"
+                label="Equipment Type"
+                value={filters.type}
+                onChange={handleFilterChange}
+                options={[
+                  { value: '', label: 'All Types' },
+                  ...(equipmentTypes || []).map(type => ({
+                    value: type.name,
+                    label: type.name
+                  }))
+                ]}
+              />
+
+              {/* Status filter */}
+              <Select
+                id="status"
+                name="status"
+                label="Status"
+                value={filters.status}
+                onChange={handleFilterChange}
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'available', label: 'Available' },
+                  { value: 'in-use', label: 'In Use' },
+                  { value: 'maintenance', label: 'Maintenance' },
+                ]}
+              />
+
+              {/* Location filter */}
+              <Input
+                id="location"
+                name="location"
+                label="Location"
+                placeholder="Filter by location"
+                value={filters.location}
+                onChange={handleFilterChange}
+              />
+
+              {/* Date range filter */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Date Range
+                </label>
+                <DatePicker
+                  selectsRange={true}
+                  startDate={filters.dateRange?.startDate || null}
+                  endDate={filters.dateRange?.endDate || null}
+                  onChange={handleDateRangeChange}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
+                  placeholderText="Select date range"
+                  isClearable
                 />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSaveSearch}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowSaveSearchInput(false);
-                    setSavedSearchName('');
-                  }}
-                >
-                  Cancel
-                </Button>
               </div>
-            )}
-          </div>
-
-          <div className="flex flex-wrap">
-            {savedSearches?.searches?.length > 0 ? (
-              savedSearches.searches.map(search => (
-                <SavedSearchChip
-                  key={search.id}
-                  search={search}
-                  onApply={handleApplySavedSearch}
-                  onDelete={handleDeleteSavedSearch}
-                />
-              ))
-            ) : (
-              <p className="text-slate-500 text-sm">No saved searches yet. Save your current search to access it quickly later.</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Filter Panel */}
-      <div
-        id="filter-panel"
-        className={`bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden transition-all duration-300 ${
-          showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'
-        }`}
-      >
-        <div className="p-4">
-          <h2 className="text-lg font-medium text-slate-800 mb-4">Advanced Filters</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Category filter */}
-            <Select
-              id="category"
-              name="category"
-              label="Category"
-              value={filters.category}
-              onChange={handleFilterChange}
-              options={[
-                { value: '', label: 'All Categories' },
-                ...(categories || []).map(category => ({
-                  value: category.name,
-                  label: category.name
-                }))
-              ]}
-            />
-
-            {/* Type filter */}
-            <Select
-              id="type"
-              name="type"
-              label="Equipment Type"
-              value={filters.type}
-              onChange={handleFilterChange}
-              options={[
-                { value: '', label: 'All Types' },
-                ...(equipmentTypes || []).map(type => ({
-                  value: type.name,
-                  label: type.name
-                }))
-              ]}
-            />
-
-            {/* Status filter */}
-            <Select
-              id="status"
-              name="status"
-              label="Status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'available', label: 'Available' },
-                { value: 'in-use', label: 'In Use' },
-                { value: 'maintenance', label: 'Maintenance' },
-              ]}
-            />
-
-            {/* Location filter */}
-            <Input
-              id="location"
-              name="location"
-              label="Location"
-              placeholder="Filter by location"
-              value={filters.location}
-              onChange={handleFilterChange}
-            />
-
-            {/* Date range filter */}
-            <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Date Range
-              </label>
-              <DatePicker
-                selectsRange={true}
-                startDate={filters.dateRange?.startDate || null}
-                endDate={filters.dateRange?.endDate || null}
-                onChange={handleDateRangeChange}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
-                placeholderText="Select date range"
-                isClearable
-              />
             </div>
           </div>
+
+          {/* Saved Searches (for admin/advanced users) */}
+          {canEditEquipment() && (
+            <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-slate-800">Saved Searches</h2>
+
+                {!showSaveSearchInput ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowSaveSearchInput(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <SaveIcon />
+                    <span>Save Current Search</span>
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="savedSearchName"
+                      name="savedSearchName"
+                      placeholder="Enter search name"
+                      value={savedSearchName}
+                      onChange={(e) => setSavedSearchName(e.target.value)}
+                      className="w-48"
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleSaveSearch}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowSaveSearchInput(false);
+                        setSavedSearchName('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap">
+                {savedSearches?.searches?.length > 0 ? (
+                  savedSearches.searches.map(search => (
+                    <SavedSearchChip
+                      key={search.id}
+                      search={search}
+                      onApply={handleApplySavedSearch}
+                      onDelete={handleDeleteSavedSearch}
+                    />
+                  ))
+                ) : (
+                  <p className="text-slate-500 text-sm">No saved searches yet. Save your current search to access it quickly later.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+
       </div>
 
       {/* Results Header with View Toggle */}
@@ -1546,4 +1530,4 @@ const AdvancedDashboard = () => {
   );
 };
 
-export default AdvancedDashboard;
+export default Dashboard;

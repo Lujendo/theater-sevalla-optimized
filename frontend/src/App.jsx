@@ -11,7 +11,6 @@ import Sidebar from './components/Sidebar';
 import ImpersonationBanner from './components/ImpersonationBanner';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import AdvancedDashboard from './pages/AdvancedDashboard';
 import UserSettings from './pages/UserSettings';
 import UserSettingsModern from './pages/UserSettingsModern';
 import EquipmentList from './components/EquipmentList';
@@ -120,17 +119,6 @@ const AppContent = () => {
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/advanced-dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AdvancedDashboard />
               </Layout>
             </ProtectedRoute>
           }
