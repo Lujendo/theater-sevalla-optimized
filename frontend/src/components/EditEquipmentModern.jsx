@@ -403,7 +403,7 @@ const EditEquipmentModern = () => {
                                 onChange={handleInputChange}
                                 options={[
                                   { value: '', label: 'Select Category' },
-                                  ...(categoriesData?.categories || []).map(category => ({
+                                  ...(categoriesData || []).map(category => ({
                                     value: category.id.toString(),
                                     label: category.name
                                   }))
@@ -420,7 +420,7 @@ const EditEquipmentModern = () => {
                                 onChange={handleInputChange}
                                 options={[
                                   { value: '', label: 'Select Type' },
-                                  ...(typesData?.types || []).map(type => ({
+                                  ...(typesData || []).map(type => ({
                                     value: type.id.toString(),
                                     label: type.name
                                   }))
