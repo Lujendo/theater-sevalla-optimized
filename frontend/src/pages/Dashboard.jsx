@@ -897,6 +897,9 @@ const AdvancedDashboard = () => {
   // State for filter panel visibility
   const [showFilters, setShowFilters] = useState(false);
 
+  // State for advanced research visibility
+  const [showAdvancedResearch, setShowAdvancedResearch] = useState(false);
+
   // State for sorting
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -1217,6 +1220,21 @@ const AdvancedDashboard = () => {
               </Button>
             )}
 
+            {/* Advanced Research toggle button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedResearch(!showAdvancedResearch)}
+              className="flex items-center gap-1"
+              aria-expanded={showAdvancedResearch}
+              aria-controls="advanced-research-panel"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>{showAdvancedResearch ? 'Hide Advanced Research' : 'Show Advanced Research'}</span>
+            </Button>
+
             {/* Sort dropdown */}
             <div className="ml-auto">
               <Select
@@ -1243,8 +1261,15 @@ const AdvancedDashboard = () => {
         </div>
       </div>
 
-      {/* Saved Searches (for admin/advanced users) */}
-      {canEditEquipment() && (
+      {/* Advanced Research Panel */}
+      <div
+        id="advanced-research-panel"
+        className={`transition-all duration-300 overflow-hidden ${
+          showAdvancedResearch ? 'max-h-none opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        {/* Saved Searches (for admin/advanced users) */}
+        {canEditEquipment() && (
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-medium text-slate-800">Saved Searches</h2>
@@ -1393,7 +1418,7 @@ const AdvancedDashboard = () => {
           </div>
         </div>
       </div>
-
+      </div>
 
       {/* Results Header with View Toggle */}
       <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 mb-6">
