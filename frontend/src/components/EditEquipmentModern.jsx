@@ -185,7 +185,7 @@ const EditEquipmentModern = () => {
 
   // Handle back button click
   const handleBack = () => {
-    navigate('/equipment');
+    navigate(`/equipment/${id}`);
   };
 
   // Get status badge variant
@@ -239,7 +239,7 @@ const EditEquipmentModern = () => {
                   size="sm"
                   onClick={handleBack}
                 >
-                  Back to Equipment List
+                  Back to Equipment Details
                 </Button>
               </div>
             </div>
