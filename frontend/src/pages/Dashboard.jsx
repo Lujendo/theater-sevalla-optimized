@@ -489,8 +489,7 @@ const FilterSummaryList = ({ equipmentData, onFilterChange, currentFilters, isLo
         )}
       </div>
 
-      {/* Filtered Equipment List */}
-      {renderFilteredEquipmentList()}
+
     </div>
   );
 };
@@ -897,6 +896,9 @@ const Dashboard = () => {
   // State for advanced research visibility
   const [showAdvancedResearch, setShowAdvancedResearch] = useState(false);
 
+  // View mode state (list or card) - default to list view
+  const [viewMode, setViewMode] = useState('list');
+
   // State for sorting
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -1009,9 +1011,21 @@ const Dashboard = () => {
   };
 
   // Handle filter changes
+  // Unified filter change handler - works for both form inputs and analytics clicks
   const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    if (e && e.target) {
+      // Handle form input changes
+      const { name, value } = e.target;
+      setFilters(prev => ({ ...prev, [name]: value }));
+    } else {
+      // Handle analytics filter changes (when passed as object)
+      setFilters(prev => ({
+        ...prev,
+        ...e,
+        // Ensure dateRange is always preserved as an object
+        dateRange: prev.dateRange || { startDate: null, endDate: null }
+      }));
+    }
   };
 
   // Handle date range change
@@ -1053,15 +1067,7 @@ const Dashboard = () => {
     }
   };
 
-  // Handle analytics filter changes
-  const handleAnalyticsFilterChange = (newFilters) => {
-    setFilters(prev => ({
-      ...prev,
-      ...newFilters,
-      // Ensure dateRange is always preserved as an object
-      dateRange: prev.dateRange || { startDate: null, endDate: null }
-    }));
-  };
+
 
   // Save current search
   const handleSaveSearch = async () => {
@@ -1151,7 +1157,7 @@ const Dashboard = () => {
       {/* Analytics Summary */}
       <AnalyticsSummary
         equipmentData={allEquipmentData?.equipment || []}
-        onFilterChange={handleAnalyticsFilterChange}
+        onFilterChange={handleFilterChange}
         currentFilters={filters}
         isLoading={isLoading}
       />
@@ -1338,10 +1344,10 @@ const Dashboard = () => {
 
           {/* Filter Summary View */}
           <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4">
-            <h2 className="text-lg font-medium text-slate-800 mb-4">Filter Summary & Equipment Browser</h2>
+            <h2 className="text-lg font-medium text-slate-800 mb-4">Filter Summary</h2>
             <FilterSummaryList
               equipmentData={allEquipmentData?.equipment || []}
-              onFilterChange={handleAnalyticsFilterChange}
+              onFilterChange={handleFilterChange}
               currentFilters={filters}
               isLoading={isLoading}
             />
@@ -1414,7 +1420,7 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Results Header */}
+      {/* Results Header with View Toggle */}
       <div className="bg-white rounded-lg shadow-md border border-slate-200 p-4 mb-6">
         <div className="flex justify-between items-center">
           <div>
@@ -1424,8 +1430,34 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-              Card View
+            {/* View toggle buttons */}
+            <div className="flex border border-slate-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                title="List view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('card')}
+                className={`px-3 py-2 text-sm font-medium transition-all ${
+                  viewMode === 'card'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+                title="Card view"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1472,17 +1504,81 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Equipment Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {equipmentList.map(equipment => (
-                <EquipmentCard
-                  key={equipment.id}
-                  equipment={equipment}
-                  canEdit={canEditEquipment()}
-                  searchTerm={filters.search}
-                />
-              ))}
-            </div>
+            {/* Card View */}
+            {viewMode === 'card' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {equipmentList.map(equipment => (
+                  <EquipmentCard
+                    key={equipment.id}
+                    equipment={equipment}
+                    canEdit={canEditEquipment()}
+                    searchTerm={filters.search}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+                <div className="divide-y divide-slate-100">
+                  {equipmentList.map(equipment => (
+                    <div
+                      key={equipment.id}
+                      className="p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => window.location.href = `/equipment/${equipment.id}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex-shrink-0 h-16 w-16">
+                            {equipment.reference_image_id ? (
+                              <img
+                                className="h-16 w-16 rounded-lg object-cover"
+                                src={getFileUrl(equipment.reference_image_id, true)}
+                                alt={`${equipment.brand} ${equipment.model}`}
+                              />
+                            ) : (
+                              <div className="h-16 w-16 rounded-lg bg-slate-200 flex items-center justify-center">
+                                <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-slate-800">
+                              {equipment.brand} {equipment.model}
+                            </h3>
+                            <p className="text-sm text-slate-600">
+                              {equipment.type} • SN: {equipment.serial_number}
+                            </p>
+                            {equipment.location && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                📍 {equipment.location}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant={
+                              equipment.status === 'available' ? 'success' :
+                              equipment.status === 'in-use' ? 'info' :
+                              equipment.status === 'maintenance' ? 'warning' : 'default'
+                            }
+                          >
+                            {equipment.status}
+                          </Badge>
+                          <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Infinite scroll loading indicator */}
             <div ref={observerTarget} className="py-4 text-center">
