@@ -5,6 +5,8 @@ import './index.css'
 import { configureAxios } from './utils/axiosConfig'
 import axios from 'axios'
 
+// Force rebuild - Updated for Kinsta deployment v2
+
 // Log environment variables for debugging
 console.log('API URL:', import.meta.env.VITE_API_URL);
 console.log('Environment PROD:', import.meta.env.PROD);
