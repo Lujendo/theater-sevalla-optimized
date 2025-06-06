@@ -131,7 +131,7 @@ const DatabaseManager = ({ onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -165,8 +165,8 @@ const DatabaseManager = ({ onClose }) => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full px-6 py-6">
+      <div className="flex-1 overflow-auto">
+        <div className="px-6 py-6">
 
           {/* Navigation Tabs */}
           <div className="border-b border-slate-200 mb-6">
@@ -190,14 +190,14 @@ const DatabaseManager = ({ onClose }) => {
 
           {/* Tables Tab */}
           {activeTab === 'tables' && (
-            <div className="h-full flex gap-6">
+            <div className="flex gap-6 min-h-0">
               {/* Tables List */}
               <div className="w-80 flex-shrink-0">
-                <Card className="h-full">
-                  <Card.Header>
+                <Card className="h-fit max-h-screen overflow-hidden flex flex-col">
+                  <Card.Header className="flex-shrink-0">
                     <h3 className="text-lg font-semibold">Database Tables</h3>
                   </Card.Header>
-            <Card.Body className="p-0">
+                  <Card.Body className="p-0 flex-1 overflow-auto">
               {tablesLoading ? (
                 <div className="p-4 text-center text-slate-500">Loading tables...</div>
               ) : tablesError ? (
@@ -243,7 +243,7 @@ const DatabaseManager = ({ onClose }) => {
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 flex flex-col gap-6">
+              <div className="flex-1 flex flex-col gap-6 min-w-0 overflow-auto">
                 {/* Table Structure */}
                 {selectedTable && (
                   <Card className="flex-shrink-0">
@@ -287,11 +287,11 @@ const DatabaseManager = ({ onClose }) => {
 
                 {/* Table Data */}
                 {selectedTable && (
-                  <Card className="flex-1 flex flex-col">
-                    <Card.Header>
+                  <Card className="flex-1 flex flex-col min-h-0">
+                    <Card.Header className="flex-shrink-0">
                       <h3 className="text-lg font-semibold">Table Data: {selectedTable}</h3>
                     </Card.Header>
-                    <Card.Body className="p-0 flex-1 flex flex-col">
+                    <Card.Body className="p-0 flex-1 flex flex-col min-h-0">
                       {tableDataLoading ? (
                         <div className="p-4 text-center text-slate-500">Loading data...</div>
                       ) : (
@@ -380,7 +380,7 @@ const DatabaseManager = ({ onClose }) => {
 
           {/* Query Tab */}
           {activeTab === 'query' && (
-            <div className="h-full flex flex-col gap-6">
+            <div className="flex flex-col gap-6 min-h-0">
               <Card className="flex-shrink-0">
                 <Card.Header>
                   <h3 className="text-lg font-semibold">SQL Query Editor</h3>
@@ -414,14 +414,14 @@ const DatabaseManager = ({ onClose }) => {
 
               {/* Query Results */}
               {queryResults && (
-                <Card className="flex-1 flex flex-col">
-                  <Card.Header>
+                <Card className="flex-1 flex flex-col min-h-0">
+                  <Card.Header className="flex-shrink-0">
                     <h3 className="text-lg font-semibold">Query Results</h3>
                     <p className="text-sm text-slate-600">
                       {queryResults.metadata?.rowCount} rows returned
                     </p>
                   </Card.Header>
-                  <Card.Body className="p-0 flex-1 flex flex-col">
+                  <Card.Body className="p-0 flex-1 flex flex-col min-h-0">
                     <div className="flex-1 overflow-auto">
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50 sticky top-0">
