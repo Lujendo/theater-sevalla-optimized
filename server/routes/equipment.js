@@ -370,7 +370,8 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       reference_image_id,
       location_id_is_null,
       type_id_is_null,
-      category_id_is_null
+      category_id_is_null,
+      quantity
     } = req.body;
 
     // Find equipment
@@ -418,6 +419,15 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       }
     }
 
+    // Handle quantity field - convert to integer and default to 1 if not provided or invalid
+    let equipmentQuantity = 1; // Default quantity
+    if (quantity !== undefined && quantity !== null && quantity !== '') {
+      const parsedQuantity = parseInt(quantity, 10);
+      if (!isNaN(parsedQuantity) && parsedQuantity > 0) {
+        equipmentQuantity = parsedQuantity;
+      }
+    }
+
     // Prepare update data
     const updateData = {
       type: typeName,
@@ -430,7 +440,8 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       status: status || equipment.status,
       location: location !== undefined ? location : equipment.location,
       location_id: location_id_is_null === 'true' ? null : (location_id !== undefined ? location_id : equipment.location_id),
-      description: description !== undefined ? description : equipment.description
+      description: description !== undefined ? description : equipment.description,
+      quantity: equipmentQuantity
     };
 
     // ALWAYS handle location and location_id together to ensure consistency
