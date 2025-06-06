@@ -70,7 +70,7 @@ const EditEquipmentModern = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
 
   // Fetch equipment details
   const { data: equipmentData, isLoading, isError, error: fetchError } = useQuery({
@@ -312,6 +312,8 @@ const EditEquipmentModern = () => {
         return 'warning';
       case 'unavailable':
         return 'secondary';
+      case 'broken':
+        return 'danger';
       default:
         return 'secondary';
     }

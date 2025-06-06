@@ -37,6 +37,8 @@ const EquipmentCardView = ({ equipment, onDuplicate, onSelect, isSelected }) => 
         return 'badge-warning';
       case 'unavailable':
         return 'badge-secondary';
+      case 'broken':
+        return 'badge-danger';
       default:
         return 'badge-secondary';
     }

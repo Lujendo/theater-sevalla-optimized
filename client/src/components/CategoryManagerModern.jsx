@@ -51,10 +51,13 @@ const CategoryManagerModern = () => {
   const [error, setError] = useState('');
 
   // Fetch categories
-  const { data: categories, isLoading, isError } = useQuery({
+  const { data: categoriesData, isLoading, isError } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories
   });
+
+  // Extract categories array from the response
+  const categories = categoriesData?.categories || [];
 
   // Create mutation
   const createMutation = useMutation({

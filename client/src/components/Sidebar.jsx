@@ -114,7 +114,22 @@ const Sidebar = ({ isOpen, isCollapsed, toggleSidebar, toggleCollapse }) => {
             </span>
           </Link>
 
-          {/* Admin-only links */}
+          {/* Admin or Advanced user links */}
+          {(isAdmin() || isAdvanced()) && (
+            <Link
+              to="/equipment/new"
+              className={`sidebar-nav-item ${isActive('/equipment/new') ? 'sidebar-nav-item-active' : ''}`}
+              onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
+              title="Add Equipment"
+            >
+              <AddIcon className="sidebar-nav-icon" />
+              <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
+                Add Equipment
+              </span>
+            </Link>
+          )}
+
+          {/* Admin-only links - moved before Settings */}
           {isAdmin() && (
             <>
               <Link
@@ -141,21 +156,6 @@ const Sidebar = ({ isOpen, isCollapsed, toggleSidebar, toggleCollapse }) => {
                 </span>
               </Link>
             </>
-          )}
-
-          {/* Admin or Advanced user links */}
-          {(isAdmin() || isAdvanced()) && (
-            <Link
-              to="/equipment/new"
-              className={`sidebar-nav-item ${isActive('/equipment/new') ? 'sidebar-nav-item-active' : ''}`}
-              onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
-              title="Add Equipment"
-            >
-              <AddIcon className="sidebar-nav-icon" />
-              <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
-                Add Equipment
-              </span>
-            </Link>
           )}
 
           <Link

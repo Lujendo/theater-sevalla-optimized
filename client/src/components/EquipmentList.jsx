@@ -405,6 +405,7 @@ const EquipmentList = () => {
               <option value="in-use">In Use</option>
               <option value="maintenance">Maintenance</option>
               <option value="unavailable">Unavailable</option>
+              <option value="broken">Broken</option>
             </select>
           </div>
 
@@ -656,6 +657,8 @@ const EquipmentList = () => {
                               ? 'badge-warning'
                               : item.status === 'unavailable'
                               ? 'badge-secondary'
+                              : item.status === 'broken'
+                              ? 'badge-danger'
                               : 'badge-secondary'
                           }`}
                         >

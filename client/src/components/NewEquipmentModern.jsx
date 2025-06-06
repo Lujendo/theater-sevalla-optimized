@@ -55,7 +55,7 @@ const NewEquipmentModern = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
 
   // Create equipment mutation
   const createMutation = useMutation({

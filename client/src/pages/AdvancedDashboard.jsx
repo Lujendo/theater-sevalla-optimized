@@ -252,149 +252,7 @@ const AnalyticsSummary = ({ equipmentData, onFilterChange, currentFilters, isLoa
         </div>
       </div>
 
-      {/* Detailed Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Equipment Types */}
-        <Card className="h-fit">
-          <Card.Header>
-            <Card.Title className="flex items-center gap-2">
-              <ChartBarIcon />
-              Equipment Types
-            </Card.Title>
-          </Card.Header>
-          <Card.Body className="p-4">
-            {isLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : Object.keys(analytics.types).length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {Object.entries(analytics.types)
-                  .sort(([,a], [,b]) => b - a)
-                  .slice(0, 10)
-                  .map(([type, count]) => {
-                    const isActive = currentFilters.type === type;
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => onFilterChange({ type })}
-                        className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
-                          isActive
-                            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
-                            : 'hover:bg-slate-50'
-                        }`}
-                        title={`Filter by ${type} equipment`}
-                      >
-                        <span className="capitalize font-medium">{type}</span>
-                        <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
-                          {count}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No equipment types available</p>
-            )}
-          </Card.Body>
-        </Card>
 
-        {/* Categories */}
-        <Card className="h-fit">
-          <Card.Header>
-            <Card.Title className="flex items-center gap-2">
-              <ChartBarIcon />
-              Categories
-            </Card.Title>
-          </Card.Header>
-          <Card.Body className="p-4">
-            {isLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : Object.keys(analytics.categories).length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {Object.entries(analytics.categories)
-                  .sort(([,a], [,b]) => b - a)
-                  .slice(0, 10)
-                  .map(([category, count]) => {
-                    const isActive = currentFilters.category === category;
-                    return (
-                      <button
-                        key={category}
-                        onClick={() => onFilterChange({ category })}
-                        className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
-                          isActive
-                            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
-                            : 'hover:bg-slate-50'
-                        }`}
-                        title={`Filter by ${category} category`}
-                      >
-                        <span className="font-medium">{category}</span>
-                        <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
-                          {count}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No categories available</p>
-            )}
-          </Card.Body>
-        </Card>
-
-        {/* Top Locations */}
-        <Card className="h-fit">
-          <Card.Header>
-            <Card.Title className="flex items-center gap-2">
-              <ChartBarIcon />
-              Top Locations
-            </Card.Title>
-          </Card.Header>
-          <Card.Body className="p-4">
-            {isLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
-                ))}
-              </div>
-            ) : Object.keys(analytics.locations).length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {Object.entries(analytics.locations)
-                  .sort(([,a], [,b]) => b - a)
-                  .slice(0, 10)
-                  .map(([location, count]) => {
-                    const isActive = currentFilters.location === location;
-                    return (
-                      <button
-                        key={location}
-                        onClick={() => onFilterChange({ location })}
-                        className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
-                          isActive
-                            ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
-                            : 'hover:bg-slate-50'
-                        }`}
-                        title={`Filter by ${location} location`}
-                      >
-                        <span className="font-medium truncate">{location}</span>
-                        <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
-                          {count}
-                        </Badge>
-                      </button>
-                    );
-                  })}
-              </div>
-            ) : (
-              <p className="text-slate-500 text-sm">No locations available</p>
-            )}
-          </Card.Body>
-        </Card>
-      </div>
 
       {/* Quick Stats Bar */}
       <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-4">
@@ -459,6 +317,8 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
         return <Badge variant="warning">{status}</Badge>;
       case 'unavailable':
         return <Badge variant="secondary">{status}</Badge>;
+      case 'broken':
+        return <Badge variant="danger">{status}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -1031,11 +891,155 @@ const AdvancedDashboard = () => {
       <div
         id="filter-panel"
         className={`bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden transition-all duration-300 ${
-          showFilters ? 'max-h-96 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'
+          showFilters ? 'max-h-[800px] opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'
         }`}
       >
         <div className="p-4">
           <h2 className="text-lg font-medium text-slate-800 mb-4">Advanced Filters</h2>
+
+          {/* Filter Cards Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* Equipment Types */}
+            <Card className="h-fit">
+              <Card.Header>
+                <Card.Title className="flex items-center gap-2">
+                  <ChartBarIcon />
+                  Equipment Types
+                </Card.Title>
+              </Card.Header>
+              <Card.Body className="p-4">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                ) : Object.keys(analytics.types).length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {Object.entries(analytics.types)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 10)
+                      .map(([type, count]) => {
+                        const isActive = filters.type === type;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => setFilters(prev => ({ ...prev, type: isActive ? '' : type }))}
+                            className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
+                              isActive
+                                ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
+                                : 'hover:bg-slate-50'
+                            }`}
+                            title={`Filter by ${type} equipment`}
+                          >
+                            <span className="capitalize font-medium">{type}</span>
+                            <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
+                              {count}
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">No equipment types available</p>
+                )}
+              </Card.Body>
+            </Card>
+
+            {/* Categories */}
+            <Card className="h-fit">
+              <Card.Header>
+                <Card.Title className="flex items-center gap-2">
+                  <ChartBarIcon />
+                  Categories
+                </Card.Title>
+              </Card.Header>
+              <Card.Body className="p-4">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                ) : Object.keys(analytics.categories).length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {Object.entries(analytics.categories)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 10)
+                      .map(([category, count]) => {
+                        const isActive = filters.category === category;
+                        return (
+                          <button
+                            key={category}
+                            onClick={() => setFilters(prev => ({ ...prev, category: isActive ? '' : category }))}
+                            className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
+                              isActive
+                                ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
+                                : 'hover:bg-slate-50'
+                            }`}
+                            title={`Filter by ${category} category`}
+                          >
+                            <span className="font-medium">{category}</span>
+                            <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
+                              {count}
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">No categories available</p>
+                )}
+              </Card.Body>
+            </Card>
+
+            {/* Top Locations */}
+            <Card className="h-fit">
+              <Card.Header>
+                <Card.Title className="flex items-center gap-2">
+                  <ChartBarIcon />
+                  Top Locations
+                </Card.Title>
+              </Card.Header>
+              <Card.Body className="p-4">
+                {isLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-4 bg-slate-200 rounded animate-pulse"></div>
+                    ))}
+                  </div>
+                ) : Object.keys(analytics.locations).length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {Object.entries(analytics.locations)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 10)
+                      .map(([location, count]) => {
+                        const isActive = filters.location === location;
+                        return (
+                          <button
+                            key={location}
+                            onClick={() => setFilters(prev => ({ ...prev, location: isActive ? '' : location }))}
+                            className={`flex justify-between items-center w-full px-3 py-2 rounded-md transition-colors text-left ${
+                              isActive
+                                ? 'bg-primary-100 text-primary-800 ring-2 ring-primary-500'
+                                : 'hover:bg-slate-50'
+                            }`}
+                            title={`Filter by ${location} location`}
+                          >
+                            <span className="font-medium truncate">{location}</span>
+                            <Badge variant={isActive ? 'primary' : 'secondary'} size="sm">
+                              {count}
+                            </Badge>
+                          </button>
+                        );
+                      })}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm">No locations available</p>
+                )}
+              </Card.Body>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Category filter */}
@@ -1082,6 +1086,8 @@ const AdvancedDashboard = () => {
                 { value: 'available', label: 'Available' },
                 { value: 'in-use', label: 'In Use' },
                 { value: 'maintenance', label: 'Maintenance' },
+                { value: 'unavailable', label: 'Unavailable' },
+                { value: 'broken', label: 'Broken' },
               ]}
             />
 

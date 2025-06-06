@@ -134,6 +134,8 @@ const EquipmentDetailsModern = () => {
         return 'warning';
       case 'unavailable':
         return 'secondary';
+      case 'broken':
+        return 'danger';
       default:
         return 'secondary';
     }

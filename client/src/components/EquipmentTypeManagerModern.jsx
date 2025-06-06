@@ -49,10 +49,13 @@ const EquipmentTypeManagerModern = () => {
   const [error, setError] = useState('');
 
   // Fetch equipment types
-  const { data: types, isLoading, isError } = useQuery({
+  const { data: typesData, isLoading, isError } = useQuery({
     queryKey: ['equipmentTypes'],
     queryFn: getEquipmentTypes
   });
+
+  // Extract types array from the response
+  const types = typesData?.types || [];
 
   // Create mutation
   const createMutation = useMutation({

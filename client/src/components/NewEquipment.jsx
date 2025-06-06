@@ -44,7 +44,7 @@ const NewEquipment = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
 
   // Create equipment mutation
   const createMutation = useMutation({
@@ -350,6 +350,8 @@ const NewEquipment = () => {
                       'bg-orange-50 border-orange-300 text-orange-700 font-medium' :
                     formData.status === 'unavailable' ?
                       'bg-slate-50 border-slate-300 text-slate-700 font-medium' :
+                    formData.status === 'broken' ?
+                      'bg-red-50 border-red-300 text-red-700 font-medium' :
                       'border-gray-300'
                   }`}
                 >

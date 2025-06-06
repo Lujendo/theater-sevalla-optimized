@@ -15,7 +15,7 @@ const BatchStatusUpdateModal = ({ isOpen, onClose, equipmentId, selectedItems = 
   const queryClient = useQueryClient();
 
   // Status options
-  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
 
   // Update status mutation
   const updateStatusMutation = useMutation({

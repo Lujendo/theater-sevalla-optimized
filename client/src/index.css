@@ -150,6 +150,10 @@
     @apply bg-slate-50 text-slate-700 border border-slate-100;
   }
 
+  .badge-danger {
+    @apply bg-red-50 text-red-700 border border-red-100;
+  }
+
   /* Navigation */
   .nav-link {
     @apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-primary-600 transition-colors;
