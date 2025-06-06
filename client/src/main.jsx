@@ -7,11 +7,25 @@ import axios from 'axios'
 
 // Log environment variables for debugging
 console.log('API URL:', import.meta.env.VITE_API_URL);
+console.log('Environment PROD:', import.meta.env.PROD);
+console.log('Environment MODE:', import.meta.env.MODE);
 
 // Set axios base URL from environment variable
-// In Docker environment, we need to use the correct service name
-// Do NOT include /api in the base URL as it's included in the route paths
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// In production (Kinsta), use same domain (relative URL)
+// In development, use localhost:5000
+let apiUrl;
+if (import.meta.env.VITE_API_URL) {
+  apiUrl = import.meta.env.VITE_API_URL;
+} else if (window.location.hostname === 'tonlager.kinsta.app' ||
+           import.meta.env.PROD ||
+           import.meta.env.MODE === 'production') {
+  // In production on Kinsta, use relative URL (same domain)
+  apiUrl = '';
+} else {
+  // In development
+  apiUrl = 'http://localhost:5000';
+}
+
 axios.defaults.baseURL = apiUrl;
 console.log('Setting axios baseURL to:', apiUrl);
 

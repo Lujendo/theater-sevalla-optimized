@@ -7,7 +7,7 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "npm run install-server && rm -rf dist && vite build --force",
+    "build": "npm run install-server && cd client && npm run build && cd .. && cp -r client/dist .",
     "preview": "vite preview",
     "start": "node server/index.js",
     "server": "node server/index.js",
