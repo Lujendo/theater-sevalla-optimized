@@ -236,7 +236,8 @@ export const duplicateEquipment = async (id) => {
       status: equipment.status,
       location: equipment.location,
       location_id: equipment.location_id,
-      description: equipment.description
+      description: equipment.description,
+      quantity: equipment.quantity || 1
     };
 
     // Create the new equipment

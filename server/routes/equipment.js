@@ -173,7 +173,8 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       location,
       location_id,
       description,
-      reference_image_id
+      reference_image_id,
+      quantity
     } = req.body;
 
     // Validate required fields
@@ -240,6 +241,15 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       }
     }
 
+    // Handle quantity field - convert to integer and default to 1 if not provided or invalid
+    let equipmentQuantity = 1; // Default quantity
+    if (quantity !== undefined && quantity !== null && quantity !== '') {
+      const parsedQuantity = parseInt(quantity, 10);
+      if (!isNaN(parsedQuantity) && parsedQuantity > 0) {
+        equipmentQuantity = parsedQuantity;
+      }
+    }
+
     const equipmentData = {
       type: equipmentType.name,
       type_id: type_id,
@@ -251,7 +261,8 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       status: status || autoStatus, // Use provided status or auto-determined status
       location: locationName,
       location_id: location_id || null,
-      description
+      description,
+      quantity: equipmentQuantity
     };
 
     // Only add reference_image_id if it's not empty

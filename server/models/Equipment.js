@@ -67,9 +67,18 @@ const Equipment = sequelize.define('Equipment', {
     }
   },
   status: {
-    type: DataTypes.ENUM('available', 'in-use', 'maintenance'),
+    type: DataTypes.ENUM('available', 'in-use', 'maintenance', 'unavailable', 'broken'),
     allowNull: false,
     defaultValue: 'available'
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+    validate: {
+      min: 1, // Minimum 1 item, no 0 values allowed
+      isInt: true
+    }
   },
   location: {
     type: DataTypes.STRING,
