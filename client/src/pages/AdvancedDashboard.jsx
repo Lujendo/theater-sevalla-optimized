@@ -457,6 +457,8 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
         return <Badge variant="info">{status}</Badge>;
       case 'maintenance':
         return <Badge variant="warning">{status}</Badge>;
+      case 'unavailable':
+        return <Badge variant="secondary">{status}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }

@@ -43,7 +43,7 @@ const EditEquipment = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
 
   // Fetch equipment details
   const { data: equipmentData, isLoading, isError, error: fetchError } = useQuery({
@@ -441,8 +441,8 @@ const EditEquipment = () => {
                       'bg-yellow-50 border-yellow-300 text-yellow-700 font-medium' :
                     formData.status === 'maintenance' ?
                       'bg-orange-50 border-orange-300 text-orange-700 font-medium' :
-                    formData.status === 'broken' ?
-                      'bg-red-50 border-red-300 text-red-700 font-medium' :
+                    formData.status === 'unavailable' ?
+                      'bg-slate-50 border-slate-300 text-slate-700 font-medium' :
                       'border-gray-300'
                   }`}
                   required

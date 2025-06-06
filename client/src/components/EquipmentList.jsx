@@ -404,6 +404,7 @@ const EquipmentList = () => {
               <option value="available">Available</option>
               <option value="in-use">In Use</option>
               <option value="maintenance">Maintenance</option>
+              <option value="unavailable">Unavailable</option>
             </select>
           </div>
 
@@ -651,7 +652,11 @@ const EquipmentList = () => {
                               ? 'badge-success'
                               : item.status === 'in-use'
                               ? 'badge-info'
-                              : 'badge-warning'
+                              : item.status === 'maintenance'
+                              ? 'badge-warning'
+                              : item.status === 'unavailable'
+                              ? 'badge-secondary'
+                              : 'badge-secondary'
                           }`}
                         >
                           {item.status}

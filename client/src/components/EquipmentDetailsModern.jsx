@@ -132,6 +132,8 @@ const EquipmentDetailsModern = () => {
         return 'primary';
       case 'maintenance':
         return 'warning';
+      case 'unavailable':
+        return 'secondary';
       default:
         return 'secondary';
     }
