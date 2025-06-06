@@ -9,10 +9,10 @@ import axios from 'axios'
 console.log('API URL:', import.meta.env.VITE_API_URL);
 
 // Set axios base URL from environment variable
-// In production (Sevalla), use relative URL to same domain
+// In production (Kinsta), use relative URL to same domain
 // In development, use localhost:5000
 const apiUrl = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:5000');
+  (import.meta.env.PROD ? 'https://tonlager.kinsta.app' : 'http://localhost:5000');
 axios.defaults.baseURL = apiUrl;
 console.log('Setting axios baseURL to:', apiUrl);
 
