@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getEquipment, getFileUrl } from '../services/equipmentService';
 import { getSavedSearches, saveSearch, deleteSavedSearch } from '../services/savedSearchService';
@@ -419,16 +419,30 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
 };
 
 // Equipment list row component for table view
-const EquipmentListRow = ({ equipment, canEdit }) => {
+const EquipmentListRow = ({ equipment, canEdit, navigate }) => {
+  // Handle row click to navigate to equipment details
+  const handleRowClick = (id, event) => {
+    // Prevent navigation if clicking on a button or link
+    if (
+      event.target.closest('button') ||
+      event.target.closest('a')
+    ) {
+      return;
+    }
+
+    // Navigate to equipment details page
+    navigate(`/equipment/${id}`);
+  };
+
   return (
-    <tr className="table-row hover:bg-slate-50 cursor-pointer">
+    <tr
+      className="table-row hover:bg-slate-50 cursor-pointer"
+      onClick={(e) => handleRowClick(equipment.id, e)}
+    >
       <td className="table-cell">
-        <Link
-          to={`/equipment/${equipment.id}`}
-          className="font-medium text-slate-800 hover:text-primary-600"
-        >
+        <span className="font-medium text-slate-800">
           {equipment.brand} {equipment.model}
-        </Link>
+        </span>
       </td>
       <td className="table-cell">{equipment.type}</td>
       <td className="table-cell">{equipment.category || '-'}</td>
@@ -459,6 +473,7 @@ const EquipmentListRow = ({ equipment, canEdit }) => {
           <Link
             to={`/equipment/${equipment.id}`}
             className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+            onClick={(e) => e.stopPropagation()}
           >
             View
           </Link>
@@ -466,6 +481,7 @@ const EquipmentListRow = ({ equipment, canEdit }) => {
             <Link
               to={`/equipment/${equipment.id}/edit`}
               className="text-slate-600 hover:text-slate-700 text-sm"
+              onClick={(e) => e.stopPropagation()}
             >
               Edit
             </Link>
@@ -519,6 +535,7 @@ const SavedSearchChip = ({ search, onApply, onDelete }) => (
 const AdvancedDashboard = () => {
   const { user, canEditEquipment } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const observerTarget = useRef(null);
 
   // State for filters and search
@@ -1426,6 +1443,7 @@ const AdvancedDashboard = () => {
                           key={equipment.id}
                           equipment={equipment}
                           canEdit={canEditEquipment()}
+                          navigate={navigate}
                         />
                       ))}
                     </tbody>
