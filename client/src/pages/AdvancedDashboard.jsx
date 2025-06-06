@@ -924,39 +924,8 @@ const AdvancedDashboard = () => {
               </Button>
             )}
 
-            {/* View toggle and Sort dropdown */}
-            <div className="ml-auto flex items-center gap-2">
-              {/* View toggle buttons */}
-              <div className="flex border border-slate-200 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`px-3 py-2 text-sm font-medium transition-all ${
-                    viewMode === 'list'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                  title="List view"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('card')}
-                  className={`px-3 py-2 text-sm font-medium transition-all ${
-                    viewMode === 'card'
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-                  title="Card view"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v7H4zM13 15h7v7h-7z" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Sort dropdown */}
+            {/* Sort dropdown */}
+            <div className="ml-auto">
               <Select
                 id="sort"
                 name="sort"
@@ -1275,6 +1244,45 @@ const AdvancedDashboard = () => {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* View Toggle Controls */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold text-slate-800">
+          Equipment Results ({equipmentList.length} items)
+        </h2>
+
+        {/* View toggle buttons */}
+        <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-white shadow-sm">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 ${
+              viewMode === 'list'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+            title="List view"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span>List</span>
+          </button>
+          <button
+            onClick={() => setViewMode('card')}
+            className={`px-4 py-2 text-sm font-medium transition-all flex items-center gap-2 ${
+              viewMode === 'card'
+                ? 'bg-primary-600 text-white'
+                : 'bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+            title="Card view"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v7H4zM13 15h7v7h-7z" />
+            </svg>
+            <span>Cards</span>
+          </button>
         </div>
       </div>
 
