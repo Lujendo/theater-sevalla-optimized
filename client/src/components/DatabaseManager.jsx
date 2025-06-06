@@ -12,7 +12,7 @@ import {
 import { Card, Button, Input } from './ui';
 import { toast } from 'react-toastify';
 
-const DatabaseManager = () => {
+const DatabaseManager = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('tables');
   const [selectedTable, setSelectedTable] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,62 +131,72 @@ const DatabaseManager = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Database Connection Info */}
-      <Card>
-        <Card.Body>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-800">Database Manager</h3>
-              <p className="text-sm text-slate-600">
-                Connected to: <span className="font-mono text-primary-600">ton-lager1-cv8k6-mysql</span>
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-slate-600">Connected</span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleTestConnection}
-              >
-                Test Connection
-              </Button>
-            </div>
+    <div className="fixed inset-0 bg-slate-50 z-50 overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">Database Manager</h1>
+            <p className="text-sm text-slate-600 mt-1">
+              Connected to: <span className="font-mono text-primary-600">ton-lager1-cv8k6-mysql</span>
+            </p>
           </div>
-        </Card.Body>
-      </Card>
-
-      {/* Navigation Tabs */}
-      <div className="border-b border-slate-200">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === tab.id
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-slate-600">Connected</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTestConnection}
             >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
+              Test Connection
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onClose || (() => window.history.back())}
+            >
+              ← Back to Settings
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Tables Tab */}
-      {activeTab === 'tables' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Tables List */}
-          <Card>
-            <Card.Header>
-              <h3 className="text-lg font-semibold">Database Tables</h3>
-            </Card.Header>
+      {/* Content Area */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full px-6 py-6">
+
+          {/* Navigation Tabs */}
+          <div className="border-b border-slate-200 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-3 px-4 border-b-2 font-medium text-base flex items-center space-x-3 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600 bg-primary-50'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="text-lg">{tab.icon}</span>
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Tables Tab */}
+          {activeTab === 'tables' && (
+            <div className="h-full flex gap-6">
+              {/* Tables List */}
+              <div className="w-80 flex-shrink-0">
+                <Card className="h-full">
+                  <Card.Header>
+                    <h3 className="text-lg font-semibold">Database Tables</h3>
+                  </Card.Header>
             <Card.Body className="p-0">
               {tablesLoading ? (
                 <div className="p-4 text-center text-slate-500">Loading tables...</div>
@@ -228,15 +238,18 @@ const DatabaseManager = () => {
                   ))}
                 </div>
               )}
-            </Card.Body>
-          </Card>
+                </Card.Body>
+                </Card>
+              </div>
 
-          {/* Table Structure */}
-          {selectedTable && (
-            <Card>
-              <Card.Header>
-                <h3 className="text-lg font-semibold">Table Structure: {selectedTable}</h3>
-              </Card.Header>
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col gap-6">
+                {/* Table Structure */}
+                {selectedTable && (
+                  <Card className="flex-shrink-0">
+                    <Card.Header>
+                      <h3 className="text-lg font-semibold">Table Structure: {selectedTable}</h3>
+                    </Card.Header>
               <Card.Body className="p-0">
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-slate-200">
@@ -268,22 +281,22 @@ const DatabaseManager = () => {
                     </tbody>
                   </table>
                 </div>
-              </Card.Body>
-            </Card>
-          )}
+                    </Card.Body>
+                  </Card>
+                )}
 
-          {/* Table Data */}
-          {selectedTable && (
-            <Card>
-              <Card.Header>
-                <h3 className="text-lg font-semibold">Table Data: {selectedTable}</h3>
-              </Card.Header>
-              <Card.Body className="p-0">
-                {tableDataLoading ? (
-                  <div className="p-4 text-center text-slate-500">Loading data...</div>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto max-h-96">
+                {/* Table Data */}
+                {selectedTable && (
+                  <Card className="flex-1 flex flex-col">
+                    <Card.Header>
+                      <h3 className="text-lg font-semibold">Table Data: {selectedTable}</h3>
+                    </Card.Header>
+                    <Card.Body className="p-0 flex-1 flex flex-col">
+                      {tableDataLoading ? (
+                        <div className="p-4 text-center text-slate-500">Loading data...</div>
+                      ) : (
+                        <>
+                          <div className="flex-1 overflow-auto">
                       <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50 sticky top-0">
                           <tr>
@@ -355,23 +368,24 @@ const DatabaseManager = () => {
                           </Button>
                         </div>
                       </div>
-                    )}
-                  </>
+                          )}
+                        </>
+                      )}
+                    </Card.Body>
+                  </Card>
                 )}
-              </Card.Body>
-            </Card>
+              </div>
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Query Tab */}
-      {activeTab === 'query' && (
-        <div className="space-y-6">
-          <Card>
-            <Card.Header>
-              <h3 className="text-lg font-semibold">SQL Query Editor</h3>
-              <p className="text-sm text-slate-600">Execute SELECT queries to view data. Dangerous operations are restricted.</p>
-            </Card.Header>
+          {/* Query Tab */}
+          {activeTab === 'query' && (
+            <div className="h-full flex flex-col gap-6">
+              <Card className="flex-shrink-0">
+                <Card.Header>
+                  <h3 className="text-lg font-semibold">SQL Query Editor</h3>
+                  <p className="text-sm text-slate-600">Execute SELECT queries to view data. Dangerous operations are restricted.</p>
+                </Card.Header>
             <Card.Body>
               <div className="space-y-4">
                 <div>
@@ -380,7 +394,7 @@ const DatabaseManager = () => {
                     value={sqlQuery}
                     onChange={(e) => setSqlQuery(e.target.value)}
                     placeholder="SELECT * FROM equipment WHERE status = 'available';"
-                    className="w-full h-32 p-3 border border-slate-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full h-48 p-4 border border-slate-300 rounded-md font-mono text-base focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-y"
                   />
                 </div>
                 <div className="flex justify-between items-center">
@@ -398,17 +412,17 @@ const DatabaseManager = () => {
             </Card.Body>
           </Card>
 
-          {/* Query Results */}
-          {queryResults && (
-            <Card>
-              <Card.Header>
-                <h3 className="text-lg font-semibold">Query Results</h3>
-                <p className="text-sm text-slate-600">
-                  {queryResults.metadata?.rowCount} rows returned
-                </p>
-              </Card.Header>
-              <Card.Body className="p-0">
-                <div className="overflow-x-auto max-h-96">
+              {/* Query Results */}
+              {queryResults && (
+                <Card className="flex-1 flex flex-col">
+                  <Card.Header>
+                    <h3 className="text-lg font-semibold">Query Results</h3>
+                    <p className="text-sm text-slate-600">
+                      {queryResults.metadata?.rowCount} rows returned
+                    </p>
+                  </Card.Header>
+                  <Card.Body className="p-0 flex-1 flex flex-col">
+                    <div className="flex-1 overflow-auto">
                   <table className="min-w-full divide-y divide-slate-200">
                     <thead className="bg-slate-50 sticky top-0">
                       <tr>
@@ -431,19 +445,19 @@ const DatabaseManager = () => {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </Card.Body>
-            </Card>
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Database Info Tab */}
-      {activeTab === 'info' && (
-        <Card>
-          <Card.Header>
-            <h3 className="text-lg font-semibold">Database Information</h3>
-          </Card.Header>
+          {/* Database Info Tab */}
+          {activeTab === 'info' && (
+            <Card className="max-w-4xl">
+              <Card.Header>
+                <h3 className="text-lg font-semibold">Database Information</h3>
+              </Card.Header>
           <Card.Body>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -488,9 +502,11 @@ const DatabaseManager = () => {
                 </div>
               )}
             </div>
-          </Card.Body>
-        </Card>
-      )}
+              </Card.Body>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

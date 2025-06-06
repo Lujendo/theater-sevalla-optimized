@@ -47,6 +47,7 @@ const UserSettingsModern = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showDatabaseManager, setShowDatabaseManager] = useState(false);
 
   // Tabs for the settings page
   const tabs = [
@@ -238,13 +239,65 @@ const UserSettingsModern = () => {
               {activeTab === 'database' && user?.role === 'admin' && (
                 <div>
                   <h2 className="text-xl font-semibold text-slate-800 mb-6">Database Management</h2>
-                  <DatabaseManager />
+                  <div className="space-y-6">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-800 mb-2">Database Manager</h3>
+                          <p className="text-slate-600 mb-4">
+                            Access the full-featured database management interface to view tables, execute queries, and manage your MySQL database directly.
+                          </p>
+                          <div className="flex items-center space-x-4 text-sm text-slate-500">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span>Connected to ton-lager1-cv8k6-mysql</span>
+                            </div>
+                            <span>•</span>
+                            <span>MySQL 9.0</span>
+                            <span>•</span>
+                            <span>Database: substantial-gray-unicorn</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col space-y-2">
+                          <Button
+                            onClick={() => setShowDatabaseManager(true)}
+                            variant="primary"
+                            className="flex items-center space-x-2"
+                          >
+                            <DatabaseIcon />
+                            <span>Open Database Manager</span>
+                          </Button>
+                          <p className="text-xs text-slate-500 text-center">Opens in full-screen mode</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white border border-slate-200 rounded-lg p-4">
+                        <h4 className="font-medium text-slate-800 mb-2">📊 Browse Tables</h4>
+                        <p className="text-sm text-slate-600">View all database tables, their structure, and data with inline editing capabilities.</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-lg p-4">
+                        <h4 className="font-medium text-slate-800 mb-2">🔍 Execute Queries</h4>
+                        <p className="text-sm text-slate-600">Run SELECT queries to analyze data and generate custom reports.</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-lg p-4">
+                        <h4 className="font-medium text-slate-800 mb-2">ℹ️ Database Info</h4>
+                        <p className="text-sm text-slate-600">View connection details, server information, and database statistics.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </Card.Body>
           </Card>
         </div>
       </div>
+
+      {/* Full-screen Database Manager */}
+      {showDatabaseManager && (
+        <DatabaseManager onClose={() => setShowDatabaseManager(false)} />
+      )}
     </div>
   );
 };
