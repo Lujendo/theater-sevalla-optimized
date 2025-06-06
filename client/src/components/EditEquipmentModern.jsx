@@ -272,12 +272,23 @@ const EditEquipmentModern = () => {
     // Determine if we need to remove the reference image
     const removeReferenceImage = formData.reference_image_id === '';
 
+    // Prepare equipment data with proper data types
+    const equipmentData = {
+      ...formData,
+      // Ensure quantity is a number
+      quantity: parseInt(formData.quantity) || 1,
+      // Ensure IDs are numbers if they exist
+      type_id: formData.type_id ? parseInt(formData.type_id) : null,
+      category_id: formData.category_id ? parseInt(formData.category_id) : null,
+      location_id: formData.location_id ? parseInt(formData.location_id) : null,
+      // If reference_image_id is 'new', it will be handled by the backend
+      reference_image_id: formData.reference_image_id === 'new' ? 'new' : formData.reference_image_id,
+    };
+
+    console.log('Submitting equipment data:', equipmentData);
+
     updateMutation.mutate({
-      equipment: {
-        ...formData,
-        // If reference_image_id is 'new', it will be handled by the backend
-        reference_image_id: formData.reference_image_id === 'new' ? 'new' : formData.reference_image_id,
-      },
+      equipment: equipmentData,
       filesToUpload: regularFiles,
       filesToDelete,
       referenceImageFile: referenceImageFile || null,

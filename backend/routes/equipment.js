@@ -245,9 +245,9 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     let equipmentQuantity = 1; // Default quantity
     if (quantity !== undefined && quantity !== null && quantity !== '') {
       equipmentQuantity = parseInt(quantity, 10);
-      if (isNaN(equipmentQuantity) || equipmentQuantity < 0) {
+      if (isNaN(equipmentQuantity) || equipmentQuantity < 1) {
         return res.status(400).json({
-          message: 'Quantity must be a non-negative integer'
+          message: 'Quantity must be a positive integer (minimum: 1)'
         });
       }
     }
@@ -457,9 +457,9 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
     let equipmentQuantity = equipment.quantity; // Keep existing quantity by default
     if (quantity !== undefined && quantity !== null && quantity !== '') {
       equipmentQuantity = parseInt(quantity, 10);
-      if (isNaN(equipmentQuantity) || equipmentQuantity < 0) {
+      if (isNaN(equipmentQuantity) || equipmentQuantity < 1) {
         return res.status(400).json({
-          message: 'Quantity must be a non-negative integer'
+          message: 'Quantity must be a positive integer (minimum: 1)'
         });
       }
     }
