@@ -688,16 +688,19 @@ const AdvancedDashboard = () => {
   );
 
   // Fetch equipment types for filter
-  const { data: equipmentTypes = [] } = useQuery({
+  const { data: equipmentTypesData = [] } = useQuery({
     queryKey: ['equipmentTypes'],
     queryFn: getEquipmentTypes
   });
+  // Handle both array and object responses
+  const equipmentTypes = Array.isArray(equipmentTypesData) ? equipmentTypesData : (equipmentTypesData.types || []);
 
   // Fetch categories for filter
-  const { data: categories = [] } = useQuery({
+  const { data: categoriesData = { categories: [] } } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories
   });
+  const categories = categoriesData.categories || [];
 
   // Debounced search handler
   const debouncedSearch = useCallback(
