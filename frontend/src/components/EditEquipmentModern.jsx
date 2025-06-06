@@ -133,21 +133,80 @@ const EditEquipmentModern = () => {
     const { name, value } = e.target;
     let updatedFormData = { ...formData, [name]: value };
 
-    // Special handling for location fields
+    // Special handling for location_id field (dropdown selection)
     if (name === 'location_id' && value) {
+      // Find the selected location
+      const selectedLocation = locationsData?.locations?.find(loc => loc.id.toString() === value);
+
+      if (selectedLocation) {
+        console.log('Selected location:', selectedLocation);
+
+        // Check if the location is "Lager" (case insensitive)
+        const isLager = selectedLocation.name.toLowerCase() === 'lager';
+
+        // Update status based on location
+        if (isLager) {
+          // If location is Lager, set status to "available"
+          updatedFormData.status = 'available';
+          console.log('Setting status to "available" because location is Lager');
+        } else if (updatedFormData.status === 'available') {
+          // If location is not Lager and status is "available", set status to "in-use"
+          updatedFormData.status = 'in-use';
+          console.log(`Setting status to "in-use" because location is not Lager (${selectedLocation.name})`);
+        }
+      }
+
       // Clear custom location when a location is selected from dropdown
       updatedFormData = {
         ...updatedFormData,
         location_id: value,
         location: ''
       };
-    } else if (name === 'location' && value) {
+    }
+    // Special handling for location field (custom location entry)
+    else if (name === 'location' && value) {
+      // Check if the location is "Lager" (case insensitive)
+      const isLager = value.toLowerCase() === 'lager';
+
+      // Update status based on location
+      if (isLager) {
+        // If location is Lager, set status to "available"
+        updatedFormData.status = 'available';
+        console.log('Setting status to "available" because custom location is Lager');
+      } else if (updatedFormData.status === 'available') {
+        // If location is not Lager and status is "available", set status to "in-use"
+        updatedFormData.status = 'in-use';
+        console.log(`Setting status to "in-use" because custom location is not Lager (${value})`);
+      }
+
       // Clear location_id when custom location is entered
       updatedFormData = {
         ...updatedFormData,
         location: value,
         location_id: ''
       };
+    }
+    // Special handling for status field
+    else if (name === 'status') {
+      // If user manually changes status, respect their choice
+      console.log(`User manually changed status to: ${value}`);
+
+      // But if location is "Lager", force status to "available"
+      const currentLocationName = formData.location || '';
+      const currentLocationId = formData.location_id;
+      let isLager = false;
+
+      if (currentLocationId && locationsData?.locations) {
+        const selectedLocation = locationsData.locations.find(loc => loc.id.toString() === currentLocationId);
+        isLager = selectedLocation?.name.toLowerCase() === 'lager';
+      } else if (currentLocationName) {
+        isLager = currentLocationName.toLowerCase() === 'lager';
+      }
+
+      if (isLager && value !== 'available') {
+        console.log('Forcing status back to "available" because location is Lager');
+        updatedFormData.status = 'available';
+      }
     }
 
     setFormData(updatedFormData);
@@ -528,6 +587,27 @@ const EditEquipmentModern = () => {
                                 className="mt-2"
                                 placeholder="Or enter custom location"
                               />
+
+                              {/* Status info message */}
+                              {(formData.location_id || formData.location) && (
+                                (formData.location_id ?
+                                  (locationsData?.locations?.find(loc => loc.id.toString() === formData.location_id.toString())?.name.toLowerCase() !== 'lager') :
+                                  (formData.location.toLowerCase() !== 'lager')) ? (
+                                  <p className="mt-2 text-sm text-yellow-600">
+                                    <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                    </svg>
+                                    Status automatically set to "In-use" for non-Lager locations
+                                  </p>
+                                ) : (
+                                  <p className="mt-2 text-sm text-green-600">
+                                    <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Status automatically set to "Available" for Lager location
+                                  </p>
+                                )
+                              )}
                             </div>
 
                             <div>
