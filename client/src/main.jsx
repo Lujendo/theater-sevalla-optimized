@@ -5,10 +5,11 @@ import './index.css'
 import { configureAxios } from './utils/axiosConfig'
 import axios from 'axios'
 
-// Log environment variables for debugging
+// Log environment variables for debugging - v3 rebuild
 console.log('API URL:', import.meta.env.VITE_API_URL);
 console.log('Environment PROD:', import.meta.env.PROD);
 console.log('Environment MODE:', import.meta.env.MODE);
+console.log('🚀 Theater Equipment Catalog - Kinsta Deployment v3');
 
 // Set axios base URL from environment variable
 // In production (Kinsta), use same domain (relative URL)
