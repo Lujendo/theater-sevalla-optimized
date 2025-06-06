@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const { Show, ShowEquipment, Equipment, User } = require('../models/associations');
 const { authenticate } = require('../middleware/auth');
-const { Op } = require('sequelize');
+const { Op, sequelize } = require('sequelize');
+const { sequelize: dbSequelize } = require('../config/database');
 
 // Get all shows
 router.get('/', authenticate, async (req, res) => {
   try {
     const { status, search, limit = 50, offset = 0 } = req.query;
-    
+
     const whereClause = {};
     if (status) {
       whereClause.status = status;
@@ -21,17 +22,16 @@ router.get('/', authenticate, async (req, res) => {
       ];
     }
 
-    const shows = await Show.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'email']
-        },
+    // Check if show_equipment table exists
+    let includeShowEquipment = [];
+    try {
+      await dbSequelize.query("DESCRIBE `show_equipment`");
+      // Table exists, include it
+      includeShowEquipment = [
         {
           model: ShowEquipment,
           as: 'showEquipment',
+          required: false,
           include: [
             {
               model: Equipment,
@@ -40,6 +40,21 @@ router.get('/', authenticate, async (req, res) => {
             }
           ]
         }
+      ];
+    } catch (tableError) {
+      console.log('show_equipment table does not exist yet, skipping equipment count');
+    }
+
+    const shows = await Show.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'email'],
+          required: false
+        },
+        ...includeShowEquipment
       ],
       order: [['date', 'DESC']],
       limit: parseInt(limit),
@@ -63,28 +78,23 @@ router.get('/', authenticate, async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching shows:', error);
-    res.status(500).json({ message: 'Failed to fetch shows' });
+    res.status(500).json({ message: 'Failed to fetch shows', error: error.message });
   }
 });
 
 // Get single show
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const show = await Show.findByPk(req.params.id, {
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'email']
-        },
-        {
-          model: User,
-          as: 'updater',
-          attributes: ['id', 'username', 'email']
-        },
+    // Check if show_equipment table exists
+    let includeShowEquipment = [];
+    try {
+      await dbSequelize.query("DESCRIBE `show_equipment`");
+      // Table exists, include it
+      includeShowEquipment = [
         {
           model: ShowEquipment,
           as: 'showEquipment',
+          required: false,
           include: [
             {
               model: Equipment,
@@ -93,6 +103,26 @@ router.get('/:id', authenticate, async (req, res) => {
             }
           ]
         }
+      ];
+    } catch (tableError) {
+      console.log('show_equipment table does not exist yet, skipping equipment details');
+    }
+
+    const show = await Show.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'email'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'updater',
+          attributes: ['id', 'username', 'email'],
+          required: false
+        },
+        ...includeShowEquipment
       ]
     });
 
@@ -101,14 +131,14 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 
     const equipmentCount = show.showEquipment ? show.showEquipment.length : 0;
-    
+
     res.json({
       ...show.toJSON(),
       equipmentCount
     });
   } catch (error) {
     console.error('Error fetching show:', error);
-    res.status(500).json({ message: 'Failed to fetch show' });
+    res.status(500).json({ message: 'Failed to fetch show', error: error.message });
   }
 });
 
