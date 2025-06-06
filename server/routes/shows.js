@@ -28,8 +28,7 @@ router.get('/', authenticate, async (req, res) => {
     const showsQuery = `
       SELECT
         s.*,
-        u.username as creator_username,
-        u.email as creator_email
+        u.username as creator_username
       FROM shows s
       LEFT JOIN users u ON s.created_by = u.id
       ${whereClause}
@@ -62,8 +61,7 @@ router.get('/', authenticate, async (req, res) => {
       equipmentCount: 0,
       creator: show.creator_username ? {
         id: show.created_by,
-        username: show.creator_username,
-        email: show.creator_email
+        username: show.creator_username
       } : null
     }));
 
@@ -86,9 +84,7 @@ router.get('/:id', authenticate, async (req, res) => {
       SELECT
         s.*,
         creator.username as creator_username,
-        creator.email as creator_email,
-        updater.username as updater_username,
-        updater.email as updater_email
+        updater.username as updater_username
       FROM shows s
       LEFT JOIN users creator ON s.created_by = creator.id
       LEFT JOIN users updater ON s.updated_by = updater.id
@@ -110,13 +106,11 @@ router.get('/:id', authenticate, async (req, res) => {
       equipmentCount: 0,
       creator: show.creator_username ? {
         id: show.created_by,
-        username: show.creator_username,
-        email: show.creator_email
+        username: show.creator_username
       } : null,
       updater: show.updater_username ? {
         id: show.updated_by,
-        username: show.updater_username,
-        email: show.updater_email
+        username: show.updater_username
       } : null
     });
   } catch (error) {
@@ -147,8 +141,7 @@ router.post('/', authenticate, async (req, res) => {
     const showQuery = `
       SELECT
         s.*,
-        u.username as creator_username,
-        u.email as creator_email
+        u.username as creator_username
       FROM shows s
       LEFT JOIN users u ON s.created_by = u.id
       WHERE s.id = ?
@@ -165,8 +158,7 @@ router.post('/', authenticate, async (req, res) => {
       equipmentCount: 0,
       creator: show.creator_username ? {
         id: show.created_by,
-        username: show.creator_username,
-        email: show.creator_email
+        username: show.creator_username
       } : null
     });
   } catch (error) {
@@ -209,9 +201,7 @@ router.put('/:id', authenticate, async (req, res) => {
       SELECT
         s.*,
         creator.username as creator_username,
-        creator.email as creator_email,
-        updater.username as updater_username,
-        updater.email as updater_email
+        updater.username as updater_username
       FROM shows s
       LEFT JOIN users creator ON s.created_by = creator.id
       LEFT JOIN users updater ON s.updated_by = updater.id
@@ -229,13 +219,11 @@ router.put('/:id', authenticate, async (req, res) => {
       equipmentCount: 0,
       creator: show.creator_username ? {
         id: show.created_by,
-        username: show.creator_username,
-        email: show.creator_email
+        username: show.creator_username
       } : null,
       updater: show.updater_username ? {
         id: show.updated_by,
-        username: show.updater_username,
-        email: show.updater_email
+        username: show.updater_username
       } : null
     });
   } catch (error) {
