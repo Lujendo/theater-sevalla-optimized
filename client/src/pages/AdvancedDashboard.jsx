@@ -477,14 +477,19 @@ const EquipmentListRow = ({ equipment, canEdit, navigate }) => {
           >
             View
           </Link>
-          {canEdit && (
+          {canEdit ? (
             <Link
               to={`/equipment/${equipment.id}/edit`}
-              className="text-slate-600 hover:text-slate-700 text-sm"
-              onClick={(e) => e.stopPropagation()}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('Edit link clicked for equipment:', equipment.id);
+              }}
             >
               Edit
             </Link>
+          ) : (
+            <span className="text-gray-400 text-sm">Edit</span>
           )}
         </div>
       </td>
