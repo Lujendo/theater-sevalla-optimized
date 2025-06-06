@@ -9,9 +9,10 @@ import axios from 'axios'
 console.log('API URL:', import.meta.env.VITE_API_URL);
 
 // Set axios base URL from environment variable
-// In Docker environment, we need to use the correct service name
-// Do NOT include /api in the base URL as it's included in the route paths
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// In production (Sevalla), use relative URL to same domain
+// In development, use localhost:5000
+const apiUrl = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:5000');
 axios.defaults.baseURL = apiUrl;
 console.log('Setting axios baseURL to:', apiUrl);
 
