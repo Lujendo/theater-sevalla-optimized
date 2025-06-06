@@ -14,16 +14,24 @@ console.log('Environment MODE:', import.meta.env.MODE);
 // In production (Kinsta), use same domain (relative URL)
 // In development, use localhost:5000
 let apiUrl;
-if (import.meta.env.VITE_API_URL) {
-  apiUrl = import.meta.env.VITE_API_URL;
-} else if (window.location.hostname === 'tonlager.kinsta.app' ||
-           import.meta.env.PROD ||
-           import.meta.env.MODE === 'production') {
-  // In production on Kinsta, use relative URL (same domain)
+
+// Force correct behavior for Kinsta deployment
+if (window.location.hostname === 'tonlager.kinsta.app') {
+  // On Kinsta, always use relative URL (same domain)
   apiUrl = '';
+  console.log('🎯 Kinsta detected - using relative URL');
+} else if (import.meta.env.PROD || import.meta.env.MODE === 'production') {
+  // Other production environments, use relative URL
+  apiUrl = '';
+  console.log('🏭 Production mode - using relative URL');
+} else if (import.meta.env.VITE_API_URL && !window.location.hostname.includes('kinsta.app')) {
+  // Only use VITE_API_URL in non-Kinsta environments
+  apiUrl = import.meta.env.VITE_API_URL;
+  console.log('🔧 Using VITE_API_URL:', apiUrl);
 } else {
-  // In development
+  // Development fallback
   apiUrl = 'http://localhost:5000';
+  console.log('💻 Development mode - using localhost');
 }
 
 axios.defaults.baseURL = apiUrl;
