@@ -23,6 +23,7 @@ import NewEquipment from './components/NewEquipment';
 import NewEquipmentModern from './components/NewEquipmentModern';
 import AdminDashboard from './components/AdminDashboard';
 import EquipmentLogsPage from './pages/EquipmentLogsPage';
+import ShowList from './pages/ShowList';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -177,6 +178,17 @@ const AppContent = () => {
             <ProtectedRoute>
               <Layout>
                 <EquipmentList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/show-list"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ShowList />
               </Layout>
             </ProtectedRoute>
           }

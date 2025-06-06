@@ -9,7 +9,8 @@ import {
   AddIcon,
   MenuIcon,
   ChevronLeftIcon,
-  LogsIcon
+  LogsIcon,
+  ShowListIcon
 } from './Icons';
 
 // Temporary ChevronRightIcon until we can update the Icons component
@@ -111,6 +112,18 @@ const Sidebar = ({ isOpen, isCollapsed, toggleSidebar, toggleCollapse }) => {
             <EquipmentIcon className="sidebar-nav-icon" />
             <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
               Equipment
+            </span>
+          </Link>
+
+          <Link
+            to="/show-list"
+            className={`sidebar-nav-item ${isActive('/show-list') ? 'sidebar-nav-item-active' : ''}`}
+            onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
+            title="Show List"
+          >
+            <ShowListIcon className="sidebar-nav-icon" />
+            <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
+              Show List
             </span>
           </Link>
 
