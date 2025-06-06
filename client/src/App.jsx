@@ -108,7 +108,7 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <Layout>
-                <Dashboard />
+                <AdvancedDashboard />
               </Layout>
             </ProtectedRoute>
           }
@@ -119,18 +119,18 @@ const AppContent = () => {
           element={
             <ProtectedRoute>
               <Layout>
-                <Dashboard />
+                <AdvancedDashboard />
               </Layout>
             </ProtectedRoute>
           }
         />
 
         <Route
-          path="/advanced-dashboard"
+          path="/simple-dashboard"
           element={
             <ProtectedRoute>
               <Layout>
-                <AdvancedDashboard />
+                <Dashboard />
               </Layout>
             </ProtectedRoute>
           }

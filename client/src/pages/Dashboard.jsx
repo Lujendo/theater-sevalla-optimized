@@ -245,6 +245,7 @@ const AnalyticsSummary = ({ equipmentData, onFilterChange, currentFilters, isLoa
 };
 
 const Dashboard = () => {
+  // Advanced Dashboard with Analytics and Filtering - v4 FINAL
   const { user, canEditEquipment } = useAuth();
   const queryClient = useQueryClient();
   const observerTarget = useRef(null);
