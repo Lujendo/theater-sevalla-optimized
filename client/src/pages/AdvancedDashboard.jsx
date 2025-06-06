@@ -418,6 +418,64 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
   );
 };
 
+// Equipment list row component for table view
+const EquipmentListRow = ({ equipment, canEdit }) => {
+  return (
+    <tr className="table-row hover:bg-slate-50 cursor-pointer">
+      <td className="table-cell">
+        <Link
+          to={`/equipment/${equipment.id}`}
+          className="font-medium text-slate-800 hover:text-primary-600"
+        >
+          {equipment.brand} {equipment.model}
+        </Link>
+      </td>
+      <td className="table-cell">{equipment.type}</td>
+      <td className="table-cell">{equipment.category || '-'}</td>
+      <td className="table-cell">{equipment.serial_number}</td>
+      <td className="table-cell">
+        <span
+          className={`badge ${
+            equipment.status === 'available'
+              ? 'badge-success'
+              : equipment.status === 'in-use'
+              ? 'badge-info'
+              : equipment.status === 'maintenance'
+              ? 'badge-warning'
+              : equipment.status === 'unavailable'
+              ? 'badge-secondary'
+              : equipment.status === 'broken'
+              ? 'badge-danger'
+              : 'badge-secondary'
+          }`}
+        >
+          {equipment.status}
+        </span>
+      </td>
+      <td className="table-cell">{equipment.location || '-'}</td>
+      <td className="table-cell">{equipment.quantity || 1}</td>
+      <td className="table-cell">
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/equipment/${equipment.id}`}
+            className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          >
+            View
+          </Link>
+          {canEdit && (
+            <Link
+              to={`/equipment/${equipment.id}/edit`}
+              className="text-slate-600 hover:text-slate-700 text-sm"
+            >
+              Edit
+            </Link>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 // Skeleton loader for equipment cards
 const EquipmentCardSkeleton = () => (
   <div className="bg-white rounded-lg shadow-soft overflow-hidden h-full animate-pulse">
@@ -490,6 +548,9 @@ const AdvancedDashboard = () => {
   // State for saved search name
   const [savedSearchName, setSavedSearchName] = useState('');
   const [showSaveSearchInput, setShowSaveSearchInput] = useState(false);
+
+  // View mode state (list or card) with list as default
+  const [viewMode, setViewMode] = useState('list');
 
   // Fetch equipment with infinite query
   const {
@@ -863,8 +924,39 @@ const AdvancedDashboard = () => {
               </Button>
             )}
 
-            {/* Sort dropdown */}
-            <div className="ml-auto">
+            {/* View toggle and Sort dropdown */}
+            <div className="ml-auto flex items-center gap-2">
+              {/* View toggle buttons */}
+              <div className="flex border border-slate-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-3 py-2 text-sm font-medium transition-all ${
+                    viewMode === 'list'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                  title="List view"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={`px-3 py-2 text-sm font-medium transition-all ${
+                    viewMode === 'card'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                  title="Card view"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v7H4zM13 15h7v7h-7z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Sort dropdown */}
               <Select
                 id="sort"
                 name="sort"
@@ -1189,11 +1281,71 @@ const AdvancedDashboard = () => {
       {/* Results Grid */}
       <div>
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <EquipmentCardSkeleton key={index} />
-            ))}
-          </div>
+          <>
+            {/* Card View Skeleton */}
+            {viewMode === 'card' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <EquipmentCardSkeleton key={index} />
+                ))}
+              </div>
+            )}
+
+            {/* List View Skeleton */}
+            {viewMode === 'list' && (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="table">
+                    <thead className="table-header">
+                      <tr>
+                        <th className="table-header-cell">Equipment</th>
+                        <th className="table-header-cell">Type</th>
+                        <th className="table-header-cell">Category</th>
+                        <th className="table-header-cell">Serial Number</th>
+                        <th className="table-header-cell">Status</th>
+                        <th className="table-header-cell">Location</th>
+                        <th className="table-header-cell">Quantity</th>
+                        <th className="table-header-cell">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="table-body">
+                      {Array.from({ length: 6 }).map((_, index) => (
+                        <tr key={index} className="table-row animate-pulse">
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-6 bg-slate-200 rounded-full w-16"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="h-4 bg-slate-200 rounded w-8"></div>
+                          </td>
+                          <td className="table-cell">
+                            <div className="flex gap-2">
+                              <div className="h-4 bg-slate-200 rounded w-12"></div>
+                              <div className="h-4 bg-slate-200 rounded w-8"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         ) : isError ? (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
             <div className="flex">
@@ -1229,16 +1381,50 @@ const AdvancedDashboard = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {equipmentList.map(equipment => (
-                <EquipmentCard
-                  key={equipment.id}
-                  equipment={equipment}
-                  canEdit={canEditEquipment()}
-                  searchTerm={filters.search}
-                />
-              ))}
-            </div>
+            {/* Card View */}
+            {viewMode === 'card' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {equipmentList.map(equipment => (
+                  <EquipmentCard
+                    key={equipment.id}
+                    equipment={equipment}
+                    canEdit={canEditEquipment()}
+                    searchTerm={filters.search}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="table">
+                    <thead className="table-header">
+                      <tr>
+                        <th className="table-header-cell">Equipment</th>
+                        <th className="table-header-cell">Type</th>
+                        <th className="table-header-cell">Category</th>
+                        <th className="table-header-cell">Serial Number</th>
+                        <th className="table-header-cell">Status</th>
+                        <th className="table-header-cell">Location</th>
+                        <th className="table-header-cell">Quantity</th>
+                        <th className="table-header-cell">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="table-body">
+                      {equipmentList.map(equipment => (
+                        <EquipmentListRow
+                          key={equipment.id}
+                          equipment={equipment}
+                          canEdit={canEditEquipment()}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Infinite scroll loading indicator */}
             <div ref={observerTarget} className="py-4 text-center">
