@@ -531,7 +531,7 @@ const SavedSearchChip = ({ search, onApply, onDelete }) => (
   </div>
 );
 
-// Main Dashboard component
+// Main Dashboard component - Enhanced with clickable rows and view toggle
 const AdvancedDashboard = () => {
   const { user, canEditEquipment } = useAuth();
   const queryClient = useQueryClient();
