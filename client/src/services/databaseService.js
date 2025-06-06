@@ -1,8 +1,41 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// Test database connection
+export const testDatabaseConnection = async () => {
+  try {
+    console.log('[DATABASE SERVICE] Testing connection to:', `${API_BASE_URL}/api/database/test`);
+
+    const response = await fetch(`${API_BASE_URL}/api/database/test`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    console.log('[DATABASE SERVICE] Test response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[DATABASE SERVICE] Test error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('[DATABASE SERVICE] Test data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error testing database connection:', error);
+    throw error;
+  }
+};
+
 // Get all database tables
 export const getDatabaseTables = async () => {
   try {
+    console.log('[DATABASE SERVICE] Fetching tables from:', `${API_BASE_URL}/api/database/tables`);
+    console.log('[DATABASE SERVICE] Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+
     const response = await fetch(`${API_BASE_URL}/api/database/tables`, {
       method: 'GET',
       headers: {
@@ -11,11 +44,17 @@ export const getDatabaseTables = async () => {
       }
     });
 
+    console.log('[DATABASE SERVICE] Response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[DATABASE SERVICE] Error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('[DATABASE SERVICE] Tables data:', data);
+    return data;
   } catch (error) {
     console.error('Error fetching database tables:', error);
     throw error;

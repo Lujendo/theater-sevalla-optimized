@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  getDatabaseTables, 
-  getTableStructure, 
-  getTableData, 
-  executeQuery, 
+import {
+  getDatabaseTables,
+  getTableStructure,
+  getTableData,
+  executeQuery,
   updateTableRow,
-  getDatabaseInfo 
+  getDatabaseInfo,
+  testDatabaseConnection
 } from '../services/databaseService';
 import { Card, Button, Input } from './ui';
 import { toast } from 'react-toastify';
@@ -29,9 +30,14 @@ const DatabaseManager = () => {
   });
 
   // Fetch all tables
-  const { data: tablesData, isLoading: tablesLoading } = useQuery({
+  const { data: tablesData, isLoading: tablesLoading, error: tablesError } = useQuery({
     queryKey: ['database-tables'],
-    queryFn: getDatabaseTables
+    queryFn: getDatabaseTables,
+    retry: 1,
+    onError: (error) => {
+      console.error('[DATABASE MANAGER] Tables query error:', error);
+      toast.error(`Failed to load tables: ${error.message}`);
+    }
   });
 
   // Fetch table structure
@@ -100,6 +106,17 @@ const DatabaseManager = () => {
     setEditData({});
   };
 
+  const handleTestConnection = async () => {
+    try {
+      const result = await testDatabaseConnection();
+      toast.success(`Database connection successful! Database: ${result.database}`);
+      console.log('[DATABASE MANAGER] Connection test result:', result);
+    } catch (error) {
+      toast.error(`Database connection failed: ${error.message}`);
+      console.error('[DATABASE MANAGER] Connection test failed:', error);
+    }
+  };
+
   const formatValue = (value) => {
     if (value === null) return 'NULL';
     if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
@@ -125,9 +142,18 @@ const DatabaseManager = () => {
                 Connected to: <span className="font-mono text-primary-600">ton-lager1-cv8k6-mysql</span>
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-slate-600">Connected</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-slate-600">Connected</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleTestConnection}
+              >
+                Test Connection
+              </Button>
             </div>
           </div>
         </Card.Body>
@@ -164,9 +190,26 @@ const DatabaseManager = () => {
             <Card.Body className="p-0">
               {tablesLoading ? (
                 <div className="p-4 text-center text-slate-500">Loading tables...</div>
+              ) : tablesError ? (
+                <div className="p-4 text-center">
+                  <div className="text-red-600 mb-2">❌ Error loading tables</div>
+                  <div className="text-sm text-slate-600">{tablesError.message}</div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => queryClient.invalidateQueries(['database-tables'])}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : !tablesData?.tables?.length ? (
+                <div className="p-4 text-center text-slate-500">
+                  No tables found in database
+                </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {tablesData?.tables?.map((table) => (
+                  {tablesData.tables.map((table) => (
                     <button
                       key={table.TABLE_NAME}
                       onClick={() => {

@@ -3,20 +3,48 @@ const router = express.Router();
 const { sequelize } = require('../config/database');
 const { authenticate, restrictTo } = require('../middleware/auth');
 
+// Test database connection
+router.get('/test', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    await sequelize.authenticate();
+    const [result] = await sequelize.query('SELECT 1 as test');
+    res.json({
+      status: 'connected',
+      test: result[0],
+      database: process.env.DB_NAME || 'substantial-gray-unicorn'
+    });
+  } catch (error) {
+    console.error('Database test failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 // Get all tables in the database
 router.get('/tables', authenticate, restrictTo('admin'), async (req, res) => {
   try {
+    console.log('[DATABASE] Fetching tables for database:', process.env.DB_NAME || 'substantial-gray-unicorn');
+
     const [tables] = await sequelize.query(`
       SELECT TABLE_NAME, TABLE_ROWS, DATA_LENGTH, INDEX_LENGTH, TABLE_COMMENT
-      FROM information_schema.TABLES 
+      FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = DATABASE()
       ORDER BY TABLE_NAME
     `);
 
+    console.log('[DATABASE] Found tables:', tables.length);
+    console.log('[DATABASE] Tables:', tables.map(t => t.TABLE_NAME));
+
     res.json({ tables });
   } catch (error) {
     console.error('Error fetching tables:', error);
-    res.status(500).json({ message: 'Failed to fetch tables' });
+    res.status(500).json({
+      message: 'Failed to fetch tables',
+      error: error.message,
+      details: error.stack
+    });
   }
 });
 
