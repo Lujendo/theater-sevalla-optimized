@@ -16,6 +16,7 @@ const locationsRoutes = require('./routes/locations');
 const savedSearchesRoutes = require('./routes/savedSearches');
 const importExportRoutes = require('./routes/importExport');
 const categoriesRoutes = require('./routes/categories');
+const databaseRoutes = require('./routes/database');
 
 // Load environment variables
 dotenv.config();
@@ -183,6 +184,7 @@ app.use('/api/locations', locationsRoutes);
 app.use('/api/saved-searches', savedSearchesRoutes);
 app.use('/api/import-export', importExportRoutes);
 app.use('/api/categories', categoriesRoutes);
+app.use('/api/database', databaseRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

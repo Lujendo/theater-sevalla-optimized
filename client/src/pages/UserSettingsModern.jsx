@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import EquipmentTypeManagerModern from '../components/EquipmentTypeManagerModern';
 import CategoryManagerModern from '../components/CategoryManagerModern';
 import LocationManagement from '../components/LocationManagement';
+import DatabaseManager from '../components/DatabaseManager';
 import { Card, Button, Input } from '../components/ui';
 
 // Icons
@@ -237,20 +238,7 @@ const UserSettingsModern = () => {
               {activeTab === 'database' && user?.role === 'admin' && (
                 <div>
                   <h2 className="text-xl font-semibold text-slate-800 mb-6">Database Management</h2>
-                  <p className="mb-6 text-slate-600">
-                    Access the database management interface to view and modify database tables directly.
-                  </p>
-                  <Button
-                    as="a"
-                    href="http://localhost:8080"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="primary"
-                    className="inline-flex items-center"
-                  >
-                    <DatabaseIcon />
-                    <span className="ml-2">Open phpMyAdmin</span>
-                  </Button>
+                  <DatabaseManager />
                 </div>
               )}
             </Card.Body>
