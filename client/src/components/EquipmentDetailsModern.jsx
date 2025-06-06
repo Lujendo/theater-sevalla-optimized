@@ -304,6 +304,11 @@ const EquipmentDetailsModern = () => {
                             </div>
 
                             <div>
+                              <h3 className="text-sm font-medium text-slate-500">Quantity</h3>
+                              <p className="mt-1 text-base font-medium text-slate-900">{equipment.quantity || 1} item{(equipment.quantity || 1) !== 1 ? 's' : ''}</p>
+                            </div>
+
+                            <div>
                               <h3 className="text-sm font-medium text-slate-500">Location</h3>
                               <p className="mt-1 text-base font-medium text-slate-900">{equipment.location || 'Not specified'}</p>
                             </div>
@@ -571,6 +576,16 @@ const EquipmentDetailsModern = () => {
                     </Badge>
                   )}
                 </div>
+              </div>
+
+              <div>
+                <div className="flex items-center mb-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                  </svg>
+                  <span className="text-xs font-medium text-slate-500">Quantity</span>
+                </div>
+                <p className="text-sm font-medium text-slate-800">{equipment.quantity || 1} item{(equipment.quantity || 1) !== 1 ? 's' : ''}</p>
               </div>
 
               <div>

@@ -76,7 +76,7 @@ const Equipment = sequelize.define('Equipment', {
     allowNull: false,
     defaultValue: 1,
     validate: {
-      min: 0,
+      min: 1, // Minimum 1 item, no 0 values allowed
       isInt: true
     }
   },
@@ -171,14 +171,13 @@ const Equipment = sequelize.define('Equipment', {
         console.log(`[EQUIPMENT HOOK] Using custom category: ${equipment.category}`);
       }
 
-      // ENHANCED: Handle quantity-based status logic first
+      // ENHANCED: Quantity tracking (minimum 1, no 0 values allowed)
       console.log(`[EQUIPMENT HOOK] Checking quantity: ${equipment.quantity}`);
 
-      // If quantity is 0, set status to 'unavailable'
-      if (equipment.quantity === 0) {
-        console.log('[EQUIPMENT HOOK] Setting status to unavailable because quantity is 0');
-        equipment.status = 'unavailable';
-        return; // Skip location-based logic when unavailable
+      // Ensure quantity is at least 1
+      if (!equipment.quantity || equipment.quantity < 1) {
+        console.log('[EQUIPMENT HOOK] Setting quantity to 1 (minimum value)');
+        equipment.quantity = 1;
       }
 
       // ENHANCED: Automatically set status based on location (only if quantity > 0)
@@ -269,17 +268,16 @@ const Equipment = sequelize.define('Equipment', {
         console.log(`[EQUIPMENT HOOK] Using custom category: ${equipment.category}`);
       }
 
-      // ENHANCED: Handle quantity-based status logic first
+      // ENHANCED: Quantity tracking (minimum 1, no 0 values allowed)
       console.log(`[EQUIPMENT HOOK] Creating with quantity: ${equipment.quantity}`);
 
-      // If quantity is 0, set status to 'unavailable'
-      if (equipment.quantity === 0) {
-        console.log('[EQUIPMENT HOOK] Setting status to unavailable because quantity is 0');
-        equipment.status = 'unavailable';
-        return; // Skip location-based logic when unavailable
+      // Ensure quantity is at least 1
+      if (!equipment.quantity || equipment.quantity < 1) {
+        console.log('[EQUIPMENT HOOK] Setting quantity to 1 (minimum value)');
+        equipment.quantity = 1;
       }
 
-      // ENHANCED: Check location name directly (case insensitive) (only if quantity > 0)
+      // ENHANCED: Check location name directly (case insensitive)
       let isLager = false;
 
       // Check the direct location name
@@ -289,7 +287,7 @@ const Equipment = sequelize.define('Equipment', {
 
       console.log(`[EQUIPMENT HOOK] Is Lager location: ${isLager}`);
 
-      // Set status based on location (only if not unavailable due to quantity)
+      // Set status based on location
       if (isLager) {
         // If location is Lager, always set status to 'available'
         console.log('[EQUIPMENT HOOK] Setting status to available because location is Lager');

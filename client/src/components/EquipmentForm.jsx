@@ -166,6 +166,20 @@ const EquipmentForm = ({
               required
             />
 
+            {/* Quantity */}
+            <Input
+              id="quantity"
+              name="quantity"
+              label="Quantity"
+              type="number"
+              min="1"
+              value={formData.quantity || 1}
+              onChange={handleInputChange}
+              placeholder="Enter quantity"
+              required
+              helpText="Number of items (minimum: 1)"
+            />
+
             {/* Location */}
             <div className="space-y-4">
               <Select

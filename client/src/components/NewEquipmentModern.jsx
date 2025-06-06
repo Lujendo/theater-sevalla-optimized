@@ -26,6 +26,7 @@ const NewEquipmentModern = () => {
     location_id: '',
     description: '',
     reference_image_id: '',
+    quantity: 1, // Default quantity is 1
   });
 
   const [files, setFiles] = useState([]);
@@ -54,7 +55,7 @@ const NewEquipmentModern = () => {
   });
 
   // Equipment status options for dropdown
-  const statusOptions = ['available', 'in-use', 'maintenance'];
+  const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable'];
 
   // Create equipment mutation
   const createMutation = useMutation({
@@ -148,6 +149,13 @@ const NewEquipmentModern = () => {
         updatedFormData.status = 'in-use';
         console.log(`Setting status to "in-use" because custom location is not Lager (${value})`);
       }
+    }
+    // Special handling for quantity field
+    else if (name === 'quantity') {
+      const quantityValue = parseInt(value) || 1;
+      // Ensure minimum quantity is 1
+      updatedFormData.quantity = Math.max(1, quantityValue);
+      console.log(`Setting quantity to: ${updatedFormData.quantity}`);
     }
     // Special handling for status field
     else if (name === 'status') {
