@@ -129,33 +129,34 @@ const Sidebar = ({ isOpen, isCollapsed, toggleSidebar, toggleCollapse }) => {
             </Link>
           )}
 
-          {/* Admin-only links - moved before Settings */}
+          {/* Equipment Logs - Admin only */}
           {isAdmin() && (
-            <>
-              <Link
-                to="/admin"
-                className={`sidebar-nav-item ${isActive('/admin') ? 'sidebar-nav-item-active' : ''}`}
-                onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
-                title="Admin"
-              >
-                <AdminIcon className="sidebar-nav-icon" />
-                <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
-                  Admin
-                </span>
-              </Link>
+            <Link
+              to="/equipment-logs"
+              className={`sidebar-nav-item ${isActive('/equipment-logs') ? 'sidebar-nav-item-active' : ''}`}
+              onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
+              title="Equipment Logs"
+            >
+              <LogsIcon className="sidebar-nav-icon" />
+              <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
+                Equipment Logs
+              </span>
+            </Link>
+          )}
 
-              <Link
-                to="/equipment-logs"
-                className={`sidebar-nav-item ${isActive('/equipment-logs') ? 'sidebar-nav-item-active' : ''}`}
-                onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
-                title="Equipment Logs"
-              >
-                <LogsIcon className="sidebar-nav-icon" />
-                <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
-                  Equipment Logs
-                </span>
-              </Link>
-            </>
+          {/* Admin link - positioned directly before Settings */}
+          {isAdmin() && (
+            <Link
+              to="/admin"
+              className={`sidebar-nav-item ${isActive('/admin') ? 'sidebar-nav-item-active' : ''}`}
+              onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
+              title="Admin"
+            >
+              <AdminIcon className="sidebar-nav-icon" />
+              <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
+                Admin
+              </span>
+            </Link>
           )}
 
           <Link
