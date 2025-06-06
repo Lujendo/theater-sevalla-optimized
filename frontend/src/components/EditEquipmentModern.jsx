@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getEquipmentById, updateEquipment, deleteEquipment } from '../services/equipmentService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
 import { getCategories } from '../services/categoryService';
+import { getLocations } from '../services/locationService';
 import { useAuth } from '../context/AuthContext';
 import { Card, Button, Badge, Input, Select } from './ui';
 import ConfirmationDialogModern from './ConfirmationDialogModern';
@@ -41,6 +42,7 @@ const EditEquipmentModern = () => {
     serial_number: '',
     status: 'available',
     location: '',
+    location_id: '',
     description: '',
     reference_image_id: '',
   });
@@ -58,6 +60,13 @@ const EditEquipmentModern = () => {
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
+    staleTime: 300000, // 5 minutes
+  });
+
+  // Fetch locations for dropdown
+  const { data: locationsData } = useQuery({
+    queryKey: ['locations'],
+    queryFn: getLocations,
     staleTime: 300000, // 5 minutes
   });
 
@@ -79,6 +88,7 @@ const EditEquipmentModern = () => {
         serial_number: data.serial_number || '',
         status: data.status || 'available',
         location: data.location || '',
+        location_id: data.location_id ? data.location_id.toString() : '',
         description: data.description || '',
         reference_image_id: data.reference_image_id ? data.reference_image_id.toString() : '',
       });
@@ -121,7 +131,26 @@ const EditEquipmentModern = () => {
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    let updatedFormData = { ...formData, [name]: value };
+
+    // Special handling for location fields
+    if (name === 'location_id' && value) {
+      // Clear custom location when a location is selected from dropdown
+      updatedFormData = {
+        ...updatedFormData,
+        location_id: value,
+        location: ''
+      };
+    } else if (name === 'location' && value) {
+      // Clear location_id when custom location is entered
+      updatedFormData = {
+        ...updatedFormData,
+        location: value,
+        location_id: ''
+      };
+    }
+
+    setFormData(updatedFormData);
   };
 
   // Handle save button click
@@ -463,6 +492,45 @@ const EditEquipmentModern = () => {
                             </div>
 
                             <div>
+                              <h3 className="text-sm font-medium text-slate-500">Location</h3>
+                              <Select
+                                name="location_id"
+                                value={formData.location_id}
+                                onChange={handleInputChange}
+                                options={[
+                                  { value: '', label: 'Select Location' },
+                                  ...(locationsData?.locations || []).map(location => {
+                                    // Create a more detailed label with address information if available
+                                    let label = location.name;
+                                    const addressParts = [];
+
+                                    if (location.city) addressParts.push(location.city);
+                                    if (location.region) addressParts.push(location.region);
+                                    if (location.country) addressParts.push(location.country);
+
+                                    if (addressParts.length > 0) {
+                                      label += ` (${addressParts.join(', ')})`;
+                                    }
+
+                                    return {
+                                      value: location.id.toString(),
+                                      label: label,
+                                    };
+                                  })
+                                ]}
+                                className="mt-1"
+                              />
+                              {/* Custom location input for when location is not in dropdown */}
+                              <Input
+                                name="location"
+                                value={formData.location}
+                                onChange={handleInputChange}
+                                className="mt-2"
+                                placeholder="Or enter custom location"
+                              />
+                            </div>
+
+                            <div>
                               <h3 className="text-sm font-medium text-slate-500">Status</h3>
                               <Select
                                 name="status"
@@ -473,17 +541,6 @@ const EditEquipmentModern = () => {
                                   label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
                                 }))}
                                 className="mt-1"
-                              />
-                            </div>
-
-                            <div>
-                              <h3 className="text-sm font-medium text-slate-500">Location</h3>
-                              <Input
-                                name="location"
-                                value={formData.location}
-                                onChange={handleInputChange}
-                                className="mt-1"
-                                placeholder="Enter location"
                               />
                             </div>
                           </div>

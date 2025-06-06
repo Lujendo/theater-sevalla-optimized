@@ -303,6 +303,11 @@ const EquipmentDetailsModern = () => {
                             </div>
 
                             <div>
+                              <h3 className="text-sm font-medium text-slate-500">Location</h3>
+                              <p className="mt-1 text-base font-medium text-slate-900">{equipment.location || 'Not specified'}</p>
+                            </div>
+
+                            <div>
                               <h3 className="text-sm font-medium text-slate-500">Status</h3>
                               <div className="mt-1">
                                 {equipment.status && (
@@ -311,11 +316,6 @@ const EquipmentDetailsModern = () => {
                                   </Badge>
                                 )}
                               </div>
-                            </div>
-
-                            <div>
-                              <h3 className="text-sm font-medium text-slate-500">Location</h3>
-                              <p className="mt-1 text-base font-medium text-slate-900">{equipment.location || 'Not specified'}</p>
                             </div>
                           </div>
 
@@ -570,17 +570,11 @@ const EquipmentDetailsModern = () => {
               <div>
                 <div className="flex items-center mb-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                   </svg>
-                  <span className="text-xs font-medium text-slate-500">Status</span>
+                  <span className="text-xs font-medium text-slate-500">Serial Number</span>
                 </div>
-                <div>
-                  {equipment.status && (
-                    <Badge variant={getStatusVariant(equipment.status)} size="md">
-                      {equipment.status.charAt(0).toUpperCase() + equipment.status.slice(1).replace('-', ' ')}
-                    </Badge>
-                  )}
-                </div>
+                <p className="text-sm font-medium text-slate-800">{equipment.serial_number}</p>
               </div>
 
               <div>
@@ -597,11 +591,17 @@ const EquipmentDetailsModern = () => {
               <div>
                 <div className="flex items-center mb-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                   </svg>
-                  <span className="text-xs font-medium text-slate-500">Serial Number</span>
+                  <span className="text-xs font-medium text-slate-500">Status</span>
                 </div>
-                <p className="text-sm font-medium text-slate-800">{equipment.serial_number}</p>
+                <div>
+                  {equipment.status && (
+                    <Badge variant={getStatusVariant(equipment.status)} size="md">
+                      {equipment.status.charAt(0).toUpperCase() + equipment.status.slice(1).replace('-', ' ')}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </div>
