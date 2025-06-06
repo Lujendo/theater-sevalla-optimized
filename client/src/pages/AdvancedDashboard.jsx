@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ListViewIcon, CardViewIcon } from '../components/Icons';
 import { getEquipment, getFileUrl } from '../services/equipmentService';
 import { getSavedSearches, saveSearch, deleteSavedSearch } from '../services/savedSearchService';
 import { getCategories } from '../services/categoryService';
@@ -1286,9 +1287,7 @@ const AdvancedDashboard = () => {
             }`}
             title="List view"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <ListViewIcon className="h-4 w-4" />
             <span>List</span>
           </button>
           <button
@@ -1300,9 +1299,7 @@ const AdvancedDashboard = () => {
             }`}
             title="Card view"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v7H4zM13 15h7v7h-7z" />
-            </svg>
+            <CardViewIcon className="h-4 w-4" />
             <span>Cards</span>
           </button>
         </div>
