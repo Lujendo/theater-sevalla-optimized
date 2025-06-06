@@ -17,6 +17,8 @@ const savedSearchesRoutes = require('./routes/savedSearches');
 const importExportRoutes = require('./routes/importExport');
 const categoriesRoutes = require('./routes/categories');
 const databaseRoutes = require('./routes/database');
+const showRoutes = require('./routes/shows');
+const showEquipmentRoutes = require('./routes/showEquipment');
 
 // Load environment variables
 dotenv.config();
@@ -185,6 +187,8 @@ app.use('/api/saved-searches', savedSearchesRoutes);
 app.use('/api/import-export', importExportRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/database', databaseRoutes);
+app.use('/api/shows', showRoutes);
+app.use('/api/show-equipment', showEquipmentRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

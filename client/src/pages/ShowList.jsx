@@ -1,28 +1,63 @@
 import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
 import { Card, Button, Input } from '../components/ui';
 import { ShowListIcon, AddIcon, ViewIcon, EditIcon, TrashIcon, ListViewIcon, CardViewIcon } from '../components/Icons';
+import { getShows, createShow, updateShow, deleteShow } from '../services/showService';
 
 const ShowList = () => {
-  const [shows, setShows] = useState([
-    {
-      id: 1,
-      name: "Romeo and Juliet",
-      date: "2024-07-15",
-      venue: "Main Theater",
-      director: "John Smith",
-      status: "planning",
-      equipmentCount: 0
-    },
-    {
-      id: 2,
-      name: "The Tempest",
-      date: "2024-08-20",
-      venue: "Studio Theater",
-      director: "Jane Doe",
-      status: "in-progress",
-      equipmentCount: 15
+  const queryClient = useQueryClient();
+
+  // Fetch shows
+  const { data: showsData, isLoading, error } = useQuery({
+    queryKey: ['shows'],
+    queryFn: () => getShows(),
+    onError: (error) => {
+      toast.error(`Failed to load shows: ${error.message}`);
     }
-  ]);
+  });
+
+  const shows = showsData?.shows || [];
+
+  // Create show mutation
+  const createShowMutation = useMutation({
+    mutationFn: createShow,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['shows']);
+      toast.success('Show created successfully');
+      setShowCreateModal(false);
+      setNewShow({ name: '', date: '', venue: '', director: '', description: '' });
+    },
+    onError: (error) => {
+      toast.error(`Failed to create show: ${error.message}`);
+    }
+  });
+
+  // Update show mutation
+  const updateShowMutation = useMutation({
+    mutationFn: ({ id, ...data }) => updateShow(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['shows']);
+      toast.success('Show updated successfully');
+      setShowEditModal(false);
+      setEditingShow(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to update show: ${error.message}`);
+    }
+  });
+
+  // Delete show mutation
+  const deleteShowMutation = useMutation({
+    mutationFn: deleteShow,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['shows']);
+      toast.success('Show deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete show: ${error.message}`);
+    }
+  });
 
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -55,15 +90,7 @@ const ShowList = () => {
 
   const handleCreateShow = () => {
     if (newShow.name && newShow.date) {
-      const show = {
-        id: Date.now(),
-        ...newShow,
-        status: 'planning',
-        equipmentCount: 0
-      };
-      setShows([...shows, show]);
-      setNewShow({ name: '', date: '', venue: '', director: '', description: '' });
-      setShowCreateModal(false);
+      createShowMutation.mutate(newShow);
     }
   };
 
@@ -79,19 +106,40 @@ const ShowList = () => {
 
   const handleUpdateShow = () => {
     if (editingShow.name && editingShow.date) {
-      setShows(shows.map(show =>
-        show.id === editingShow.id ? editingShow : show
-      ));
-      setEditingShow(null);
-      setShowEditModal(false);
+      updateShowMutation.mutate(editingShow);
     }
   };
 
   const handleDeleteShow = (showId) => {
     if (window.confirm('Are you sure you want to delete this show?')) {
-      setShows(shows.filter(show => show.id !== showId));
+      deleteShowMutation.mutate(showId);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading shows...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">❌ Error loading shows</div>
+          <p className="text-slate-600 mb-4">{error.message}</p>
+          <Button onClick={() => queryClient.invalidateQueries(['shows'])}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -379,9 +427,9 @@ const ShowList = () => {
               <Button
                 onClick={handleCreateShow}
                 className="flex-1"
-                disabled={!newShow.name || !newShow.date}
+                disabled={!newShow.name || !newShow.date || createShowMutation.isLoading}
               >
-                Create Show
+                {createShowMutation.isLoading ? 'Creating...' : 'Create Show'}
               </Button>
             </div>
           </div>
@@ -592,10 +640,10 @@ const ShowList = () => {
                 </Button>
                 <Button
                   onClick={handleUpdateShow}
-                  disabled={!editingShow.name || !editingShow.date}
+                  disabled={!editingShow.name || !editingShow.date || updateShowMutation.isLoading}
                   className="flex items-center space-x-2"
                 >
-                  <span>Save Changes</span>
+                  <span>{updateShowMutation.isLoading ? 'Saving...' : 'Save Changes'}</span>
                 </Button>
               </div>
             </div>
