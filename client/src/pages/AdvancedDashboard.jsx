@@ -716,6 +716,72 @@ const AdvancedDashboard = () => {
     }
   );
 
+  // Calculate analytics from all equipment data
+  const calculateAnalytics = () => {
+    const equipmentData = allEquipmentData?.equipment || [];
+    if (!equipmentData || equipmentData.length === 0) {
+      return {
+        total: 0,
+        available: 0,
+        inUse: 0,
+        maintenance: 0,
+        categories: {},
+        types: {},
+        locations: {},
+        brands: {},
+        recentlyAdded: 0
+      };
+    }
+
+    const analytics = {
+      total: equipmentData.length,
+      available: 0,
+      inUse: 0,
+      maintenance: 0,
+      categories: {},
+      types: {},
+      locations: {},
+      brands: {},
+      recentlyAdded: 0
+    };
+
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    equipmentData.forEach(item => {
+      // Count by status
+      if (item.status === 'available') analytics.available++;
+      else if (item.status === 'in-use') analytics.inUse++;
+      else if (item.status === 'maintenance') analytics.maintenance++;
+
+      // Count by category
+      const category = item.category || 'Uncategorized';
+      analytics.categories[category] = (analytics.categories[category] || 0) + 1;
+
+      // Count by type
+      const type = item.type || 'Unknown';
+      analytics.types[type] = (analytics.types[type] || 0) + 1;
+
+      // Count by location
+      const location = item.location || 'No Location';
+      analytics.locations[location] = (analytics.locations[location] || 0) + 1;
+
+      // Count by brand
+      const brand = item.brand || 'Unknown';
+      analytics.brands[brand] = (analytics.brands[brand] || 0) + 1;
+
+      // Count recently added (last 7 days)
+      if (new Date(item.created_at) > oneWeekAgo) {
+        analytics.recentlyAdded++;
+      }
+    });
+
+    return analytics;
+  };
+
+  // Get analytics data
+  const analytics = calculateAnalytics();
+
   // Handle analytics filter changes
   const handleAnalyticsFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));

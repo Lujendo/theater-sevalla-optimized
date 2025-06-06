@@ -14,6 +14,15 @@ const authLimiter = rateLimit({
     message: 'Too many login attempts. Please try again after 1 minute.'
   },
   skipSuccessfulRequests: true, // Don't count successful logins against the limit
+  // Configure for proxy environments like Kinsta
+  trustProxy: process.env.TRUST_PROXY === 'true',
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if trust proxy is enabled, otherwise use req.ip
+    if (process.env.TRUST_PROXY === 'true') {
+      return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+    }
+    return req.ip;
+  }
 });
 
 /**
@@ -28,6 +37,15 @@ const apiLimiter = rateLimit({
   message: {
     status: 429,
     message: 'Too many requests. Please try again after 1 minute.'
+  },
+  // Configure for proxy environments like Kinsta
+  trustProxy: process.env.TRUST_PROXY === 'true',
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For header if trust proxy is enabled, otherwise use req.ip
+    if (process.env.TRUST_PROXY === 'true') {
+      return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
+    }
+    return req.ip;
   }
 });
 
