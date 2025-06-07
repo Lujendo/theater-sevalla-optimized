@@ -64,7 +64,8 @@ if (process.env.NODE_ENV === 'production') {
 
   // CSRF token endpoint (for non-API forms if needed)
   app.get('/api/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
+    // Since API routes are exempted from CSRF, return a dummy token
+    res.json({ csrfToken: 'not-required-for-api' });
   });
 }
 
