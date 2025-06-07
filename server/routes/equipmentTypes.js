@@ -1,7 +1,10 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { EquipmentType } = require('../models');
-const { sequelize } = require('../config/database');
+// Use environment-aware models
+const models = process.env.NODE_ENV === 'development'
+  ? require('../models/index.local')
+  : require('../models');
+const { EquipmentType, sequelize } = models;
 const { authenticate, restrictTo } = require('../middleware/auth');
 
 const router = express.Router();

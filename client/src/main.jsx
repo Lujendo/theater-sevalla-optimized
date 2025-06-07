@@ -30,9 +30,9 @@ if (window.location.hostname === 'tonlager.kinsta.app') {
   apiUrl = import.meta.env.VITE_API_URL;
   console.log('🔧 Using VITE_API_URL:', apiUrl);
 } else {
-  // Development fallback
-  apiUrl = 'http://localhost:5000';
-  console.log('💻 Development mode - using localhost');
+  // Development fallback - use local backend port
+  apiUrl = 'http://localhost:3001';
+  console.log('💻 Development mode - using localhost:3001');
 }
 
 axios.defaults.baseURL = apiUrl;

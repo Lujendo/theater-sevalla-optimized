@@ -3,7 +3,23 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
-const { sequelize, testConnection } = require('./config/database');
+
+// Load environment variables FIRST, before anything else
+if (process.env.NODE_ENV === 'development') {
+  // Load development environment variables from parent directory
+  dotenv.config({ path: '../.env.development' });
+  console.log('🔧 Loaded development environment variables');
+  console.log('🔧 PORT:', process.env.PORT);
+  console.log('🔧 DB_TYPE:', process.env.DB_TYPE);
+} else {
+  dotenv.config();
+}
+// Use local database configuration in development mode
+const databaseConfig = process.env.NODE_ENV === 'development'
+  ? require('./config/database.local')
+  : require('./config/database');
+
+const { sequelize, testConnection } = databaseConfig;
 const { csrfProtection, handleCsrfError } = require('./middleware/csrf');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const securityLogger = require('./middleware/securityLogger');
@@ -20,8 +36,7 @@ const databaseRoutes = require('./routes/database');
 const showRoutes = require('./routes/shows');
 const showEquipmentRoutes = require('./routes/showEquipment');
 
-// Load environment variables
-dotenv.config();
+// Environment variables already loaded above
 
 // Initialize Express app
 const app = express();
@@ -37,9 +52,13 @@ if (process.env.TRUST_PROXY === 'true') {
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? (process.env.FRONTEND_URL === '*' ? true : process.env.FRONTEND_URL)
-    : 'http://localhost:3000',
+    : process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true
 }));
+
+console.log('🌐 CORS configured for:', process.env.NODE_ENV === 'production'
+  ? process.env.FRONTEND_URL
+  : process.env.CORS_ORIGIN || 'http://localhost:5173');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -276,16 +295,133 @@ const startServer = async () => {
     // Test database connection
     await testConnection();
 
-    // MINIMAL STARTUP - Database already exists with all data
-    console.log('✅ MINIMAL STARTUP MODE');
-    console.log('✅ Skipping ALL database operations');
-    console.log('✅ Database tables and data already exist');
-    console.log('✅ Admin user already exists');
-    console.log('✅ Equipment types already exist');
-    console.log('✅ Locations already exist');
+    if (process.env.NODE_ENV === 'development') {
+      // DEVELOPMENT MODE - Initialize local database if needed
+      console.log('🔧 DEVELOPMENT MODE - Checking local database');
 
-    // Skip all database operations to prevent connection issues
-    console.log('✅ No database sync needed - using existing schema');
+      // Import models and initialize database
+      const bcrypt = require('bcryptjs');
+      const { User, Equipment, File, Location, Category, EquipmentType } = require('./models/index.local');
+
+      // Models are imported from index.local.js
+
+      // Sync database (create tables if they don't exist)
+      await sequelize.sync({ alter: false });
+      console.log('✅ Database tables synchronized');
+
+      // Check if admin user exists
+      const adminUser = await User.findOne({ where: { username: 'admin' } });
+      if (!adminUser) {
+        console.log('🔧 Creating admin user...');
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        await User.create({
+          username: 'admin',
+          email: 'admin@theater.local',
+          password: hashedPassword,
+          role: 'admin'
+        });
+        console.log('✅ Admin user created (admin/admin123)');
+      } else {
+        console.log('✅ Admin user already exists');
+      }
+
+      // Check if equipment types exist
+      const equipmentTypeCount = await EquipmentType.count();
+      if (equipmentTypeCount === 0) {
+        console.log('🔧 Creating default equipment types...');
+        const defaultTypes = [
+          'Audio Equipment', 'Video Equipment', 'Lighting Equipment',
+          'Cables and Connectors', 'Rigging and Mounting', 'Control and Automation',
+          'Accessories and Consumables', 'Music Instrument'
+        ];
+        for (const typeName of defaultTypes) {
+          await EquipmentType.create({ name: typeName });
+        }
+        console.log('✅ Default equipment types created');
+      } else {
+        console.log('✅ Equipment types already exist');
+      }
+
+      // Check if locations exist
+      const locationCount = await Location.count();
+      if (locationCount === 0) {
+        console.log('🔧 Creating default locations...');
+        const defaultLocations = [
+          {
+            name: 'Lager',
+            description: 'Main storage area',
+            street: 'Theater Street 1',
+            postal_code: '12345',
+            city: 'Theater City',
+            region: 'Theater Region',
+            country: 'Theater Country'
+          },
+          {
+            name: 'Stage',
+            description: 'Main stage area',
+            street: 'Theater Street 1',
+            postal_code: '12345',
+            city: 'Theater City',
+            region: 'Theater Region',
+            country: 'Theater Country'
+          },
+          {
+            name: 'Workshop',
+            description: 'Technical workshop',
+            street: 'Theater Street 1',
+            postal_code: '12345',
+            city: 'Theater City',
+            region: 'Theater Region',
+            country: 'Theater Country'
+          }
+        ];
+        for (const location of defaultLocations) {
+          await Location.create(location);
+        }
+        console.log('✅ Default locations created');
+      } else {
+        console.log('✅ Locations already exist');
+      }
+
+      // Check if equipment exists
+      const equipmentCount = await Equipment.count();
+      if (equipmentCount === 0) {
+        console.log('🔧 Creating sample equipment...');
+        const sampleEquipment = [
+          {
+            type: 'Audio Equipment',
+            brand: 'Shure',
+            model: 'SM58',
+            serial_number: 'SM58-001',
+            status: 'available',
+            location: 'Lager',
+            description: 'Dynamic vocal microphone',
+            quantity: 5
+          },
+          {
+            type: 'Lighting Equipment',
+            brand: 'ETC',
+            model: 'Source Four',
+            serial_number: 'S4-001',
+            status: 'available',
+            location: 'Lager',
+            description: 'Ellipsoidal reflector spotlight',
+            quantity: 10
+          }
+        ];
+        for (const equipment of sampleEquipment) {
+          await Equipment.create(equipment);
+        }
+        console.log('✅ Sample equipment created');
+      } else {
+        console.log('✅ Equipment already exists');
+      }
+
+    } else {
+      // PRODUCTION MODE - Minimal startup
+      console.log('✅ PRODUCTION MINIMAL STARTUP MODE');
+      console.log('✅ Skipping database initialization - using existing schema');
+    }
 
     // Start listening on all interfaces for cloud deployment
     app.listen(PORT, '0.0.0.0', () => {

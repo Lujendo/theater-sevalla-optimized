@@ -1,6 +1,10 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Equipment, File, Location, sequelize } = require('../models');
+// Use environment-aware models
+const models = process.env.NODE_ENV === 'development'
+  ? require('../models/index.local')
+  : require('../models');
+const { Equipment, File, Location, Category, EquipmentType, sequelize } = models;
 const { authenticate, restrictTo, isAdvancedOrAdmin } = require('../middleware/auth');
 const { upload, processImages, MAX_FILES } = require('../middleware/upload');
 const path = require('path');
@@ -70,7 +74,7 @@ router.get('/', authenticate, async (req, res) => {
           attributes: ['id', 'name', 'street', 'postal_code', 'city', 'region', 'country']
         },
         {
-          model: require('../models').Category,
+          model: Category,
           as: 'categoryDetails',
           attributes: ['id', 'name', 'description']
         }
@@ -133,7 +137,7 @@ router.get('/:id', authenticate, async (req, res) => {
           attributes: ['id', 'name', 'street', 'postal_code', 'city', 'region', 'country']
         },
         {
-          model: require('../models').Category,
+          model: Category,
           as: 'categoryDetails',
           attributes: ['id', 'name', 'description']
         }

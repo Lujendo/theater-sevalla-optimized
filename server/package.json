@@ -42,9 +42,9 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "concurrently": "^8.2.0",
     "nodemon": "^2.0.22",
     "sequelize-cli": "^6.6.0",
-    "sqlite3": "^5.1.6",
-    "concurrently": "^8.2.0"
+    "sqlite3": "^5.1.7"
   }
 }

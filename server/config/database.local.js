@@ -8,7 +8,10 @@ const path = require('path');
 
 let sequelize;
 
-if (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite') {
+console.log('🔧 Database config - NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 Database config - DB_TYPE:', process.env.DB_TYPE);
+
+if (process.env.NODE_ENV === 'development' && (process.env.DB_TYPE === 'sqlite' || !process.env.DB_TYPE)) {
   // SQLite configuration for local development
   const dbPath = process.env.DB_PATH || './local_theater.db';
   
@@ -59,12 +62,20 @@ if (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite') 
   console.log(`🗄️  Using local MySQL database: ${process.env.DB_NAME}`);
   
 } else {
-  // Production configuration (existing)
-  const dbUrl = process.env.DATABASE_URL;
-  
-  if (!dbUrl) {
-    throw new Error('DATABASE_URL environment variable is required for production');
-  }
+  // Fallback to SQLite if no specific configuration is found
+  console.log('⚠️  No specific database configuration found, using SQLite fallback');
+  const dbPath = './local_theater.db';
+
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: dbPath,
+    logging: console.log,
+    define: {
+      timestamps: true,
+      underscored: true,
+      freezeTableName: true
+    }
+  });
 
   sequelize = new Sequelize(dbUrl, {
     dialect: 'mysql',
@@ -91,4 +102,14 @@ if (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite') 
   console.log('🗄️  Using production MySQL database');
 }
 
-module.exports = sequelize;
+const testConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('🗄️  Local database connection established successfully.');
+  } catch (error) {
+    console.error('❌ Unable to connect to local database:', error);
+    throw error;
+  }
+};
+
+module.exports = { sequelize, testConnection };

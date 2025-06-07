@@ -1,6 +1,10 @@
 const express = require('express');
 const { authenticate, restrictTo } = require('../middleware/auth');
-const { Location, Equipment } = require('../models');
+// Use environment-aware models
+const models = process.env.NODE_ENV === 'development'
+  ? require('../models/index.local')
+  : require('../models');
+const { Location, Equipment } = models;
 
 const router = express.Router();
 

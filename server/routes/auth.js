@@ -1,6 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+// Use environment-aware models
+const { User } = process.env.NODE_ENV === 'development'
+  ? require('../models/index.local')
+  : require('../models');
 const { authenticate, isAdmin, restrictTo, logImpersonation } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 
@@ -31,11 +34,16 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     // Generate JWT token
+    console.log('🔑 JWT_SECRET exists:', !!process.env.JWT_SECRET);
+    console.log('🔑 JWT_EXPIRES_IN:', process.env.JWT_EXPIRES_IN);
+
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
     );
+
+    console.log('🔑 Token generated successfully for user:', user.username);
 
     res.json({
       token,
