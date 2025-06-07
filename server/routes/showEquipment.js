@@ -90,8 +90,21 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     const { showId } = req.params;
     const { equipmentId, quantityNeeded, notes } = req.body;
 
+    // Debug logging
+    console.log('Add equipment request:', {
+      showId,
+      equipmentId,
+      quantityNeeded,
+      notes,
+      userId: req.user?.id
+    });
+
     if (!equipmentId || !quantityNeeded) {
       return res.status(400).json({ message: 'Equipment ID and quantity needed are required' });
+    }
+
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'User authentication required' });
     }
 
     // Check if show_equipment table exists
@@ -146,8 +159,19 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
       VALUES (?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
+    // Ensure all parameters are defined
+    const replacements = [
+      parseInt(showId),
+      parseInt(equipmentId),
+      parseInt(quantityNeeded),
+      notes || null,
+      req.user.id
+    ];
+
+    console.log('SQL replacements:', replacements);
+
     const [result] = await sequelize.query(insertQuery, {
-      replacements: [showId, equipmentId, quantityNeeded, notes, req.user.id]
+      replacements
     });
 
     // Fetch the created entry
