@@ -49,12 +49,20 @@ if (process.env.NODE_ENV === 'production') {
   app.use('/api', apiLimiter);
 }
 
-// CSRF protection only in production
+// CSRF protection only in production, but exempt API routes
 if (process.env.NODE_ENV === 'production') {
-  app.use(csrfProtection);
+  // Apply CSRF protection only to non-API routes
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      // Skip CSRF for API routes since they use JWT authentication
+      return next();
+    }
+    csrfProtection(req, res, next);
+  });
+
   app.use(handleCsrfError);
 
-  // CSRF token endpoint
+  // CSRF token endpoint (for non-API forms if needed)
   app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
   });
