@@ -1,40 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const { ShowEquipment, Equipment, Show, User } = require('../models/associations');
 const { authenticate } = require('../middleware/auth');
-const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 // Get equipment for a specific show
 router.get('/show/:showId', authenticate, async (req, res) => {
   try {
     const { showId } = req.params;
-    
-    const showEquipment = await ShowEquipment.findAll({
-      where: { show_id: showId },
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment',
-          attributes: ['id', 'name', 'brand', 'model', 'serial_number', 'status', 'location', 'quantity']
-        },
-        {
-          model: User,
-          as: 'checkedOutBy',
-          attributes: ['id', 'username', 'email']
-        },
-        {
-          model: User,
-          as: 'returnedBy',
-          attributes: ['id', 'username', 'email']
-        }
-      ],
-      order: [['created_at', 'ASC']]
-    });
 
-    res.json({ equipment: showEquipment });
+    // Check if show_equipment table exists
+    try {
+      await sequelize.query("DESCRIBE `show_equipment`");
+
+      // Table exists, fetch equipment
+      const showEquipmentQuery = `
+        SELECT
+          se.*,
+          e.name as equipment_name,
+          e.brand as equipment_brand,
+          e.model as equipment_model,
+          e.serial_number as equipment_serial_number,
+          e.status as equipment_status,
+          e.location as equipment_location,
+          e.quantity as equipment_quantity,
+          checked_out_user.username as checked_out_username,
+          returned_user.username as returned_username
+        FROM show_equipment se
+        LEFT JOIN equipment e ON se.equipment_id = e.id
+        LEFT JOIN users checked_out_user ON se.checked_out_by = checked_out_user.id
+        LEFT JOIN users returned_user ON se.returned_by = returned_user.id
+        WHERE se.show_id = ?
+        ORDER BY se.created_at ASC
+      `;
+
+      const [showEquipment] = await sequelize.query(showEquipmentQuery, {
+        replacements: [showId]
+      });
+
+      // Format the response to match expected structure
+      const formattedEquipment = showEquipment.map(item => ({
+        id: item.id,
+        show_id: item.show_id,
+        equipment_id: item.equipment_id,
+        quantity_needed: item.quantity_needed,
+        quantity_allocated: item.quantity_allocated,
+        status: item.status,
+        notes: item.notes,
+        checkout_date: item.checkout_date,
+        return_date: item.return_date,
+        checked_out_by: item.checked_out_by,
+        returned_by: item.returned_by,
+        created_by: item.created_by,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        equipment: {
+          id: item.equipment_id,
+          name: item.equipment_name,
+          brand: item.equipment_brand,
+          model: item.equipment_model,
+          serial_number: item.equipment_serial_number,
+          status: item.equipment_status,
+          location: item.equipment_location,
+          quantity: item.equipment_quantity
+        },
+        checkedOutBy: item.checked_out_username ? {
+          id: item.checked_out_by,
+          username: item.checked_out_username
+        } : null,
+        returnedBy: item.returned_username ? {
+          id: item.returned_by,
+          username: item.returned_username
+        } : null
+      }));
+
+      res.json({ equipment: formattedEquipment });
+    } catch (tableError) {
+      console.log('show_equipment table does not exist yet, returning empty equipment list');
+      res.json({ equipment: [] });
+    }
   } catch (error) {
     console.error('Error fetching show equipment:', error);
-    res.status(500).json({ message: 'Failed to fetch show equipment' });
+    res.status(500).json({ message: 'Failed to fetch show equipment', error: error.message });
   }
 });
 
@@ -48,57 +94,103 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Equipment ID and quantity needed are required' });
     }
 
+    // Check if show_equipment table exists
+    try {
+      await sequelize.query("DESCRIBE `show_equipment`");
+    } catch (tableError) {
+      return res.status(400).json({
+        message: 'Equipment management not available. Please create the show_equipment table first.'
+      });
+    }
+
     // Check if show exists
-    const show = await Show.findByPk(showId);
-    if (!show) {
+    const [shows] = await sequelize.query('SELECT id FROM shows WHERE id = ?', {
+      replacements: [showId]
+    });
+
+    if (!shows.length) {
       return res.status(404).json({ message: 'Show not found' });
     }
 
     // Check if equipment exists
-    const equipment = await Equipment.findByPk(equipmentId);
-    if (!equipment) {
+    const [equipment] = await sequelize.query('SELECT id, name, quantity FROM equipment WHERE id = ?', {
+      replacements: [equipmentId]
+    });
+
+    if (!equipment.length) {
       return res.status(404).json({ message: 'Equipment not found' });
     }
 
-    // Check if equipment is already added to this show
-    const existingEntry = await ShowEquipment.findOne({
-      where: { show_id: showId, equipment_id: equipmentId }
-    });
+    const equipmentItem = equipment[0];
 
-    if (existingEntry) {
+    // Check if equipment is already added to this show
+    const [existingEntries] = await sequelize.query(
+      'SELECT id FROM show_equipment WHERE show_id = ? AND equipment_id = ?',
+      { replacements: [showId, equipmentId] }
+    );
+
+    if (existingEntries.length > 0) {
       return res.status(400).json({ message: 'Equipment already added to this show' });
     }
 
     // Check equipment availability
-    if (equipment.quantity < quantityNeeded) {
-      return res.status(400).json({ 
-        message: `Not enough equipment available. Available: ${equipment.quantity}, Requested: ${quantityNeeded}` 
+    if (equipmentItem.quantity < quantityNeeded) {
+      return res.status(400).json({
+        message: `Not enough equipment available. Available: ${equipmentItem.quantity}, Requested: ${quantityNeeded}`
       });
     }
 
-    const showEquipment = await ShowEquipment.create({
-      show_id: showId,
-      equipment_id: equipmentId,
-      quantity_needed: quantityNeeded,
-      notes,
-      created_by: req.user.id
+    // Insert new show equipment entry
+    const insertQuery = `
+      INSERT INTO show_equipment (show_id, equipment_id, quantity_needed, notes, created_by, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+    `;
+
+    const [result] = await sequelize.query(insertQuery, {
+      replacements: [showId, equipmentId, quantityNeeded, notes, req.user.id]
     });
 
-    // Fetch the created entry with associations
-    const createdEntry = await ShowEquipment.findByPk(showEquipment.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment',
-          attributes: ['id', 'name', 'brand', 'model', 'serial_number', 'status', 'location', 'quantity']
-        }
-      ]
-    });
+    // Fetch the created entry
+    const [createdEntries] = await sequelize.query(`
+      SELECT
+        se.*,
+        e.name as equipment_name,
+        e.brand as equipment_brand,
+        e.model as equipment_model,
+        e.serial_number as equipment_serial_number,
+        e.status as equipment_status,
+        e.location as equipment_location,
+        e.quantity as equipment_quantity
+      FROM show_equipment se
+      LEFT JOIN equipment e ON se.equipment_id = e.id
+      WHERE se.id = ?
+    `, { replacements: [result.insertId] });
 
-    res.status(201).json(createdEntry);
+    const createdEntry = createdEntries[0];
+    const formattedEntry = {
+      id: createdEntry.id,
+      show_id: createdEntry.show_id,
+      equipment_id: createdEntry.equipment_id,
+      quantity_needed: createdEntry.quantity_needed,
+      quantity_allocated: createdEntry.quantity_allocated,
+      status: createdEntry.status,
+      notes: createdEntry.notes,
+      equipment: {
+        id: createdEntry.equipment_id,
+        name: createdEntry.equipment_name,
+        brand: createdEntry.equipment_brand,
+        model: createdEntry.equipment_model,
+        serial_number: createdEntry.equipment_serial_number,
+        status: createdEntry.equipment_status,
+        location: createdEntry.equipment_location,
+        quantity: createdEntry.equipment_quantity
+      }
+    };
+
+    res.status(201).json(formattedEntry);
   } catch (error) {
     console.error('Error adding equipment to show:', error);
-    res.status(500).json({ message: 'Failed to add equipment to show' });
+    res.status(500).json({ message: 'Failed to add equipment to show', error: error.message });
   }
 });
 

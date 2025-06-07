@@ -154,7 +154,7 @@ const ManageEquipment = () => {
   };
 
   const filteredAvailableEquipment = availableEquipment.filter(equipment =>
-    equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    equipment.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     equipment.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     equipment.model?.toLowerCase().includes(searchTerm.toLowerCase())
   );
