@@ -97,8 +97,7 @@ const ShowList = () => {
   };
 
   const handleViewShow = (show) => {
-    setSelectedShow(show);
-    setShowDetailModal(true);
+    navigate(`/show/${show.id}`);
   };
 
   const handleEditShow = (show) => {
@@ -276,11 +275,11 @@ const ShowList = () => {
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => navigate(`/show/${show.id}/manage-equipment`)}
+                            onClick={() => navigate(`/show/${show.id}`)}
                             className="p-1"
-                            title="Manage Equipment"
+                            title="View Details"
                           >
-                            📦
+                            <ViewIcon className="w-4 h-4" />
                           </Button>
                           <Button
                             size="sm"
@@ -354,11 +353,11 @@ const ShowList = () => {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => navigate(`/show/${show.id}/manage-equipment`)}
+                    onClick={() => navigate(`/show/${show.id}`)}
                     className="flex-1 flex items-center justify-center space-x-1"
                   >
-                    <span>📦</span>
-                    <span>Equipment</span>
+                    <ViewIcon className="w-4 h-4" />
+                    <span>Details</span>
                   </Button>
                   <Button
                     size="sm"
@@ -515,9 +514,9 @@ const ShowList = () => {
                       </div>
                       <Button
                         className="w-full"
-                        onClick={() => navigate(`/show/${selectedShow.id}/manage-equipment`)}
+                        onClick={() => navigate(`/show/${selectedShow.id}`)}
                       >
-                        Manage Equipment
+                        View Full Details
                       </Button>
                     </div>
                   </Card.Body>

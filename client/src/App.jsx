@@ -24,6 +24,7 @@ import NewEquipmentModern from './components/NewEquipmentModern';
 import AdminDashboard from './components/AdminDashboard';
 import EquipmentLogsPage from './pages/EquipmentLogsPage';
 import ShowList from './pages/ShowList';
+import ShowDetails from './pages/ShowDetails';
 import ManageEquipment from './pages/ManageEquipment';
 
 // Create a client
@@ -190,6 +191,17 @@ const AppContent = () => {
             <ProtectedRoute>
               <Layout>
                 <ShowList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/show/:showId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ShowDetails />
               </Layout>
             </ProtectedRoute>
           }

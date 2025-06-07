@@ -187,19 +187,9 @@ const ManageEquipment = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/show-list')}
-            className="flex items-center space-x-2"
-          >
-            <ChevronLeftIcon className="w-4 h-4" />
-            <span>Back to Shows</span>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Manage Equipment</h1>
-            <p className="text-slate-600">{show.name} - {new Date(show.date).toLocaleDateString()}</p>
-          </div>
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800">Equipment Management</h2>
+          <p className="text-slate-600">Manage equipment allocation for this show</p>
         </div>
         <div className="flex items-center space-x-4">
           {/* View Toggle */}

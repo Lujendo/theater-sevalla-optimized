@@ -19,21 +19,20 @@ CREATE TABLE IF NOT EXISTS `shows` (
   CONSTRAINT `fk_shows_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Create show_equipment table (MySQL 9.0 compatible)
-CREATE TABLE `show_equipment` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `show_id` INT NOT NULL,
-  `equipment_id` INT NOT NULL,
-  `quantity_needed` INT NOT NULL DEFAULT 1,
-  `quantity_allocated` INT NOT NULL DEFAULT 0,
-  `status` ENUM('requested', 'allocated', 'checked-out', 'in-use', 'returned') NOT NULL DEFAULT 'requested',
-  `notes` TEXT,
-  `checkout_date` TIMESTAMP NULL,
-  `return_date` TIMESTAMP NULL,
-  `checked_out_by` INT,
-  `returned_by` INT,
-  `created_by` INT NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+-- Create show_equipment table (Simple version for MySQL 9.0)
+CREATE TABLE show_equipment (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  show_id INT NOT NULL,
+  equipment_id INT NOT NULL,
+  quantity_needed INT DEFAULT 1,
+  quantity_allocated INT DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'requested',
+  notes TEXT,
+  checkout_date TIMESTAMP NULL,
+  return_date TIMESTAMP NULL,
+  checked_out_by INT,
+  returned_by INT,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
