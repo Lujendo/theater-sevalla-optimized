@@ -6,7 +6,7 @@
   "description": "Theater Equipment Catalog Management System - Vite React Frontend with Node.js Backend",
   "main": "server/index.js",
   "scripts": {
-    "dev": "NODE_ENV=development nodemon server/index.js",
+    "dev": "cd server && npm run dev",
     "build": "npm run install-server && cd client && npm run build && cd .. && cp -r client/dist .",
     "preview": "vite preview",
     "start": "node server/index.js",
@@ -14,7 +14,7 @@
     "install-server": "cd server && npm install --only=production",
     "postinstall": "npm run install-server",
     "dev:client": "cd client && npm run dev",
-    "dev:both": "concurrently \"npm run dev\" \"npm run dev:client\"",
+    "dev:both": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
     "dev:setup": "node scripts/dev-setup.js",
     "dev:reset": "rm -f local_theater.db && npm run dev",
     "dev:backup": "cp local_theater.db backups/local_theater_$(date +%Y%m%d_%H%M%S).db"
@@ -40,6 +40,7 @@
     "@types/react-dom": "^18.2.1",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.14",
+    "concurrently": "^8.2.0",
     "eslint": "^8.39.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
