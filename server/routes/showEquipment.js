@@ -214,6 +214,10 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     res.status(201).json(formattedEntry);
   } catch (error) {
     console.error('Error adding equipment to show:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Request body:', req.body);
+    console.error('Request params:', req.params);
+    console.error('User:', req.user);
     res.status(500).json({ message: 'Failed to add equipment to show', error: error.message });
   }
 });
