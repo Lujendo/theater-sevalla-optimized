@@ -5,16 +5,25 @@
  * This script sets up a complete local development environment
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('🎭 Theater Equipment Catalog - Local Development Setup');
 console.log('====================================================');
 
+// Get project root directory (parent of scripts directory)
+const projectRoot = path.dirname(__dirname);
+process.chdir(projectRoot);
+
 // Check if we're in the right directory
 if (!fs.existsSync('package.json')) {
   console.error('❌ Please run this script from the project root directory');
+  console.error(`Current directory: ${process.cwd()}`);
   process.exit(1);
 }
 

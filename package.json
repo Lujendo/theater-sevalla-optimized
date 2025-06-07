@@ -6,13 +6,18 @@
   "description": "Theater Equipment Catalog Management System - Vite React Frontend with Node.js Backend",
   "main": "server/index.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "NODE_ENV=development nodemon server/index.js",
     "build": "npm run install-server && cd client && npm run build && cd .. && cp -r client/dist .",
     "preview": "vite preview",
     "start": "node server/index.js",
     "server": "node server/index.js",
     "install-server": "cd server && npm install --only=production",
-    "postinstall": "npm run install-server"
+    "postinstall": "npm run install-server",
+    "dev:client": "cd client && npm run dev",
+    "dev:both": "concurrently \"npm run dev\" \"npm run dev:client\"",
+    "dev:setup": "node scripts/dev-setup.js",
+    "dev:reset": "rm -f local_theater.db && npm run dev",
+    "dev:backup": "cp local_theater.db backups/local_theater_$(date +%Y%m%d_%H%M%S).db"
   },
   "dependencies": {
     "@tanstack/react-query": "^4.29.5",
