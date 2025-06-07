@@ -17,7 +17,15 @@ server/build/
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
+.env.production
+
+# Local development files
+local_theater.db
+local_theater.db-*
+uploads/
+logs/
+backups/
+*.log.local
 
 # Database
 *.db

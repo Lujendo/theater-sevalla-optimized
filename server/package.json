@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
+    "dev": "NODE_ENV=development nodemon index.js",
+    "dev:setup": "node ../scripts/dev-setup.js",
+    "dev:reset": "rm -f ../local_theater.db && npm run dev",
+    "dev:backup": "cp ../local_theater.db ../backups/local_theater_$(date +%Y%m%d_%H%M%S).db",
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:create": "npx sequelize-cli db:create",
     "db:migrate": "npx sequelize-cli db:migrate",
@@ -40,6 +43,8 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.22",
-    "sequelize-cli": "^6.6.0"
+    "sequelize-cli": "^6.6.0",
+    "sqlite3": "^5.1.6",
+    "concurrently": "^8.2.0"
   }
 }
