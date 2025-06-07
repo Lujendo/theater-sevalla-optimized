@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Card, Button, Input } from '../components/ui';
@@ -6,6 +7,7 @@ import { ShowListIcon, AddIcon, ViewIcon, EditIcon, TrashIcon, ListViewIcon, Car
 import { getShows, createShow, updateShow, deleteShow } from '../services/showService';
 
 const ShowList = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch shows
@@ -274,6 +276,14 @@ const ShowList = () => {
                           </Button>
                           <Button
                             size="sm"
+                            onClick={() => navigate(`/show/${show.id}/manage-equipment`)}
+                            className="p-1"
+                            title="Manage Equipment"
+                          >
+                            📦
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleDeleteShow(show.id)}
                             className="p-1 text-red-600 hover:text-red-700"
@@ -341,6 +351,14 @@ const ShowList = () => {
                   >
                     <EditIcon className="w-4 h-4" />
                     <span>Edit</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/show/${show.id}/manage-equipment`)}
+                    className="flex-1 flex items-center justify-center space-x-1"
+                  >
+                    <span>📦</span>
+                    <span>Equipment</span>
                   </Button>
                   <Button
                     size="sm"
@@ -495,8 +513,11 @@ const ShowList = () => {
                         </div>
                         <p className="text-slate-600">Equipment Items Allocated</p>
                       </div>
-                      <Button className="w-full" disabled>
-                        Manage Equipment (Coming Soon)
+                      <Button
+                        className="w-full"
+                        onClick={() => navigate(`/show/${selectedShow.id}/manage-equipment`)}
+                      >
+                        Manage Equipment
                       </Button>
                     </div>
                   </Card.Body>

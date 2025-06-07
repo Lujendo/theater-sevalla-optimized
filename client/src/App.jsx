@@ -24,6 +24,7 @@ import NewEquipmentModern from './components/NewEquipmentModern';
 import AdminDashboard from './components/AdminDashboard';
 import EquipmentLogsPage from './pages/EquipmentLogsPage';
 import ShowList from './pages/ShowList';
+import ManageEquipment from './pages/ManageEquipment';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -189,6 +190,17 @@ const AppContent = () => {
             <ProtectedRoute>
               <Layout>
                 <ShowList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/show/:showId/manage-equipment"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ManageEquipment />
               </Layout>
             </ProtectedRoute>
           }
