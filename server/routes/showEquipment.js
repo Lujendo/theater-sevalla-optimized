@@ -221,32 +221,63 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
 // Update show equipment
 router.put('/:id', authenticate, async (req, res) => {
   try {
+    const showEquipmentId = req.params.id;
     const { quantityNeeded, quantityAllocated, status, notes } = req.body;
-    
-    const showEquipment = await ShowEquipment.findByPk(req.params.id);
-    if (!showEquipment) {
+
+    // Check if show equipment entry exists
+    const [showEquipmentEntries] = await sequelize.query(
+      'SELECT * FROM show_equipment WHERE id = ?',
+      { replacements: [showEquipmentId] }
+    );
+
+    if (!showEquipmentEntries.length) {
       return res.status(404).json({ message: 'Show equipment entry not found' });
     }
 
-    await showEquipment.update({
-      quantity_needed: quantityNeeded,
-      quantity_allocated: quantityAllocated,
-      status,
-      notes
-    });
+    // Update show equipment
+    await sequelize.query(
+      'UPDATE show_equipment SET quantity_needed = ?, quantity_allocated = ?, status = ?, notes = ?, updated_at = NOW() WHERE id = ?',
+      { replacements: [quantityNeeded, quantityAllocated, status, notes, showEquipmentId] }
+    );
 
-    // Fetch updated entry with associations
-    const updatedEntry = await ShowEquipment.findByPk(showEquipment.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment',
-          attributes: ['id', 'name', 'brand', 'model', 'serial_number', 'status', 'location', 'quantity']
-        }
-      ]
-    });
+    // Fetch updated entry with equipment details
+    const [updatedEntries] = await sequelize.query(`
+      SELECT
+        se.*,
+        e.type as equipment_name,
+        e.brand as equipment_brand,
+        e.model as equipment_model,
+        e.serial_number as equipment_serial_number,
+        e.status as equipment_status,
+        e.location as equipment_location,
+        e.quantity as equipment_quantity
+      FROM show_equipment se
+      LEFT JOIN equipment e ON se.equipment_id = e.id
+      WHERE se.id = ?
+    `, { replacements: [showEquipmentId] });
 
-    res.json(updatedEntry);
+    const updatedEntry = updatedEntries[0];
+    const formattedEntry = {
+      id: updatedEntry.id,
+      show_id: updatedEntry.show_id,
+      equipment_id: updatedEntry.equipment_id,
+      quantity_needed: updatedEntry.quantity_needed,
+      quantity_allocated: updatedEntry.quantity_allocated,
+      status: updatedEntry.status,
+      notes: updatedEntry.notes,
+      equipment: {
+        id: updatedEntry.equipment_id,
+        name: updatedEntry.equipment_name,
+        brand: updatedEntry.equipment_brand,
+        model: updatedEntry.equipment_model,
+        serial_number: updatedEntry.equipment_serial_number,
+        status: updatedEntry.equipment_status,
+        location: updatedEntry.equipment_location,
+        quantity: updatedEntry.equipment_quantity
+      }
+    };
+
+    res.json(formattedEntry);
   } catch (error) {
     console.error('Error updating show equipment:', error);
     res.status(500).json({ message: 'Failed to update show equipment' });
@@ -256,50 +287,82 @@ router.put('/:id', authenticate, async (req, res) => {
 // Check out equipment
 router.post('/:id/checkout', authenticate, async (req, res) => {
   try {
-    const showEquipment = await ShowEquipment.findByPk(req.params.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment'
-        }
-      ]
-    });
+    const showEquipmentId = req.params.id;
 
-    if (!showEquipment) {
+    // Check if show equipment entry exists
+    const [showEquipmentEntries] = await sequelize.query(
+      'SELECT * FROM show_equipment WHERE id = ?',
+      { replacements: [showEquipmentId] }
+    );
+
+    if (!showEquipmentEntries.length) {
       return res.status(404).json({ message: 'Show equipment entry not found' });
     }
+
+    const showEquipment = showEquipmentEntries[0];
 
     if (showEquipment.status === 'checked-out' || showEquipment.status === 'in-use') {
       return res.status(400).json({ message: 'Equipment already checked out' });
     }
 
-    await showEquipment.update({
-      status: 'checked-out',
-      checkout_date: new Date(),
-      checked_out_by: req.user.id
-    });
+    // Update show equipment status
+    await sequelize.query(
+      'UPDATE show_equipment SET status = ?, checkout_date = NOW(), checked_out_by = ? WHERE id = ?',
+      { replacements: ['checked-out', req.user.id, showEquipmentId] }
+    );
 
     // Update equipment status to 'in-use'
-    await showEquipment.equipment.update({
-      status: 'in-use'
-    });
+    await sequelize.query(
+      'UPDATE equipment SET status = ? WHERE id = ?',
+      { replacements: ['in-use', showEquipment.equipment_id] }
+    );
 
-    const updatedEntry = await ShowEquipment.findByPk(showEquipment.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment',
-          attributes: ['id', 'name', 'brand', 'model', 'serial_number', 'status', 'location', 'quantity']
-        },
-        {
-          model: User,
-          as: 'checkedOutBy',
-          attributes: ['id', 'username', 'email']
-        }
-      ]
-    });
+    // Fetch updated entry with equipment details
+    const [updatedEntries] = await sequelize.query(`
+      SELECT
+        se.*,
+        e.type as equipment_name,
+        e.brand as equipment_brand,
+        e.model as equipment_model,
+        e.serial_number as equipment_serial_number,
+        e.status as equipment_status,
+        e.location as equipment_location,
+        e.quantity as equipment_quantity,
+        u.username as checked_out_username
+      FROM show_equipment se
+      LEFT JOIN equipment e ON se.equipment_id = e.id
+      LEFT JOIN users u ON se.checked_out_by = u.id
+      WHERE se.id = ?
+    `, { replacements: [showEquipmentId] });
 
-    res.json(updatedEntry);
+    const updatedEntry = updatedEntries[0];
+    const formattedEntry = {
+      id: updatedEntry.id,
+      show_id: updatedEntry.show_id,
+      equipment_id: updatedEntry.equipment_id,
+      quantity_needed: updatedEntry.quantity_needed,
+      quantity_allocated: updatedEntry.quantity_allocated,
+      status: updatedEntry.status,
+      notes: updatedEntry.notes,
+      checkout_date: updatedEntry.checkout_date,
+      checked_out_by: updatedEntry.checked_out_by,
+      equipment: {
+        id: updatedEntry.equipment_id,
+        name: updatedEntry.equipment_name,
+        brand: updatedEntry.equipment_brand,
+        model: updatedEntry.equipment_model,
+        serial_number: updatedEntry.equipment_serial_number,
+        status: updatedEntry.equipment_status,
+        location: updatedEntry.equipment_location,
+        quantity: updatedEntry.equipment_quantity
+      },
+      checkedOutBy: updatedEntry.checked_out_username ? {
+        id: updatedEntry.checked_out_by,
+        username: updatedEntry.checked_out_username
+      } : null
+    };
+
+    res.json(formattedEntry);
   } catch (error) {
     console.error('Error checking out equipment:', error);
     res.status(500).json({ message: 'Failed to check out equipment' });
@@ -309,50 +372,82 @@ router.post('/:id/checkout', authenticate, async (req, res) => {
 // Return equipment
 router.post('/:id/return', authenticate, async (req, res) => {
   try {
-    const showEquipment = await ShowEquipment.findByPk(req.params.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment'
-        }
-      ]
-    });
+    const showEquipmentId = req.params.id;
 
-    if (!showEquipment) {
+    // Check if show equipment entry exists
+    const [showEquipmentEntries] = await sequelize.query(
+      'SELECT * FROM show_equipment WHERE id = ?',
+      { replacements: [showEquipmentId] }
+    );
+
+    if (!showEquipmentEntries.length) {
       return res.status(404).json({ message: 'Show equipment entry not found' });
     }
+
+    const showEquipment = showEquipmentEntries[0];
 
     if (showEquipment.status === 'returned') {
       return res.status(400).json({ message: 'Equipment already returned' });
     }
 
-    await showEquipment.update({
-      status: 'returned',
-      return_date: new Date(),
-      returned_by: req.user.id
-    });
+    // Update show equipment status
+    await sequelize.query(
+      'UPDATE show_equipment SET status = ?, return_date = NOW(), returned_by = ? WHERE id = ?',
+      { replacements: ['returned', req.user.id, showEquipmentId] }
+    );
 
     // Update equipment status back to 'available'
-    await showEquipment.equipment.update({
-      status: 'available'
-    });
+    await sequelize.query(
+      'UPDATE equipment SET status = ? WHERE id = ?',
+      { replacements: ['available', showEquipment.equipment_id] }
+    );
 
-    const updatedEntry = await ShowEquipment.findByPk(showEquipment.id, {
-      include: [
-        {
-          model: Equipment,
-          as: 'equipment',
-          attributes: ['id', 'name', 'brand', 'model', 'serial_number', 'status', 'location', 'quantity']
-        },
-        {
-          model: User,
-          as: 'returnedBy',
-          attributes: ['id', 'username', 'email']
-        }
-      ]
-    });
+    // Fetch updated entry with equipment details
+    const [updatedEntries] = await sequelize.query(`
+      SELECT
+        se.*,
+        e.type as equipment_name,
+        e.brand as equipment_brand,
+        e.model as equipment_model,
+        e.serial_number as equipment_serial_number,
+        e.status as equipment_status,
+        e.location as equipment_location,
+        e.quantity as equipment_quantity,
+        u.username as returned_username
+      FROM show_equipment se
+      LEFT JOIN equipment e ON se.equipment_id = e.id
+      LEFT JOIN users u ON se.returned_by = u.id
+      WHERE se.id = ?
+    `, { replacements: [showEquipmentId] });
 
-    res.json(updatedEntry);
+    const updatedEntry = updatedEntries[0];
+    const formattedEntry = {
+      id: updatedEntry.id,
+      show_id: updatedEntry.show_id,
+      equipment_id: updatedEntry.equipment_id,
+      quantity_needed: updatedEntry.quantity_needed,
+      quantity_allocated: updatedEntry.quantity_allocated,
+      status: updatedEntry.status,
+      notes: updatedEntry.notes,
+      return_date: updatedEntry.return_date,
+      returned_by: updatedEntry.returned_by,
+      equipment: {
+        id: updatedEntry.equipment_id,
+        name: updatedEntry.equipment_name,
+        brand: updatedEntry.equipment_brand,
+        model: updatedEntry.equipment_model,
+        serial_number: updatedEntry.equipment_serial_number,
+        status: updatedEntry.equipment_status,
+        location: updatedEntry.equipment_location,
+        quantity: updatedEntry.equipment_quantity
+      },
+      returnedBy: updatedEntry.returned_username ? {
+        id: updatedEntry.returned_by,
+        username: updatedEntry.returned_username
+      } : null
+    };
+
+    res.json(formattedEntry);
   } catch (error) {
     console.error('Error returning equipment:', error);
     res.status(500).json({ message: 'Failed to return equipment' });
@@ -362,18 +457,32 @@ router.post('/:id/return', authenticate, async (req, res) => {
 // Remove equipment from show
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    const showEquipment = await ShowEquipment.findByPk(req.params.id);
-    if (!showEquipment) {
+    const showEquipmentId = req.params.id;
+
+    // Check if show equipment entry exists
+    const [showEquipmentEntries] = await sequelize.query(
+      'SELECT * FROM show_equipment WHERE id = ?',
+      { replacements: [showEquipmentId] }
+    );
+
+    if (!showEquipmentEntries.length) {
       return res.status(404).json({ message: 'Show equipment entry not found' });
     }
 
+    const showEquipment = showEquipmentEntries[0];
+
     if (showEquipment.status === 'checked-out' || showEquipment.status === 'in-use') {
-      return res.status(400).json({ 
-        message: 'Cannot remove checked-out equipment. Please return it first.' 
+      return res.status(400).json({
+        message: 'Cannot remove checked-out equipment. Please return it first.'
       });
     }
 
-    await showEquipment.destroy();
+    // Delete the show equipment entry
+    await sequelize.query(
+      'DELETE FROM show_equipment WHERE id = ?',
+      { replacements: [showEquipmentId] }
+    );
+
     res.json({ message: 'Equipment removed from show successfully' });
   } catch (error) {
     console.error('Error removing equipment from show:', error);
