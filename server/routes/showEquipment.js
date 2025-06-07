@@ -16,7 +16,7 @@ router.get('/show/:showId', authenticate, async (req, res) => {
       const showEquipmentQuery = `
         SELECT
           se.*,
-          e.name as equipment_name,
+          e.type as equipment_name,
           e.brand as equipment_brand,
           e.model as equipment_model,
           e.serial_number as equipment_serial_number,
@@ -113,7 +113,7 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     }
 
     // Check if equipment exists
-    const [equipment] = await sequelize.query('SELECT id, name, quantity FROM equipment WHERE id = ?', {
+    const [equipment] = await sequelize.query('SELECT id, type, brand, model, quantity FROM equipment WHERE id = ?', {
       replacements: [equipmentId]
     });
 
@@ -154,7 +154,7 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     const [createdEntries] = await sequelize.query(`
       SELECT
         se.*,
-        e.name as equipment_name,
+        e.type as equipment_name,
         e.brand as equipment_brand,
         e.model as equipment_model,
         e.serial_number as equipment_serial_number,

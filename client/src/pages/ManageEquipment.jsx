@@ -154,7 +154,7 @@ const ManageEquipment = () => {
   };
 
   const filteredAvailableEquipment = availableEquipment.filter(equipment =>
-    equipment.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    equipment.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     equipment.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     equipment.model?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -259,7 +259,7 @@ const ManageEquipment = () => {
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="py-3 px-4">
                         <div>
-                          <div className="font-medium text-slate-800">{item.equipment?.name}</div>
+                          <div className="font-medium text-slate-800">{item.equipment?.name || item.equipment?.type}</div>
                           <div className="text-sm text-slate-600">
                             {item.equipment?.brand} {item.equipment?.model}
                           </div>
@@ -326,7 +326,7 @@ const ManageEquipment = () => {
               <Card.Body>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-slate-800">{item.equipment?.name}</h3>
+                    <h3 className="font-medium text-slate-800">{item.equipment?.name || item.equipment?.type}</h3>
                     <p className="text-sm text-slate-600">
                       {item.equipment?.brand} {item.equipment?.model}
                     </p>
@@ -418,7 +418,7 @@ const ManageEquipment = () => {
                       selectedEquipment?.id === equipment.id ? 'bg-primary-50 border-primary-200' : ''
                     }`}
                   >
-                    <div className="font-medium text-slate-800">{equipment.name}</div>
+                    <div className="font-medium text-slate-800">{equipment.type}</div>
                     <div className="text-sm text-slate-600">
                       {equipment.brand} {equipment.model} - Qty: {equipment.quantity}
                     </div>
