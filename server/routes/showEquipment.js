@@ -147,6 +147,18 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     }
 
     // Check equipment availability
+    console.log('Equipment availability check:', {
+      available: equipmentItem.quantity,
+      requested: quantityNeeded,
+      equipmentId: equipmentId
+    });
+
+    if (equipmentItem.quantity <= 0) {
+      return res.status(400).json({
+        message: `Equipment is not available (quantity: ${equipmentItem.quantity}). Please check equipment status.`
+      });
+    }
+
     if (equipmentItem.quantity < quantityNeeded) {
       return res.status(400).json({
         message: `Not enough equipment available. Available: ${equipmentItem.quantity}, Requested: ${quantityNeeded}`
@@ -170,11 +182,18 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
 
     console.log('SQL replacements:', replacements);
 
-    const [result] = await sequelize.query(insertQuery, {
-      replacements
-    });
-
-    console.log('Insert result:', result);
+    let result;
+    try {
+      [result] = await sequelize.query(insertQuery, {
+        replacements
+      });
+      console.log('Insert result:', result);
+      console.log('Insert result type:', typeof result);
+      console.log('Insert result keys:', Object.keys(result || {}));
+    } catch (insertError) {
+      console.error('INSERT query failed:', insertError);
+      throw new Error(`Failed to insert equipment into show: ${insertError.message}`);
+    }
 
     // Get the inserted ID - different for different SQL dialects
     const insertedId = result.insertId || result[0]?.insertId || result[0]?.id;
