@@ -196,7 +196,22 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
     }
 
     // Get the inserted ID - different for different SQL dialects
-    const insertedId = result.insertId || result[0]?.insertId || result[0]?.id;
+    let insertedId;
+
+    if (typeof result === 'number') {
+      // Direct number result (MySQL with Sequelize raw query)
+      insertedId = result;
+    } else if (result && result.insertId) {
+      // Object with insertId property
+      insertedId = result.insertId;
+    } else if (result && result[0] && result[0].insertId) {
+      // Array with insertId in first element
+      insertedId = result[0].insertId;
+    } else if (result && result[0] && result[0].id) {
+      // Array with id in first element
+      insertedId = result[0].id;
+    }
+
     console.log('Inserted ID:', insertedId);
 
     if (!insertedId) {
