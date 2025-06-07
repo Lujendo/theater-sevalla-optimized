@@ -15,6 +15,8 @@ const ManageEquipment = () => {
   const [viewMode, setViewMode] = useState('list');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [selectedEquipmentList, setSelectedEquipmentList] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
   const [quantityNeeded, setQuantityNeeded] = useState(1);
   const [notes, setNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -114,13 +116,50 @@ const ManageEquipment = () => {
   });
 
   const handleAddEquipment = () => {
-    if (selectedEquipment && quantityNeeded > 0) {
+    if (bulkMode && selectedEquipmentList.length > 0) {
+      // Add multiple equipment items
+      selectedEquipmentList.forEach(equipment => {
+        addEquipmentMutation.mutate({
+          equipmentId: equipment.id,
+          quantityNeeded: equipment.quantity || 1,
+          notes: equipment.notes || ''
+        });
+      });
+    } else if (selectedEquipment && quantityNeeded > 0) {
+      // Add single equipment item
       addEquipmentMutation.mutate({
         equipmentId: selectedEquipment.id,
         quantityNeeded,
         notes
       });
     }
+  };
+
+  const handleBulkEquipmentToggle = (equipment) => {
+    setSelectedEquipmentList(prev => {
+      const exists = prev.find(item => item.id === equipment.id);
+      if (exists) {
+        return prev.filter(item => item.id !== equipment.id);
+      } else {
+        return [...prev, { ...equipment, quantity: 1, notes: '' }];
+      }
+    });
+  };
+
+  const updateBulkEquipmentQuantity = (equipmentId, quantity) => {
+    setSelectedEquipmentList(prev =>
+      prev.map(item =>
+        item.id === equipmentId ? { ...item, quantity: parseInt(quantity) || 1 } : item
+      )
+    );
+  };
+
+  const updateBulkEquipmentNotes = (equipmentId, notes) => {
+    setSelectedEquipmentList(prev =>
+      prev.map(item =>
+        item.id === equipmentId ? { ...item, notes } : item
+      )
+    );
   };
 
   const handleRemoveEquipment = (equipmentId) => {
@@ -393,8 +432,29 @@ const ManageEquipment = () => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Add Equipment to Show</h2>
-            
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-slate-800">Add Equipment to Show</h2>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-slate-600">Bulk Mode</span>
+                <button
+                  onClick={() => {
+                    setBulkMode(!bulkMode);
+                    setSelectedEquipment(null);
+                    setSelectedEquipmentList([]);
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    bulkMode ? 'bg-primary-600' : 'bg-slate-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      bulkMode ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
             {/* Search */}
             <div className="mb-4">
               <Input
@@ -407,27 +467,52 @@ const ManageEquipment = () => {
             {/* Equipment Selection */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Select Equipment
+                {bulkMode ? 'Select Multiple Equipment' : 'Select Equipment'}
+                {bulkMode && selectedEquipmentList.length > 0 && (
+                  <span className="ml-2 text-primary-600">({selectedEquipmentList.length} selected)</span>
+                )}
               </label>
               <div className="max-h-60 overflow-y-auto border border-slate-200 rounded-lg">
-                {filteredAvailableEquipment.map((equipment) => (
-                  <div
-                    key={equipment.id}
-                    onClick={() => setSelectedEquipment(equipment)}
-                    className={`p-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 ${
-                      selectedEquipment?.id === equipment.id ? 'bg-primary-50 border-primary-200' : ''
-                    }`}
-                  >
-                    <div className="font-medium text-slate-800">{equipment.type}</div>
-                    <div className="text-sm text-slate-600">
-                      {equipment.brand} {equipment.model} - Qty: {equipment.quantity}
+                {filteredAvailableEquipment.map((equipment) => {
+                  const isSelected = bulkMode
+                    ? selectedEquipmentList.some(item => item.id === equipment.id)
+                    : selectedEquipment?.id === equipment.id;
+
+                  return (
+                    <div
+                      key={equipment.id}
+                      onClick={() => bulkMode ? handleBulkEquipmentToggle(equipment) : setSelectedEquipment(equipment)}
+                      className={`p-3 cursor-pointer border-b border-slate-100 hover:bg-slate-50 ${
+                        isSelected ? 'bg-primary-50 border-primary-200' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-slate-800">{equipment.type}</div>
+                          <div className="text-sm text-slate-600">
+                            {equipment.brand} {equipment.model} - Qty: {equipment.quantity}
+                          </div>
+                        </div>
+                        {bulkMode && (
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                            isSelected ? 'bg-primary-600 border-primary-600' : 'border-slate-300'
+                          }`}>
+                            {isSelected && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {selectedEquipment && (
+            {/* Single Equipment Mode */}
+            {!bulkMode && selectedEquipment && (
               <>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -457,12 +542,58 @@ const ManageEquipment = () => {
               </>
             )}
 
+            {/* Bulk Equipment Mode */}
+            {bulkMode && selectedEquipmentList.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Selected Equipment Details
+                </label>
+                <div className="space-y-3 max-h-40 overflow-y-auto">
+                  {selectedEquipmentList.map((equipment) => (
+                    <div key={equipment.id} className="border border-slate-200 rounded-lg p-3">
+                      <div className="font-medium text-slate-800 mb-2">
+                        {equipment.type} - {equipment.brand} {equipment.model}
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Quantity
+                          </label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max={equipment.quantity}
+                            value={equipment.quantity || 1}
+                            onChange={(e) => updateBulkEquipmentQuantity(equipment.id, e.target.value)}
+                            size="sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
+                            Notes
+                          </label>
+                          <Input
+                            value={equipment.notes || ''}
+                            onChange={(e) => updateBulkEquipmentNotes(equipment.id, e.target.value)}
+                            placeholder="Notes..."
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-end space-x-3">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowAddModal(false);
                   setSelectedEquipment(null);
+                  setSelectedEquipmentList([]);
+                  setBulkMode(false);
                   setQuantityNeeded(1);
                   setNotes('');
                   setSearchTerm('');
@@ -472,9 +603,18 @@ const ManageEquipment = () => {
               </Button>
               <Button
                 onClick={handleAddEquipment}
-                disabled={!selectedEquipment || quantityNeeded <= 0 || addEquipmentMutation.isLoading}
+                disabled={
+                  bulkMode
+                    ? selectedEquipmentList.length === 0 || addEquipmentMutation.isLoading
+                    : !selectedEquipment || quantityNeeded <= 0 || addEquipmentMutation.isLoading
+                }
               >
-                {addEquipmentMutation.isLoading ? 'Adding...' : 'Add Equipment'}
+                {addEquipmentMutation.isLoading
+                  ? 'Adding...'
+                  : bulkMode
+                    ? `Add ${selectedEquipmentList.length} Equipment${selectedEquipmentList.length !== 1 ? 's' : ''}`
+                    : 'Add Equipment'
+                }
               </Button>
             </div>
           </div>
