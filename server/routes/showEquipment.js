@@ -174,6 +174,16 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
       replacements
     });
 
+    console.log('Insert result:', result);
+
+    // Get the inserted ID - different for different SQL dialects
+    const insertedId = result.insertId || result[0]?.insertId || result[0]?.id;
+    console.log('Inserted ID:', insertedId);
+
+    if (!insertedId) {
+      throw new Error('Failed to get inserted record ID');
+    }
+
     // Fetch the created entry
     const [createdEntries] = await sequelize.query(`
       SELECT
@@ -188,7 +198,7 @@ router.post('/show/:showId/equipment', authenticate, async (req, res) => {
       FROM show_equipment se
       LEFT JOIN equipment e ON se.equipment_id = e.id
       WHERE se.id = ?
-    `, { replacements: [result.insertId] });
+    `, { replacements: [insertedId] });
 
     const createdEntry = createdEntries[0];
     const formattedEntry = {
