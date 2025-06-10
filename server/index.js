@@ -6,11 +6,12 @@ const cookieParser = require('cookie-parser');
 
 // Load environment variables FIRST, before anything else
 if (process.env.NODE_ENV === 'development') {
-  // Load development environment variables from parent directory
-  dotenv.config({ path: '../.env.development' });
+  // Load ONLY development environment variables from root folder
+  dotenv.config({ path: '../.env.development', override: true });
   console.log('🔧 Loaded development environment variables');
   console.log('🔧 PORT:', process.env.PORT);
   console.log('🔧 DB_TYPE:', process.env.DB_TYPE);
+  console.log('🔧 DB_HOST:', process.env.DB_HOST);
 } else {
   dotenv.config();
 }
@@ -35,6 +36,8 @@ const categoriesRoutes = require('./routes/categories');
 const databaseRoutes = require('./routes/database');
 const showRoutes = require('./routes/shows');
 const showEquipmentRoutes = require('./routes/showEquipment');
+const inventoryRoutes = require('./routes/inventory');
+const defaultStorageLocationsRoutes = require('./routes/defaultStorageLocations');
 
 // Environment variables already loaded above
 
@@ -49,16 +52,24 @@ if (process.env.TRUST_PROXY === 'true') {
 }
 
 // Middleware
+// Parse CORS origins from environment variable
+const getCorsOrigins = () => {
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.FRONTEND_URL === '*' ? true : process.env.FRONTEND_URL;
+  }
+
+  const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,http://localhost:5175';
+  return corsOrigin.includes(',') ? corsOrigin.split(',').map(origin => origin.trim()) : corsOrigin;
+};
+
+const corsOrigins = getCorsOrigins();
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? (process.env.FRONTEND_URL === '*' ? true : process.env.FRONTEND_URL)
-    : process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: corsOrigins,
   credentials: true
 }));
 
-console.log('🌐 CORS configured for:', process.env.NODE_ENV === 'production'
-  ? process.env.FRONTEND_URL
-  : process.env.CORS_ORIGIN || 'http://localhost:5173');
+console.log('🌐 CORS configured for:', corsOrigins);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -205,6 +216,7 @@ app.get('/api/files/:id', (req, res) => {
 });
 
 // Routes
+app.use('/api/test', require('./routes/test'));
 app.use('/api/files', filesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/equipment', equipmentRoutes);
@@ -217,55 +229,57 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/database', databaseRoutes);
 app.use('/api/shows', showRoutes);
 app.use('/api/show-equipment', showEquipmentRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/default-storage-locations', defaultStorageLocationsRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Serve static files from Vite build
-const fs = require('fs');
+// Only serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const fs = require('fs');
 
-// Check if dist directory exists and log its contents
-const distPath = path.join(__dirname, '../dist');
-console.log('Checking dist directory:', distPath);
-console.log('Dist exists:', fs.existsSync(distPath));
-if (fs.existsSync(distPath)) {
-  console.log('Dist contents:', fs.readdirSync(distPath));
-}
+  // Serve static files from Vite build
+  const distPath = path.join(__dirname, '../dist');
+  console.log('Production mode: Serving static files from:', distPath);
 
-app.use(express.static(distPath));
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
 
-// Catch-all handler: send back React's index.html file for any non-API routes
-app.get('*', (req, res) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ message: 'API endpoint not found' });
-  }
+    // Catch-all handler: send back React's index.html file for any non-API routes
+    app.get('*', (req, res) => {
+      // Skip API routes
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ message: 'API endpoint not found' });
+      }
 
-  const indexPath = path.join(__dirname, '../dist/index.html');
-  console.log('Serving index.html from:', indexPath);
-  console.log('Index.html exists:', fs.existsSync(indexPath));
-
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
+      const indexPath = path.join(__dirname, '../dist/index.html');
+      res.sendFile(indexPath);
+    });
   } else {
-    res.status(404).send(`
-      <h1>Frontend build not found</h1>
-      <p>The frontend build files are missing. Please check if the build was successful.</p>
-      <p><strong>Looking for:</strong> ${indexPath}</p>
-      <p><strong>Dist directory exists:</strong> ${fs.existsSync(distPath)}</p>
-      ${fs.existsSync(distPath) ? `<p><strong>Dist contents:</strong> ${fs.readdirSync(distPath).join(', ')}</p>` : ''}
-      <hr>
-      <p><strong>Possible solutions:</strong></p>
-      <ul>
-        <li>Make sure the build command ran successfully</li>
-        <li>Check that 'npm run build' was executed during deployment</li>
-        <li>Verify the build output is in the correct location</li>
-      </ul>
-    `);
+    console.error('Production build not found at:', distPath);
   }
-});
+} else {
+  console.log('Development mode: Frontend should be running on separate dev server (http://localhost:5173)');
+
+  // In development, only handle API routes - let frontend dev server handle the rest
+  app.get('*', (req, res) => {
+    // Only handle API routes in development
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ message: 'API endpoint not found' });
+    }
+
+    // For non-API routes in development, return a helpful message
+    res.status(404).send(`
+      <h1>Development Mode</h1>
+      <p>The backend is running in development mode.</p>
+      <p>Please access the frontend at: <a href="http://localhost:5173">http://localhost:5173</a></p>
+      <p>This backend only serves API routes in development mode.</p>
+    `);
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -296,17 +310,61 @@ const startServer = async () => {
     await testConnection();
 
     if (process.env.NODE_ENV === 'development') {
-      // DEVELOPMENT MODE - Initialize local database if needed
-      console.log('🔧 DEVELOPMENT MODE - Checking local database');
+      // DEVELOPMENT MODE - Check database type
+      console.log('🔧 DEVELOPMENT MODE - Checking database configuration');
 
-      // Import models and initialize database
-      const bcrypt = require('bcryptjs');
-      const { User, Equipment, File, Location, Category, EquipmentType } = require('./models/index.local');
+      if (process.env.DB_TYPE === 'mysql') {
+        // Using production MySQL database
+        console.log('🔗 Connecting to production MySQL database');
+        const { User, Equipment, File, Location, Category, EquipmentType, Show, ShowEquipment } = require('./models/index.local');
+
+        // Test connection and log some stats
+        const equipmentCount = await Equipment.count();
+        const showCount = await Show.count();
+        const userCount = await User.count();
+
+        console.log('✅ Connected to production database');
+        console.log(`📊 Database stats: ${equipmentCount} equipment, ${showCount} shows, ${userCount} users`);
+
+        // Run inventory allocation system migration
+        console.log('🔄 Setting up inventory allocation system...');
+        const { runMigrationIfNeeded } = require('./migrations/runInventoryMigrationDirect');
+        const migrationSuccess = await runMigrationIfNeeded();
+
+        if (migrationSuccess) {
+          console.log('✅ Inventory allocation system ready');
+        } else {
+          console.log('⚠️  Inventory allocation system setup had issues, but continuing...');
+        }
+
+        // Run locations description column migration
+        console.log('🔄 Setting up locations description column...');
+        const { addDescriptionToLocations } = require('./migrations/addDescriptionToLocations');
+        const locationsMigrationSuccess = await addDescriptionToLocations();
+
+        if (locationsMigrationSuccess) {
+          console.log('✅ Locations description column ready');
+        } else {
+          console.log('⚠️  Locations description column setup had issues, but continuing...');
+        }
+
+
+
+        // Skip database initialization - using existing production data
+        console.log('✅ Using existing production data - no initialization needed');
+
+      } else {
+        // Using local SQLite database
+        console.log('🔧 Using local SQLite database');
+        const bcrypt = require('bcryptjs');
+        const { User, Equipment, File, Location, Category, EquipmentType, Show, ShowEquipment } = require('./models/index.local');
 
       // Models are imported from index.local.js
 
-      // Sync database (create tables if they don't exist)
-      await sequelize.sync({ alter: false });
+      // Sync database (force recreate tables to match updated schema)
+      console.log('🔄 Creating database tables...');
+      await sequelize.sync({ force: true });
+      console.log('✅ Database tables created successfully');
       console.log('✅ Database tables synchronized');
 
       // Check if admin user exists
@@ -383,6 +441,28 @@ const startServer = async () => {
         console.log('✅ Locations already exist');
       }
 
+      // Check if categories exist
+      const categoryCount = await Category.count();
+      if (categoryCount === 0) {
+        console.log('🏷️ Creating default categories...');
+        const defaultCategories = [
+          { name: 'Audio Equipment', description: 'Sound and audio related equipment' },
+          { name: 'Video Equipment', description: 'Video and visual equipment' },
+          { name: 'Lighting Equipment', description: 'Stage and venue lighting' },
+          { name: 'Cables and Connectors', description: 'Cables, adapters, and connectors' },
+          { name: 'Rigging and Mounting', description: 'Mounting and rigging hardware' },
+          { name: 'Control and Automation', description: 'Control systems and automation' },
+          { name: 'Accessories and Consumables', description: 'Accessories and consumable items' },
+          { name: 'Music Instrument', description: 'Musical instruments and related equipment' }
+        ];
+        for (const category of defaultCategories) {
+          await Category.create(category);
+        }
+        console.log('✅ Default categories created');
+      } else {
+        console.log('✅ Categories already exist');
+      }
+
       // Check if equipment exists
       const equipmentCount = await Equipment.count();
       if (equipmentCount === 0) {
@@ -416,6 +496,41 @@ const startServer = async () => {
       } else {
         console.log('✅ Equipment already exists');
       }
+
+      // Check if shows exist
+      const showCount = await Show.count();
+      if (showCount === 0) {
+        console.log('🎭 Creating sample shows...');
+        const adminUser = await User.findOne({ where: { username: 'admin' } });
+        const sampleShows = [
+          {
+            name: 'Romeo and Juliet',
+            date: '2024-12-15',
+            venue: 'Main Theater',
+            director: 'John Smith',
+            description: 'Classic Shakespeare tragedy',
+            status: 'planning',
+            created_by: adminUser.id
+          },
+          {
+            name: 'The Lion King',
+            date: '2024-11-20',
+            venue: 'Grand Hall',
+            director: 'Jane Doe',
+            description: 'Musical adaptation',
+            status: 'in-progress',
+            created_by: adminUser.id
+          }
+        ];
+        for (const show of sampleShows) {
+          await Show.create(show);
+        }
+        console.log('✅ Sample shows created');
+      } else {
+        console.log('✅ Shows already exist');
+      }
+
+      } // End of SQLite initialization
 
     } else {
       // PRODUCTION MODE - Minimal startup

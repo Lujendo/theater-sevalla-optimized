@@ -14,12 +14,15 @@ const Input = ({
   onChange,
   onBlur,
   error,
+  helpText,
   icon,
   disabled = false,
   required = false,
   className = '',
-  ...props
+  ...restProps
 }) => {
+  // Filter out helpText from props to prevent it from being passed to the DOM element
+  const { helpText: _, ...props } = { helpText, ...restProps };
   // Base classes
   const baseClasses = 'w-full rounded-md shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
   
@@ -81,6 +84,10 @@ const Input = ({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
+
+      {helpText && !error && (
+        <p className="mt-1 text-sm text-slate-500">{helpText}</p>
+      )}
     </div>
   );
 };
@@ -95,6 +102,7 @@ Input.propTypes = {
   onChange: PropTypes.func,
   onBlur: PropTypes.func,
   error: PropTypes.string,
+  helpText: PropTypes.string,
   icon: PropTypes.node,
   disabled: PropTypes.bool,
   required: PropTypes.bool,

@@ -3,7 +3,11 @@
  * Handles CRUD operations for saved searches
  */
 const express = require('express');
-const { SavedSearch } = require('../models');
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
+  ? require('../models/index.local')
+  : require('../models');
+const { SavedSearch } = models;
 const auth = require('../middleware/flexAuth');
 
 const router = express.Router();

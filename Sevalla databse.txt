@@ -1,0 +1,24 @@
+Host: ton-lager1-cv8k6-mysql.ton-lager1-cv8k6.svc.cluster.local
+
+Port:  3306
+
+Username:   substantial-gray-unicorn
+
+User: canid
+
+
+Password: dQ8_oZ2-mG7_nN3_bG5_
+
+URL: mysql://canid:dQ8_oZ2-mG7_nN3_bG5_@ton-lager1-cv8k6-mysql.ton-lager1-cv8k6.svc.cluster.local:3306/substantial-gray-unicorn
+
+
+
+EXTERNAL CONNECTION
+
+
+
+HOst: europe-west1-001.proxy.kinsta.app, 
+Port: 30687, 
+Database: substantial-gray-unicorn, 
+User: canid, Password: dQ8_oZ2-mG7_nN3_bG5_      , 
+URL : mysql://canid:dQ8_oZ2-mG7_nN3_bG5_@europe-west1-001.proxy.kinsta.app:30687/substantial-gray-unicorn

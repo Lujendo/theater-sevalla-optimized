@@ -1,0 +1,289 @@
+/* Mobile-specific styles for equipment management */
+
+/* Mobile form optimizations */
+.mobile-form-container {
+  padding-bottom: 100px; /* Space for fixed bottom navigation */
+}
+
+/* Mobile input styling */
+.mobile-input {
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.mobile-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Mobile select styling */
+.mobile-select {
+  font-size: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+  padding-right: 40px;
+  appearance: none;
+}
+
+/* Mobile button styling */
+.mobile-button {
+  font-size: 16px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  min-height: 48px; /* Touch-friendly minimum height */
+}
+
+.mobile-button-primary {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.mobile-button-primary:hover {
+  background-color: #2563eb;
+}
+
+.mobile-button-primary:active {
+  background-color: #1d4ed8;
+  transform: scale(0.98);
+}
+
+.mobile-button-secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.mobile-button-secondary:hover {
+  background-color: #e5e7eb;
+}
+
+/* Mobile progress bar */
+.mobile-progress-bar {
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.mobile-progress-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+/* Mobile card styling */
+.mobile-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+/* Mobile header styling */
+.mobile-header {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Mobile bottom navigation */
+.mobile-bottom-nav {
+  background-color: white;
+  border-top: 1px solid #e5e7eb;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile barcode scanner button */
+.mobile-barcode-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  transition: all 0.2s ease;
+}
+
+.mobile-barcode-button:hover {
+  background-color: #2563eb;
+}
+
+.mobile-barcode-button:active {
+  transform: scale(0.95);
+}
+
+/* Mobile step indicator */
+.mobile-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mobile-step-active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.mobile-step-completed {
+  background-color: #10b981;
+  color: white;
+}
+
+.mobile-step-pending {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}
+
+/* Mobile toast adjustments */
+.mobile-toast {
+  font-size: 14px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 8px;
+}
+
+/* Mobile-specific animations */
+@keyframes mobile-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mobile-slide-up {
+  animation: mobile-slide-up 0.3s ease-out;
+}
+
+.mobile-fade-in {
+  animation: mobile-fade-in 0.2s ease-out;
+}
+
+/* Mobile viewport optimizations */
+@media screen and (max-width: 768px) {
+  /* Prevent zoom on input focus */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Optimize touch targets */
+  button,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve readability */
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* iOS specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  .mobile-input,
+  .mobile-select {
+    -webkit-appearance: none;
+    border-radius: 8px;
+  }
+  
+  /* Fix iOS input styling */
+  input[type="text"],
+  input[type="number"],
+  select {
+    -webkit-appearance: none;
+    -webkit-border-radius: 8px;
+  }
+}
+
+/* Android specific optimizations */
+@media screen and (-webkit-min-device-pixel-ratio: 0) and (min-resolution: .001dpcm) {
+  .mobile-input,
+  .mobile-select {
+    background-color: white;
+  }
+}
+
+/* High DPI display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .mobile-card {
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Landscape orientation adjustments */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+  .mobile-header {
+    padding: 8px 16px;
+  }
+  
+  .mobile-bottom-nav {
+    padding: 8px 16px;
+  }
+  
+  .mobile-card {
+    padding: 12px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .mobile-card {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+  
+  .mobile-input,
+  .mobile-select {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #f9fafb;
+  }
+  
+  .mobile-header,
+  .mobile-bottom-nav {
+    background-color: #1f2937;
+    border-color: #374151;
+  }
+}

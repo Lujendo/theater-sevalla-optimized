@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Card, Button, Input } from '../components/ui';
+import { Card, Button, Input, Select } from '../components/ui';
 import { ShowListIcon, AddIcon, ViewIcon, EditIcon, TrashIcon, ListViewIcon, CardViewIcon } from '../components/Icons';
 import { getShows, createShow, updateShow, deleteShow } from '../services/showService';
+import { getLocations } from '../services/locationService';
 
 const ShowList = () => {
   const navigate = useNavigate();
@@ -20,6 +21,17 @@ const ShowList = () => {
   });
 
   const shows = showsData?.shows || [];
+
+  // Fetch locations for venue dropdown
+  const { data: locationsData, isLoading: locationsLoading } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => getLocations(),
+    onError: (error) => {
+      console.error('Failed to load locations:', error);
+    }
+  });
+
+  const locations = locationsData?.locations || [];
 
   // Create show mutation
   const createShowMutation = useMutation({
@@ -211,7 +223,7 @@ const ShowList = () => {
         <Card>
           <Card.Body className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="table-wide">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Show</th>
@@ -385,6 +397,8 @@ const ShowList = () => {
                   Show Name *
                 </label>
                 <Input
+                  id="newShowName"
+                  name="newShowName"
                   value={newShow.name}
                   onChange={(e) => setNewShow({ ...newShow, name: e.target.value })}
                   placeholder="Enter show name"
@@ -395,6 +409,8 @@ const ShowList = () => {
                   Date *
                 </label>
                 <Input
+                  id="newShowDate"
+                  name="newShowDate"
                   type="date"
                   value={newShow.date}
                   onChange={(e) => setNewShow({ ...newShow, date: e.target.value })}
@@ -404,10 +420,32 @@ const ShowList = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-1">
                   Venue
                 </label>
-                <Input
+                <Select
+                  id="newShowVenue"
+                  name="newShowVenue"
                   value={newShow.venue}
                   onChange={(e) => setNewShow({ ...newShow, venue: e.target.value })}
-                  placeholder="Enter venue"
+                  options={[
+                    { value: '', label: 'Select Venue' },
+                    ...locations.map((location) => {
+                      let label = location.name;
+                      const addressParts = [];
+
+                      if (location.city) addressParts.push(location.city);
+                      if (location.region) addressParts.push(location.region);
+                      if (location.country) addressParts.push(location.country);
+
+                      if (addressParts.length > 0) {
+                        label += ` (${addressParts.join(', ')})`;
+                      }
+
+                      return {
+                        value: location.name,
+                        label: label,
+                      };
+                    })
+                  ]}
+                  disabled={locationsLoading}
                 />
               </div>
               <div>
@@ -415,6 +453,8 @@ const ShowList = () => {
                   Director
                 </label>
                 <Input
+                  id="newShowDirector"
+                  name="newShowDirector"
                   value={newShow.director}
                   onChange={(e) => setNewShow({ ...newShow, director: e.target.value })}
                   placeholder="Enter director name"
@@ -574,6 +614,8 @@ const ShowList = () => {
                           Show Name *
                         </label>
                         <Input
+                          id="editShowName"
+                          name="editShowName"
                           value={editingShow.name}
                           onChange={(e) => setEditingShow({ ...editingShow, name: e.target.value })}
                           placeholder="Enter show name"
@@ -584,6 +626,8 @@ const ShowList = () => {
                           Date *
                         </label>
                         <Input
+                          id="editShowDate"
+                          name="editShowDate"
                           type="date"
                           value={editingShow.date}
                           onChange={(e) => setEditingShow({ ...editingShow, date: e.target.value })}
@@ -593,10 +637,32 @@ const ShowList = () => {
                         <label className="block text-sm font-medium text-slate-700 mb-1">
                           Venue
                         </label>
-                        <Input
+                        <Select
+                          id="editShowVenue"
+                          name="editShowVenue"
                           value={editingShow.venue}
                           onChange={(e) => setEditingShow({ ...editingShow, venue: e.target.value })}
-                          placeholder="Enter venue"
+                          options={[
+                            { value: '', label: 'Select Venue' },
+                            ...locations.map((location) => {
+                              let label = location.name;
+                              const addressParts = [];
+
+                              if (location.city) addressParts.push(location.city);
+                              if (location.region) addressParts.push(location.region);
+                              if (location.country) addressParts.push(location.country);
+
+                              if (addressParts.length > 0) {
+                                label += ` (${addressParts.join(', ')})`;
+                              }
+
+                              return {
+                                value: location.name,
+                                label: label,
+                              };
+                            })
+                          ]}
+                          disabled={locationsLoading}
                         />
                       </div>
                       <div>
@@ -604,6 +670,8 @@ const ShowList = () => {
                           Director
                         </label>
                         <Input
+                          id="editShowDirector"
+                          name="editShowDirector"
                           value={editingShow.director}
                           onChange={(e) => setEditingShow({ ...editingShow, director: e.target.value })}
                           placeholder="Enter director name"

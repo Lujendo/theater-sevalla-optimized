@@ -92,6 +92,54 @@ const Equipment = sequelize.define('Equipment', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  // Installation fields for fixed/semi-permanent equipment
+  installation_type: {
+    type: DataTypes.ENUM('portable', 'fixed', 'semi-permanent'),
+    allowNull: false,
+    defaultValue: 'portable'
+  },
+  installation_location_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'locations',
+      key: 'id'
+    }
+  },
+  installation_location: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  installation_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  installation_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  installation_quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    validate: {
+      min: 0,
+      isInt: true
+    },
+    comment: 'Number of items permanently installed (deducted from available quantity)'
+  },
+  maintenance_schedule: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
+  last_maintenance_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  next_maintenance_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
   created_at: {
     type: DataTypes.DATE,
     allowNull: false,
@@ -186,18 +234,40 @@ const Equipment = sequelize.define('Equipment', {
 
       console.log(`[EQUIPMENT HOOK] Is Lager location: ${isLager}`);
 
-      // Set status based on location
-      if (isLager) {
-        // If location is Lager, always set status to 'available'
-        console.log('[EQUIPMENT HOOK] Setting status to available because location is Lager');
-        equipment.status = 'available';
-      } else if ((equipment.location || equipment.location_id)) {
-        // If location is not Lager, set status to 'in-use' (unless it's maintenance)
-        if (equipment.status !== 'maintenance') {
-          console.log('[EQUIPMENT HOOK] Setting status to in-use because location is not Lager');
-          equipment.status = 'in-use';
+      // Handle installation location lookup
+      if (equipment.installation_location_id && !equipment.installation_location) {
+        try {
+          const installationLocationRecord = await Location.findByPk(equipment.installation_location_id);
+          if (installationLocationRecord) {
+            equipment.installation_location = installationLocationRecord.name;
+            console.log(`[EQUIPMENT HOOK] Found installation location record: ${installationLocationRecord.name} for installation_location_id: ${equipment.installation_location_id}`);
+            console.log(`[EQUIPMENT HOOK] Updated installation location name to: ${installationLocationRecord.name}`);
+          }
+        } catch (error) {
+          console.error('[EQUIPMENT HOOK] Error fetching installation location:', error);
         }
       }
+
+      // SIMPLIFIED STATUS LOGIC: Only auto-set for specific cases
+      if (equipment.installation_type === 'fixed' && equipment.installation_quantity > 0) {
+        // Fixed installations with quantity are suggested as 'in-use' (unless maintenance/broken)
+        if (!['maintenance', 'broken', 'unavailable'].includes(equipment.status)) {
+          console.log('[EQUIPMENT HOOK] Suggesting status in-use for fixed installation with quantity');
+          equipment.status = 'in-use';
+        }
+        // For fixed installations, use installation_location as the primary location
+        if (equipment.installation_location) {
+          equipment.location = equipment.installation_location;
+          console.log(`[EQUIPMENT HOOK] Using installation_location as location: ${equipment.installation_location}`);
+        }
+      } else if (isLager) {
+        // If location is Lager, set status to 'available' (unless maintenance/broken/unavailable)
+        if (!['maintenance', 'broken', 'unavailable'].includes(equipment.status)) {
+          console.log('[EQUIPMENT HOOK] Setting status to available because location is Lager (storage)');
+          equipment.status = 'available';
+        }
+      }
+      // For all other cases, respect user-provided status
     },
     beforeCreate: async (equipment) => {
       // Convert empty string location_id to null
@@ -269,18 +339,40 @@ const Equipment = sequelize.define('Equipment', {
 
       console.log(`[EQUIPMENT HOOK] Is Lager location: ${isLager}`);
 
-      // Set status based on location
-      if (isLager) {
-        // If location is Lager, always set status to 'available'
-        console.log('[EQUIPMENT HOOK] Setting status to available because location is Lager');
-        equipment.status = 'available';
-      } else if ((equipment.location || equipment.location_id)) {
-        // If location is not Lager, set status to 'in-use' (unless it's maintenance)
-        if (equipment.status !== 'maintenance') {
-          console.log('[EQUIPMENT HOOK] Setting status to in-use because location is not Lager');
-          equipment.status = 'in-use';
+      // Handle installation location lookup
+      if (equipment.installation_location_id && !equipment.installation_location) {
+        try {
+          const installationLocationRecord = await Location.findByPk(equipment.installation_location_id);
+          if (installationLocationRecord) {
+            equipment.installation_location = installationLocationRecord.name;
+            console.log(`[EQUIPMENT HOOK] Found installation location record: ${installationLocationRecord.name} for installation_location_id: ${equipment.installation_location_id}`);
+            console.log(`[EQUIPMENT HOOK] Updated installation location name to: ${installationLocationRecord.name}`);
+          }
+        } catch (error) {
+          console.error('[EQUIPMENT HOOK] Error fetching installation location:', error);
         }
       }
+
+      // SIMPLIFIED STATUS LOGIC: Only auto-set for specific cases
+      if (equipment.installation_type === 'fixed' && equipment.installation_quantity > 0) {
+        // Fixed installations with quantity are suggested as 'in-use' (unless maintenance/broken)
+        if (!['maintenance', 'broken', 'unavailable'].includes(equipment.status)) {
+          console.log('[EQUIPMENT HOOK] Suggesting status in-use for fixed installation with quantity');
+          equipment.status = 'in-use';
+        }
+        // For fixed installations, use installation_location as the primary location
+        if (equipment.installation_location) {
+          equipment.location = equipment.installation_location;
+          console.log(`[EQUIPMENT HOOK] Using installation_location as location: ${equipment.installation_location}`);
+        }
+      } else if (isLager) {
+        // If location is Lager, set status to 'available' (unless maintenance/broken/unavailable)
+        if (!['maintenance', 'broken', 'unavailable'].includes(equipment.status)) {
+          console.log('[EQUIPMENT HOOK] Setting status to available because location is Lager (storage)');
+          equipment.status = 'available';
+        }
+      }
+      // For all other cases, respect user-provided status
     }
   }
 });

@@ -1,3 +1,6 @@
+/* Import mobile-specific styles */
+@import './styles/mobile.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,6 +94,10 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6;
   }
 
+  .container-app-wide {
+    @apply max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-6;
+  }
+
   /* Table styles */
   .table-container {
     @apply overflow-x-auto rounded-lg border border-slate-200;
@@ -98,6 +105,10 @@
 
   .table {
     @apply min-w-full divide-y divide-slate-200;
+  }
+
+  .table-wide {
+    @apply min-w-full divide-y divide-slate-200 table-fixed;
   }
 
   .table-header {

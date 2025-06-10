@@ -1,9 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-// Use environment-aware models
-const { User } = process.env.NODE_ENV === 'development'
-  ? require('../models/index.local')
-  : require('../models');
+// Use environment-aware models based on database type
+const { User } = (process.env.DB_TYPE === 'mysql')
+  ? require('../models')
+  : require('../models/index.local');
 const { authenticate, isAdmin, restrictTo, logImpersonation } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
 

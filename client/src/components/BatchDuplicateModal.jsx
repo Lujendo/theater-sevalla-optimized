@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getEquipmentById, createEquipment } from '../services/equipmentService';
+import { getEquipmentById } from '../services/equipmentService';
 import { Button } from './ui';
+import axios from 'axios';
 
 const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] }) => {
   // Use selectedItems if provided, otherwise use single equipmentId
@@ -77,33 +78,63 @@ const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] 
 
       // Create a copy of the original data with the new serial number
       const duplicateData = {
-        type: equipmentData.type,
-        type_id: equipmentData.type_id || 1,
-        category: equipmentData.category || '',
-        // Handle category_id properly - ensure it's null not 'null' string
-        ...(equipmentData.category_id ? { category_id: equipmentData.category_id } : {}),
+        type_id: equipmentData.type_id,
         brand: equipmentData.brand,
         model: equipmentData.model,
         serial_number: serialNumber,
         status: equipmentData.status || 'available',
-        location: equipmentData.location || '',
+        quantity: equipmentData.quantity || 1,
+        description: equipmentData.description || '',
+        // Handle category_id properly - ensure it's null not 'null' string
+        ...(equipmentData.category_id ? { category_id: equipmentData.category_id } : {}),
         // Handle location_id properly
         ...(equipmentData.location_id ? { location_id: equipmentData.location_id } : {}),
-        description: equipmentData.description || '',
+        // Handle custom location
+        ...(equipmentData.location && !equipmentData.location_id ? { location: equipmentData.location } : {}),
         // Handle reference_image_id properly
         ...(equipmentData.reference_image_id ? { reference_image_id: equipmentData.reference_image_id } : {})
       };
 
-      return createEquipment(duplicateData);
+      // Create FormData to match the backend's expected format
+      const formData = new FormData();
+
+      // Add all the equipment data to the form
+      Object.keys(duplicateData).forEach(key => {
+        if (duplicateData[key] !== null && duplicateData[key] !== undefined) {
+          formData.append(key, duplicateData[key]);
+        }
+      });
+
+      // Make a direct API call to create equipment using FormData
+      const response = await axios.post('/api/equipment', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
     }
   });
 
   // Handle batch duplication
   const handleBatchDuplicate = async () => {
-    if (originalData.length === 0) return;
+    if (originalData.length === 0) {
+      setError('No equipment data available');
+      return;
+    }
+
+    if (!serialNumberPattern.includes('{n}')) {
+      setError('Serial number pattern must include {n} placeholder');
+      return;
+    }
+
+    if (count < 1 || count > 50) {
+      setError('Number of copies must be between 1 and 50');
+      return;
+    }
 
     setIsProcessing(true);
     setProgress(0);
+    setError('');
 
     try {
       // Calculate total operations (number of items × number of copies)
@@ -127,20 +158,24 @@ const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] 
             );
           }
 
-          // Log the data being duplicated for debugging
-          console.log(`Creating duplicate ${i} for equipment ID ${equipmentData.id} with serial number ${serialNumber}`);
-          console.log('Original equipment data:', JSON.stringify(equipmentData, null, 2));
-
           // Create the duplicate
           try {
-            await duplicateMutation.mutateAsync({
+            const result = await duplicateMutation.mutateAsync({
               equipmentData,
               serialNumber
             });
-            console.log(`Successfully created duplicate ${i} for equipment ID ${equipmentData.id}`);
           } catch (error) {
             console.error(`Error creating duplicate ${i} for equipment ID ${equipmentData.id}:`, error);
-            throw error; // Re-throw to be caught by the outer try/catch
+
+            // Provide more specific error information
+            let errorMsg = `Failed to create duplicate ${i} for ${equipmentData.brand} ${equipmentData.model}`;
+            if (error.response?.data?.message) {
+              errorMsg += `: ${error.response.data.message}`;
+            } else if (error.message) {
+              errorMsg += `: ${error.message}`;
+            }
+
+            throw new Error(errorMsg);
           }
 
           // Update progress
@@ -151,7 +186,7 @@ const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] 
 
       // Refresh equipment list
       queryClient.invalidateQueries(['equipment']);
-      onClose();
+      handleClose();
     } catch (error) {
       console.error('Error in batch duplication:', error);
       // Provide more detailed error information
@@ -167,6 +202,19 @@ const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] 
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Reset modal state when closing
+  const handleClose = () => {
+    setCount(2);
+    setSerialNumberPattern('');
+    setSerialNumberPreview([]);
+    setOriginalData([]);
+    setIsLoading(false);
+    setError(null);
+    setProgress(0);
+    setIsProcessing(false);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -263,7 +311,7 @@ const BatchDuplicateModal = ({ isOpen, onClose, equipmentId, selectedItems = [] 
             <div className="flex justify-end space-x-3 mt-6">
               <Button
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
                 disabled={isProcessing}
               >
                 Cancel

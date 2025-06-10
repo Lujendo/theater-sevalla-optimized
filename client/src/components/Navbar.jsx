@@ -20,7 +20,7 @@ const Navbar = ({ toggleSidebar }) => {
             {/* Logo and title */}
             <Link to="/" className="flex-shrink-0 flex items-center gap-2">
               <img src="/bird-logo.svg" alt="Theater Equipment Logo" className="w-8 h-8" />
-              <span className="text-xl font-bold text-slate-800">Ton Equipment Inventory</span>
+              <span className="text-xl font-bold text-slate-800">Theater Equipment Catalog</span>
             </Link>
           </div>
 

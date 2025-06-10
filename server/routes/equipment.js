@@ -1,15 +1,16 @@
 const express = require('express');
 const { Op } = require('sequelize');
-// Use environment-aware models
-const models = process.env.NODE_ENV === 'development'
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
   ? require('../models/index.local')
   : require('../models');
-const { Equipment, File, Location, Category, EquipmentType, sequelize } = models;
+const { Equipment, File, Location, Category, EquipmentType, DefaultStorageLocation, sequelize } = models;
 const { authenticate, restrictTo, isAdvancedOrAdmin } = require('../middleware/auth');
 const { upload, processImages, MAX_FILES } = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs').promises;
 const equipmentLogService = require('../services/equipmentLogService');
+const inventoryService = require('../services/inventoryService');
 
 const router = express.Router();
 
@@ -178,7 +179,17 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       location_id,
       description,
       reference_image_id,
-      quantity
+      quantity,
+      // Installation fields
+      installation_type,
+      installation_location_id,
+      installation_location,
+      installation_date,
+      installation_notes,
+      installation_quantity,
+      maintenance_schedule,
+      last_maintenance_date,
+      next_maintenance_date
     } = req.body;
 
     // Validate required fields
@@ -200,7 +211,6 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     }
 
     // Get the type name from the type_id
-    const { EquipmentType } = require('../models');
     const equipmentType = await EquipmentType.findByPk(type_id);
 
     if (!equipmentType) {
@@ -209,40 +219,97 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       });
     }
 
-    // Prepare equipment data
+    // Prepare equipment data with proper location hierarchy
     let locationName = location;
-
-    // If location_id is provided, fetch the location name
+    let finalLocationId = location_id || null;
     let autoStatus = 'available';
-    if (location_id) {
-      try {
-        const { Location } = require('../models');
-        const locationRecord = await Location.findByPk(location_id);
-        if (locationRecord) {
-          locationName = locationRecord.name;
 
-          // ENHANCED: Check if location is Lager and set status accordingly
-          // Always check case-insensitively
-          if (locationRecord.name.toLowerCase() === 'lager') {
-            console.log(`[EQUIPMENT CREATE] Location is Lager, setting status to available`);
-            autoStatus = 'available';
-          } else {
-            console.log(`[EQUIPMENT CREATE] Location is not Lager (${locationRecord.name}), setting status to in-use`);
-            autoStatus = 'in-use';
+    // LOCATION HIERARCHY: Installation location overrides storage location
+    let currentLocationName = '';
+    let currentLocationId = null;
+    let isInstallationLocation = false;
+
+    // Priority 1: Installation location (for fixed/semi-permanent equipment)
+    if ((installation_type === 'fixed' || installation_type === 'semi-permanent')) {
+      if (installation_location_id) {
+        try {
+          const installationLocationRecord = await Location.findByPk(installation_location_id);
+          if (installationLocationRecord) {
+            currentLocationName = installationLocationRecord.name;
+            currentLocationId = installation_location_id;
+            isInstallationLocation = true;
+            console.log(`[EQUIPMENT CREATE] Using installation location: ${currentLocationName} (ID: ${installation_location_id})`);
           }
+        } catch (error) {
+          console.error('Error fetching installation location name:', error);
         }
-      } catch (error) {
-        console.error('Error fetching location name:', error);
+      } else if (installation_location && installation_location !== '') {
+        currentLocationName = installation_location;
+        currentLocationId = null;
+        isInstallationLocation = true;
+        console.log(`[EQUIPMENT CREATE] Using custom installation location: ${currentLocationName}`);
       }
-    } else if (location && location !== '') {
-      // ENHANCED: If direct location name is provided, check if it's Lager (case-insensitive)
-      if (location.toLowerCase() === 'lager') {
-        console.log(`[EQUIPMENT CREATE] Custom location is Lager, setting status to available`);
-        autoStatus = 'available';
+    }
+
+    // Priority 2: Regular storage location (if no installation location or portable equipment)
+    if (!isInstallationLocation) {
+      if (location_id) {
+        try {
+          const locationRecord = await Location.findByPk(location_id);
+          if (locationRecord) {
+            currentLocationName = locationRecord.name;
+            currentLocationId = location_id;
+            console.log(`[EQUIPMENT CREATE] Using storage location: ${currentLocationName} (ID: ${location_id})`);
+          }
+        } catch (error) {
+          console.error('Error fetching storage location name:', error);
+        }
+      } else if (location && location !== '') {
+        currentLocationName = location;
+        currentLocationId = null;
+        console.log(`[EQUIPMENT CREATE] Using custom storage location: ${currentLocationName}`);
       } else {
-        console.log(`[EQUIPMENT CREATE] Custom location is not Lager (${location}), setting status to in-use`);
-        autoStatus = 'in-use';
+        // No location specified - use default storage location
+        try {
+          const defaultStorage = await DefaultStorageLocation.findOne({
+            where: { is_active: true },
+            include: [{
+              model: Location,
+              as: 'location'
+            }],
+            order: [['priority', 'ASC']]
+          });
+
+          if (defaultStorage && defaultStorage.location) {
+            currentLocationName = defaultStorage.location.name;
+            currentLocationId = defaultStorage.location_id;
+            console.log(`[EQUIPMENT CREATE] Using default storage location: ${currentLocationName} (ID: ${currentLocationId})`);
+          } else {
+            console.log(`[EQUIPMENT CREATE] No default storage location configured`);
+          }
+        } catch (error) {
+          console.error('Error fetching default storage location:', error);
+        }
       }
+    }
+
+    // Set the final location values (storage location for database compatibility)
+    locationName = currentLocationName || location || '';
+    finalLocationId = isInstallationLocation ? (location_id || null) : currentLocationId;
+
+    // SIMPLIFIED STATUS LOGIC: Only auto-set for specific cases
+    if (isInstallationLocation && (installation_type === 'fixed' || installation_type === 'semi-permanent') && installation_quantity > 0) {
+      // Installation equipment with quantity is suggested as in-use
+      autoStatus = 'in-use';
+      console.log(`[EQUIPMENT CREATE] Installation equipment with quantity, suggesting status: in-use`);
+    } else if (currentLocationName && currentLocationName.toLowerCase() === 'lager') {
+      // Storage in Lager is available (unless user specified otherwise)
+      autoStatus = 'available';
+      console.log(`[EQUIPMENT CREATE] Storage location is Lager, setting status to available`);
+    } else {
+      // For all other cases, use user-provided status or default to available
+      autoStatus = status || 'available';
+      console.log(`[EQUIPMENT CREATE] Using ${status ? 'user-provided' : 'default'} status: ${autoStatus}`);
     }
 
     // Handle quantity field - convert to integer and default to 1 if not provided or invalid
@@ -254,6 +321,35 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       }
     }
 
+    // Handle installation quantity field
+    let equipmentInstallationQuantity = 0; // Default installation quantity
+    if (installation_quantity !== undefined && installation_quantity !== null && installation_quantity !== '') {
+      const parsedInstallationQuantity = parseInt(installation_quantity, 10);
+      if (!isNaN(parsedInstallationQuantity) && parsedInstallationQuantity >= 0) {
+        equipmentInstallationQuantity = parsedInstallationQuantity;
+      }
+    }
+
+    // Helper function to handle date fields properly
+    const processDateField = (dateValue) => {
+      if (dateValue === undefined || dateValue === '' || dateValue === null) {
+        return null; // Set to NULL for empty strings
+      }
+      // Validate date format
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return null; // Invalid date becomes NULL
+      }
+      return dateValue; // Valid date string
+    };
+
+    // CONDITIONAL RULE: If installation type is fixed or semi-permanent, set status to "in-use"
+    let finalStatus = status || autoStatus;
+    if (installation_type === 'fixed' || installation_type === 'semi-permanent') {
+      finalStatus = 'in-use';
+      console.log(`[EQUIPMENT CREATE] Setting status to "in-use" because installation type is ${installation_type}`);
+    }
+
     const equipmentData = {
       type: equipmentType.name,
       type_id: type_id,
@@ -262,15 +358,36 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       brand,
       model,
       serial_number,
-      status: status || autoStatus, // Use provided status or auto-determined status
-      location: locationName,
-      location_id: location_id || null,
+      status: finalStatus,
+      location: locationName, // This will be the current location (installation or storage)
+      location_id: finalLocationId, // This will be the storage location_id for database compatibility
       description,
-      quantity: equipmentQuantity
+      quantity: equipmentQuantity,
+      // Installation fields
+      installation_type: installation_type || 'portable',
+      installation_location_id: installation_location_id || null,
+      installation_location: installation_location || null,
+      installation_date: processDateField(installation_date),
+      installation_notes: installation_notes || null,
+      installation_quantity: equipmentInstallationQuantity,
+      maintenance_schedule: maintenance_schedule || null,
+      last_maintenance_date: processDateField(last_maintenance_date),
+      next_maintenance_date: processDateField(next_maintenance_date)
     };
 
-    // Only add reference_image_id if it's not empty
-    if (reference_image_id && reference_image_id !== '') {
+    console.log(`[EQUIPMENT CREATE] Final equipment data:`, {
+      location: equipmentData.location,
+      location_id: equipmentData.location_id,
+      installation_type: equipmentData.installation_type,
+      installation_location: equipmentData.installation_location,
+      installation_location_id: equipmentData.installation_location_id,
+      status: equipmentData.status,
+      quantity: equipmentData.quantity,
+      installation_quantity: equipmentData.installation_quantity
+    });
+
+    // Only add reference_image_id if it's not empty and not 'new'
+    if (reference_image_id && reference_image_id !== '' && reference_image_id !== 'new') {
       equipmentData.reference_image_id = reference_image_id;
     }
 
@@ -278,7 +395,8 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     const equipment = await Equipment.create(equipmentData);
 
     // Log the equipment creation
-    await equipmentLogService.logCreation(equipment.id, req.user.id, equipmentData);
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logCreation(equipment.id, req.user.id, equipmentData);
 
     // Handle file uploads if any
     let createdFiles = [];
@@ -365,6 +483,174 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
   }
 });
 
+// Remove equipment from installation (return to portable status) - DELETE endpoint
+router.delete('/:id/installation', authenticate, isAdvancedOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body; // Get quantity from request body
+
+    // Get current equipment
+    const equipment = await Equipment.findByPk(id);
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    // Check if equipment is currently installed
+    if (equipment.installation_type === 'portable') {
+      return res.status(400).json({
+        message: 'Equipment is already in portable status'
+      });
+    }
+
+    const currentInstallationQuantity = equipment.installation_quantity || 0;
+    const returnQuantity = quantity || currentInstallationQuantity;
+
+    // Validate return quantity
+    if (returnQuantity > currentInstallationQuantity) {
+      return res.status(400).json({
+        message: `Cannot return ${returnQuantity} items. Only ${currentInstallationQuantity} items are currently installed.`
+      });
+    }
+
+    // Store old data for logging
+    const oldData = {
+      installation_type: equipment.installation_type,
+      installation_location: equipment.installation_location,
+      installation_location_id: equipment.installation_location_id,
+      installation_quantity: equipment.installation_quantity
+    };
+
+    // Calculate new installation quantity
+    const newInstallationQuantity = currentInstallationQuantity - returnQuantity;
+
+    // If returning all items, set to portable status
+    if (newInstallationQuantity === 0) {
+      await equipment.update({
+        installation_type: 'portable',
+        installation_location_id: null,
+        installation_location: null,
+        installation_date: null,
+        installation_notes: null,
+        installation_quantity: 0,
+        status: 'available' // Set status back to available when returning from installation
+      });
+    } else {
+      // If returning partial quantity, just update the installation quantity
+      await equipment.update({
+        installation_quantity: newInstallationQuantity
+      });
+    }
+
+    // Log the change using the existing logUpdate method
+    await equipmentLogService.logUpdate(
+      id,
+      req.user.id,
+      oldData,
+      {
+        installation_type: newInstallationQuantity === 0 ? 'portable' : equipment.installation_type,
+        installation_location: newInstallationQuantity === 0 ? null : equipment.installation_location,
+        installation_location_id: newInstallationQuantity === 0 ? null : equipment.installation_location_id,
+        installation_quantity: newInstallationQuantity,
+        status: newInstallationQuantity === 0 ? 'available' : equipment.status
+      }
+    );
+
+    res.json({
+      message: `Successfully returned ${returnQuantity} item${returnQuantity !== 1 ? 's' : ''} from installation${newInstallationQuantity === 0 ? ' (equipment now portable)' : ` (${newInstallationQuantity} items still installed)`}`,
+      equipment: await Equipment.findByPk(id),
+      returned_quantity: returnQuantity,
+      remaining_installation_quantity: newInstallationQuantity
+    });
+  } catch (error) {
+    console.error('Error returning equipment from installation:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Update equipment installation details (admin and advanced users only) - MOVED BEFORE GENERAL ROUTE
+router.put('/:id/installation', authenticate, isAdvancedOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      installation_type,
+      installation_location_id,
+      installation_location,
+      installation_date,
+      installation_notes,
+      installation_quantity
+    } = req.body;
+
+    // Validate installation_type
+    const validTypes = ['portable', 'semi-permanent', 'fixed'];
+    if (!validTypes.includes(installation_type)) {
+      return res.status(400).json({ message: 'Invalid installation type' });
+    }
+
+    // Get current equipment to validate quantity
+    const equipment = await Equipment.findByPk(id);
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    const totalQuantity = equipment.quantity || 1;
+
+    // Validate installation quantity
+    if (installation_quantity && installation_quantity > totalQuantity) {
+      return res.status(400).json({
+        message: `Installation quantity cannot exceed total equipment quantity (${totalQuantity})`
+      });
+    }
+
+    // For non-portable equipment, require location
+    if (installation_type !== 'portable') {
+      if (!installation_location_id && !installation_location) {
+        return res.status(400).json({
+          message: 'Installation location is required for fixed/semi-permanent equipment'
+        });
+      }
+    }
+
+    // Store old data for logging
+    const oldData = {
+      installation_type: equipment.installation_type,
+      installation_location: equipment.installation_location,
+      installation_location_id: equipment.installation_location_id
+    };
+
+    // Update equipment installation details
+    await equipment.update({
+      installation_type,
+      installation_location_id: installation_location_id || null,
+      installation_location: installation_location || null,
+      installation_date: installation_date || null,
+      installation_notes: installation_notes || null,
+      installation_quantity: installation_quantity || null
+    });
+
+    console.log(`✅ Installation updated for equipment ${id}:`, {
+      installation_type,
+      installation_location: installation_location || null,
+      installation_location_id: installation_location_id || null
+    });
+
+    res.json({
+      message: 'Equipment installation details updated successfully',
+      equipment: {
+        id: equipment.id,
+        installation_type: equipment.installation_type,
+        installation_location: equipment.installation_location,
+        installation_location_id: equipment.installation_location_id,
+        installation_date: equipment.installation_date,
+        installation_notes: equipment.installation_notes,
+        installation_quantity: equipment.installation_quantity
+      }
+    });
+  } catch (error) {
+    console.error('Update equipment installation error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update equipment (admin and advanced users only)
 router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields([
   { name: 'files', maxCount: MAX_FILES },
@@ -386,7 +672,17 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       location_id_is_null,
       type_id_is_null,
       category_id_is_null,
-      quantity
+      quantity,
+      // Installation fields
+      installation_type,
+      installation_location_id,
+      installation_location,
+      installation_date,
+      installation_notes,
+      installation_quantity,
+      maintenance_schedule,
+      last_maintenance_date,
+      next_maintenance_date
     } = req.body;
 
     // Find equipment
@@ -398,8 +694,12 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
 
     // Check if serial number already exists (if changed)
     if (serial_number && serial_number !== equipment.serial_number) {
+      const { Op } = require('sequelize');
       const existingEquipment = await Equipment.findOne({
-        where: { serial_number }
+        where: {
+          serial_number,
+          id: { [Op.ne]: equipment.id } // Exclude current equipment
+        }
       });
 
       if (existingEquipment) {
@@ -415,7 +715,6 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
 
     if (type_id) {
       try {
-        const { EquipmentType } = require('../models');
         const equipmentType = await EquipmentType.findByPk(type_id);
 
         if (!equipmentType) {
@@ -443,6 +742,22 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       }
     }
 
+    // Helper function to handle date fields properly
+    const processDateField = (dateValue, currentValue) => {
+      if (dateValue === undefined) {
+        return currentValue; // Keep existing value
+      }
+      if (dateValue === '' || dateValue === null) {
+        return null; // Set to NULL for empty strings
+      }
+      // Validate date format
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) {
+        return null; // Invalid date becomes NULL
+      }
+      return dateValue; // Valid date string
+    };
+
     // Prepare update data
     const updateData = {
       type: typeName,
@@ -456,7 +771,17 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       location: location !== undefined ? location : equipment.location,
       location_id: location_id_is_null === 'true' ? null : (location_id !== undefined ? location_id : equipment.location_id),
       description: description !== undefined ? description : equipment.description,
-      quantity: equipmentQuantity
+      quantity: equipmentQuantity,
+      // Installation fields with proper date handling
+      installation_type: installation_type !== undefined ? installation_type : equipment.installation_type,
+      installation_location_id: installation_location_id === 'null' || installation_location_id === '' ? null : (installation_location_id !== undefined ? installation_location_id : equipment.installation_location_id),
+      installation_location: installation_location !== undefined ? installation_location : equipment.installation_location,
+      installation_date: processDateField(installation_date, equipment.installation_date),
+      installation_notes: installation_notes !== undefined ? installation_notes : equipment.installation_notes,
+      installation_quantity: installation_quantity !== undefined ? parseInt(installation_quantity, 10) || 0 : equipment.installation_quantity,
+      maintenance_schedule: maintenance_schedule !== undefined ? maintenance_schedule : equipment.maintenance_schedule,
+      last_maintenance_date: processDateField(last_maintenance_date, equipment.last_maintenance_date),
+      next_maintenance_date: processDateField(next_maintenance_date, equipment.next_maintenance_date)
     };
 
     // ALWAYS handle location and location_id together to ensure consistency
@@ -465,7 +790,6 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
     // Case 1: If location_id is provided (not null, not undefined, not empty string)
     if (location_id) {
       try {
-        const { Location } = require('../models');
         const locationRecord = await Location.findByPk(location_id);
         if (locationRecord) {
           // Always set the location name from the database record
@@ -542,7 +866,8 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
     await equipment.update(updateData);
 
     // Log the equipment update
-    await equipmentLogService.logUpdate(equipment.id, req.user.id, oldData, updateData);
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logUpdate(equipment.id, req.user.id, oldData, updateData);
 
     // Handle file deletions if any
     try {
@@ -772,7 +1097,15 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
         }
       );
 
-      // Step 2: Delete all equipment logs associated with this equipment
+      // Step 2: Create a log entry for the deletion BEFORE deleting anything
+      // DISABLED - Deletion logging causes foreign key constraint issues
+      console.log(`[EQUIPMENT] Skipping deletion log entry for equipment ID: ${equipment.id} (disabled to prevent FK issues)`);
+      // Note: Deletion logging is disabled because it creates foreign key constraint issues
+      // The equipment_logs table has a foreign key to equipment.id, so we can't create a log
+      // entry after deleting the equipment. We could create it before, but then if the deletion
+      // fails, we'd have a log entry for a deletion that didn't happen.
+
+      // Step 3: Delete all equipment logs associated with this equipment
       console.log(`[EQUIPMENT] Deleting equipment logs for equipment ID: ${equipment.id}`);
       await sequelize.query(
         'DELETE FROM equipment_logs WHERE equipment_id = ?',
@@ -783,7 +1116,7 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
         }
       );
 
-      // Step 3: Delete all files associated with this equipment
+      // Step 4: Delete all files associated with this equipment
       if (fileIds.length > 0) {
         console.log(`[EQUIPMENT] Deleting ${fileIds.length} files for equipment ID: ${equipment.id}`);
         await sequelize.query(
@@ -796,7 +1129,7 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
         );
       }
 
-      // Step 4: Delete the equipment record
+      // Step 5: Delete the equipment record
       console.log(`[EQUIPMENT] Deleting equipment record ID: ${equipment.id}`);
       await sequelize.query(
         'DELETE FROM equipment WHERE id = ?',
@@ -807,7 +1140,7 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
         }
       );
 
-      // Step 5: Delete physical files from disk
+      // Step 6: Delete physical files from disk
       for (const filePath of filePaths) {
         try {
           if (filePath.path) {
@@ -826,11 +1159,10 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
         }
       }
 
-      // Step 6: Create a log entry for the deletion
-      await equipmentLogService.logDeletion(req.params.id, req.user.id, equipmentData);
-
       // Commit the transaction
+      console.log(`[EQUIPMENT] About to commit transaction for equipment ID: ${equipment.id}`);
       await transaction.commit();
+      console.log(`[EQUIPMENT] Transaction committed successfully for equipment ID: ${equipment.id}`);
       console.log(`[EQUIPMENT] Equipment deletion completed successfully`);
 
       res.json({ message: 'Equipment deleted successfully' });
@@ -852,7 +1184,8 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
       }
     }
 
-    console.error('[EQUIPMENT] Delete equipment error:', error);
+    console.error(`[EQUIPMENT] Delete equipment error for ID ${req.params.id}:`, error);
+    console.error(`[EQUIPMENT] Error stack:`, error.stack);
     res.status(500).json({
       message: 'Server error',
       error: error.message
@@ -867,7 +1200,7 @@ router.patch('/:id/status', authenticate, isAdvancedOrAdmin, async (req, res) =>
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['available', 'in-use', 'maintenance'];
+    const validStatuses = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: 'Invalid status value' });
     }
@@ -888,12 +1221,13 @@ router.patch('/:id/status', authenticate, isAdvancedOrAdmin, async (req, res) =>
     await equipment.update({ status });
 
     // Log the status update
-    await equipmentLogService.logStatusChange(
-      equipment.id,
-      req.user.id,
-      oldData.status,
-      status
-    );
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logStatusChange(
+    //   equipment.id,
+    //   req.user.id,
+    //   oldData.status,
+    //   status
+    // );
 
     res.json({
       message: 'Status updated successfully',
@@ -966,12 +1300,13 @@ router.patch('/:id/location', authenticate, isAdvancedOrAdmin, async (req, res) 
     await equipment.update(updateData);
 
     // Log the location update
-    await equipmentLogService.logLocationChange(
-      equipment.id,
-      req.user.id,
-      oldData.location,
-      updateData.location
-    );
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logLocationChange(
+    //   equipment.id,
+    //   req.user.id,
+    //   oldData.location,
+    //   updateData.location
+    // );
 
     res.json({
       message: 'Location updated successfully',
@@ -1007,7 +1342,6 @@ router.patch('/:id/type', authenticate, isAdvancedOrAdmin, async (req, res) => {
     }
 
     // Find the type to get its name
-    const { EquipmentType } = require('../models');
     const typeRecord = await EquipmentType.findByPk(type_id);
 
     if (!typeRecord) {
@@ -1027,12 +1361,13 @@ router.patch('/:id/type', authenticate, isAdvancedOrAdmin, async (req, res) => {
     });
 
     // Log the type update
-    await equipmentLogService.logUpdate(
-      equipment.id,
-      req.user.id,
-      oldData,
-      { type: typeRecord.name, type_id }
-    );
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logUpdate(
+    //   equipment.id,
+    //   req.user.id,
+    //   oldData,
+    //   { type: typeRecord.name, type_id }
+    // );
 
     res.json({
       message: 'Type updated successfully',
@@ -1076,7 +1411,6 @@ router.patch('/:id/category', authenticate, isAdvancedOrAdmin, async (req, res) 
     // If category_id is provided, fetch the category name
     if (category_id) {
       try {
-        const { Category } = require('../models');
         const categoryRecord = await Category.findByPk(category_id);
         if (categoryRecord) {
           updateData.category = categoryRecord.name;
@@ -1091,12 +1425,13 @@ router.patch('/:id/category', authenticate, isAdvancedOrAdmin, async (req, res) 
     await equipment.update(updateData);
 
     // Log the category update
-    await equipmentLogService.logUpdate(
-      equipment.id,
-      req.user.id,
-      oldData,
-      updateData
-    );
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logUpdate(
+    //   equipment.id,
+    //   req.user.id,
+    //   oldData,
+    //   updateData
+    // );
 
     res.json({
       message: 'Category updated successfully',
@@ -1145,12 +1480,13 @@ router.patch('/:id/brand-model', authenticate, isAdvancedOrAdmin, async (req, re
     await equipment.update(updateData);
 
     // Log the update
-    await equipmentLogService.logUpdate(
-      equipment.id,
-      req.user.id,
-      oldData,
-      updateData
-    );
+    // TEMPORARILY DISABLED - Equipment log service causes deletion issues
+    // await equipmentLogService.logUpdate(
+    //   equipment.id,
+    //   req.user.id,
+    //   oldData,
+    //   updateData
+    // );
 
     res.json({
       message: 'Brand/model updated successfully',
@@ -1163,6 +1499,240 @@ router.patch('/:id/brand-model', authenticate, isAdvancedOrAdmin, async (req, re
   } catch (error) {
     console.error('Update equipment brand/model error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// UNIFIED AVAILABILITY CALCULATION - Single source of truth
+router.get('/:id/availability', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🔍 UNIFIED availability request for equipment ID: ${id}`);
+
+    // Use the unified calculation method from inventoryService
+    const availability = await inventoryService.getEquipmentAvailability(id);
+
+    if (!availability) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    console.log(`✅ UNIFIED availability result for equipment ${id}:`, {
+      total: availability.total_quantity,
+      allocated: availability.total_allocated,
+      show_allocated: availability.show_allocated,
+      available: availability.available_quantity
+    });
+
+    res.json(availability);
+  } catch (error) {
+    console.error('Error getting equipment availability:', error);
+    res.status(500).json({ message: 'Error getting equipment availability' });
+  }
+});
+
+// Get equipment location allocations
+router.get('/:id/allocations', authenticate, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`[ALLOCATIONS] GET request for equipment ID: ${id}`);
+
+    // Get current allocations
+    const allocations = await sequelize.query(`
+      SELECT
+        ia.id,
+        ia.equipment_id,
+        ia.location_id,
+        ia.quantity_allocated,
+        ia.status,
+        ia.allocation_type,
+        ia.notes,
+        ia.allocated_date,
+        l.name as location_name
+      FROM inventory_allocation ia
+      JOIN locations l ON ia.location_id = l.id
+      WHERE ia.equipment_id = ?
+        AND ia.status IN ('allocated', 'in-use', 'reserved', 'maintenance')
+      ORDER BY ia.allocated_date DESC
+    `, {
+      replacements: [id],
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    console.log(`[ALLOCATIONS] Found ${allocations.length} allocations for equipment ${id}`);
+
+    res.json({
+      success: true,
+      allocations: allocations
+    });
+
+  } catch (error) {
+    console.error('[ALLOCATIONS] Error fetching allocations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch equipment allocations',
+      error: error.message
+    });
+  }
+});
+
+// Update equipment location allocations
+router.post('/:id/allocations', authenticate, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+    const { allocations } = req.body;
+    const userId = req.user.id;
+
+    console.log(`[ALLOCATIONS] POST request for equipment ID: ${id}`);
+    console.log(`[ALLOCATIONS] Allocations data:`, allocations);
+
+    // Validate equipment exists
+    const equipment = await Equipment.findByPk(id);
+    if (!equipment) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Equipment not found'
+      });
+    }
+
+    // Validate total quantity - allow partial allocations
+    const totalQuantity = equipment.quantity || 1;
+    const allocatedQuantity = allocations.reduce((sum, alloc) => sum + (parseInt(alloc.quantity) || 0), 0);
+
+    if (allocatedQuantity > totalQuantity) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Total allocated quantity (${allocatedQuantity}) cannot exceed equipment quantity (${totalQuantity})`
+      });
+    }
+
+    // Allow empty allocations - means all items stay in current location
+    if (allocatedQuantity === 0) {
+      console.log(`[ALLOCATIONS] No allocations specified - clearing all location allocations for equipment ${id}`);
+
+      // Clear existing location-based allocations only
+      await sequelize.query(`
+        UPDATE inventory_allocation
+        SET status = 'returned', return_date = NOW(), returned_by = ?
+        WHERE equipment_id = ?
+          AND allocation_type = 'location'
+          AND status IN ('allocated', 'in-use', 'reserved', 'maintenance')
+      `, {
+        replacements: [userId, id],
+        type: sequelize.QueryTypes.UPDATE,
+        transaction
+      });
+
+      await transaction.commit();
+
+      return res.json({
+        success: true,
+        message: 'All location allocations cleared - equipment remains in current location'
+      });
+    }
+
+    // Clear ALL existing allocations for this equipment (both location and storage types)
+    await sequelize.query(`
+      UPDATE inventory_allocation
+      SET status = 'returned', return_date = NOW(), returned_by = ?
+      WHERE equipment_id = ?
+        AND status IN ('allocated', 'in-use', 'reserved', 'maintenance')
+    `, {
+      replacements: [userId, id],
+      type: sequelize.QueryTypes.UPDATE,
+      transaction
+    });
+
+    console.log(`[ALLOCATIONS] Cleared all existing allocations for equipment ${id}`);
+
+    // Create new allocations only for what the user specified
+    for (const allocation of allocations) {
+      await sequelize.query(`
+        INSERT INTO inventory_allocation (
+          equipment_id, location_id, quantity_allocated, status,
+          allocation_type, allocated_by, notes, allocated_date
+        ) VALUES (?, ?, ?, ?, 'location', ?, ?, NOW())
+      `, {
+        replacements: [
+          id,
+          allocation.location_id,
+          allocation.quantity,
+          allocation.status,
+          userId,
+          allocation.notes || 'Location allocation'
+        ],
+        type: sequelize.QueryTypes.INSERT,
+        transaction
+      });
+
+      console.log(`[ALLOCATIONS] Created allocation: ${allocation.quantity} items to location ${allocation.location_id}`);
+    }
+
+    // Note: Unallocated items remain in equipment's current location without explicit allocation records
+    const unallocatedQuantity = totalQuantity - allocatedQuantity;
+    if (unallocatedQuantity > 0) {
+      console.log(`[ALLOCATIONS] ${unallocatedQuantity} items will remain in equipment's current location without explicit allocation`);
+    }
+
+    await transaction.commit();
+
+    console.log(`[ALLOCATIONS] Successfully updated allocations for equipment ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Equipment allocations updated successfully'
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('[ALLOCATIONS] Error updating allocations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update equipment allocations',
+      error: error.message
+    });
+  }
+});
+
+// Clean up all allocations (development only)
+router.post('/cleanup-allocations', authenticate, async (req, res) => {
+  if (process.env.NODE_ENV !== 'development') {
+    return res.status(403).json({
+      success: false,
+      message: 'This endpoint is only available in development mode'
+    });
+  }
+
+  try {
+    console.log('[CLEANUP] Starting allocation cleanup...');
+
+    // Clean up ALL allocations
+    const result = await sequelize.query(`
+      UPDATE inventory_allocation
+      SET status = 'returned', return_date = NOW(), returned_by = ?
+      WHERE status IN ('allocated', 'in-use', 'reserved', 'maintenance')
+    `, {
+      replacements: [req.user.id],
+      type: sequelize.QueryTypes.UPDATE
+    });
+
+    console.log('[CLEANUP] Allocation cleanup completed');
+
+    res.json({
+      success: true,
+      message: 'All allocations have been cleaned up'
+    });
+
+  } catch (error) {
+    console.error('[CLEANUP] Error during cleanup:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clean up allocations',
+      error: error.message
+    });
   }
 });
 

@@ -1,73 +1,62 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const { sequelize } = require('../config/database');
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
+  ? require('../models/index.local')
+  : require('../models');
+const { Show, ShowEquipment, User, Equipment, sequelize } = models;
 
 // Get all shows
 router.get('/', authenticate, async (req, res) => {
   try {
     const { status, search, limit = 50, offset = 0 } = req.query;
 
-    // Build WHERE clause
-    let whereConditions = [];
-    let queryParams = [];
+    // Build WHERE clause for Sequelize
+    const whereConditions = {};
 
     if (status) {
-      whereConditions.push('status = ?');
-      queryParams.push(status);
+      whereConditions.status = status;
     }
 
     if (search) {
-      whereConditions.push('(name LIKE ? OR venue LIKE ? OR director LIKE ?)');
-      queryParams.push(`%${search}%`, `%${search}%`, `%${search}%`);
+      const { Op } = require('sequelize');
+      whereConditions[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { venue: { [Op.like]: `%${search}%` } },
+        { director: { [Op.like]: `%${search}%` } }
+      ];
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Get shows with basic info
-    const showsQuery = `
-      SELECT
-        s.*,
-        u.username as creator_username
-      FROM shows s
-      LEFT JOIN users u ON s.created_by = u.id
-      ${whereClause}
-      ORDER BY s.date DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    queryParams.push(parseInt(limit), parseInt(offset));
-
-    const [shows] = await sequelize.query(showsQuery, {
-      replacements: queryParams
+    // Get shows with creator info
+    const { count, rows: shows } = await Show.findAndCountAll({
+      where: whereConditions,
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username']
+        },
+        {
+          model: ShowEquipment,
+          as: 'showEquipment',
+          attributes: ['id']
+        }
+      ],
+      order: [['date', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     });
 
-    // Get total count
-    const countQuery = `
-      SELECT COUNT(*) as total
-      FROM shows s
-      ${whereClause}
-    `;
-
-    const [countResult] = await sequelize.query(countQuery, {
-      replacements: queryParams.slice(0, -2) // Remove limit and offset
-    });
-
-    const total = countResult[0].total;
-
-    // Add equipment count (0 for now, will be calculated when show_equipment table exists)
+    // Add equipment count
     const showsWithCounts = shows.map(show => ({
-      ...show,
-      equipmentCount: 0,
-      creator: show.creator_username ? {
-        id: show.created_by,
-        username: show.creator_username
-      } : null
+      ...show.toJSON(),
+      equipmentCount: show.showEquipment ? show.showEquipment.length : 0
     }));
 
     res.json({
       shows: showsWithCounts,
-      total,
+      total: count,
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
@@ -80,38 +69,33 @@ router.get('/', authenticate, async (req, res) => {
 // Get single show
 router.get('/:id', authenticate, async (req, res) => {
   try {
-    const showQuery = `
-      SELECT
-        s.*,
-        creator.username as creator_username,
-        updater.username as updater_username
-      FROM shows s
-      LEFT JOIN users creator ON s.created_by = creator.id
-      LEFT JOIN users updater ON s.updated_by = updater.id
-      WHERE s.id = ?
-    `;
-
-    const [shows] = await sequelize.query(showQuery, {
-      replacements: [req.params.id]
+    const show = await Show.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username']
+        },
+        {
+          model: User,
+          as: 'updater',
+          attributes: ['id', 'username']
+        },
+        {
+          model: ShowEquipment,
+          as: 'showEquipment',
+          attributes: ['id']
+        }
+      ]
     });
 
-    if (!shows.length) {
+    if (!show) {
       return res.status(404).json({ message: 'Show not found' });
     }
 
-    const show = shows[0];
-
     res.json({
-      ...show,
-      equipmentCount: 0,
-      creator: show.creator_username ? {
-        id: show.created_by,
-        username: show.creator_username
-      } : null,
-      updater: show.updater_username ? {
-        id: show.updated_by,
-        username: show.updater_username
-      } : null
+      ...show.toJSON(),
+      equipmentCount: show.showEquipment ? show.showEquipment.length : 0
     });
   } catch (error) {
     console.error('Error fetching show:', error);
@@ -128,38 +112,36 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Name and date are required' });
     }
 
-    const insertQuery = `
-      INSERT INTO shows (name, date, venue, director, description, status, created_by, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `;
-
-    const [result] = await sequelize.query(insertQuery, {
-      replacements: [name, date, venue, director, description, status, req.user.id]
+    // Create the show
+    const show = await Show.create({
+      name,
+      date,
+      venue,
+      director,
+      description,
+      status,
+      created_by: req.user.id
     });
 
-    // Fetch the created show
-    const showQuery = `
-      SELECT
-        s.*,
-        u.username as creator_username
-      FROM shows s
-      LEFT JOIN users u ON s.created_by = u.id
-      WHERE s.id = ?
-    `;
-
-    const [shows] = await sequelize.query(showQuery, {
-      replacements: [result.insertId]
+    // Fetch the created show with associations
+    const createdShow = await Show.findByPk(show.id, {
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username']
+        },
+        {
+          model: ShowEquipment,
+          as: 'showEquipment',
+          attributes: ['id']
+        }
+      ]
     });
-
-    const show = shows[0];
 
     res.status(201).json({
-      ...show,
-      equipmentCount: 0,
-      creator: show.creator_username ? {
-        id: show.created_by,
-        username: show.creator_username
-      } : null
+      ...createdShow.toJSON(),
+      equipmentCount: 0
     });
   } catch (error) {
     console.error('Error creating show:', error);
@@ -176,55 +158,48 @@ router.put('/:id', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'Name and date are required' });
     }
 
-    // Check if show exists
-    const [existingShows] = await sequelize.query('SELECT id FROM shows WHERE id = ?', {
-      replacements: [req.params.id]
-    });
+    // Find the show
+    const show = await Show.findByPk(req.params.id);
 
-    if (!existingShows.length) {
+    if (!show) {
       return res.status(404).json({ message: 'Show not found' });
     }
 
     // Update the show
-    const updateQuery = `
-      UPDATE shows
-      SET name = ?, date = ?, venue = ?, director = ?, description = ?, status = ?, updated_by = ?, updated_at = NOW()
-      WHERE id = ?
-    `;
-
-    await sequelize.query(updateQuery, {
-      replacements: [name, date, venue, director, description, status, req.user.id, req.params.id]
+    await show.update({
+      name,
+      date,
+      venue,
+      director,
+      description,
+      status,
+      updated_by: req.user.id
     });
 
-    // Fetch updated show
-    const showQuery = `
-      SELECT
-        s.*,
-        creator.username as creator_username,
-        updater.username as updater_username
-      FROM shows s
-      LEFT JOIN users creator ON s.created_by = creator.id
-      LEFT JOIN users updater ON s.updated_by = updater.id
-      WHERE s.id = ?
-    `;
-
-    const [shows] = await sequelize.query(showQuery, {
-      replacements: [req.params.id]
+    // Fetch updated show with associations
+    const updatedShow = await Show.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username']
+        },
+        {
+          model: User,
+          as: 'updater',
+          attributes: ['id', 'username']
+        },
+        {
+          model: ShowEquipment,
+          as: 'showEquipment',
+          attributes: ['id']
+        }
+      ]
     });
-
-    const show = shows[0];
 
     res.json({
-      ...show,
-      equipmentCount: 0,
-      creator: show.creator_username ? {
-        id: show.created_by,
-        username: show.creator_username
-      } : null,
-      updater: show.updater_username ? {
-        id: show.updated_by,
-        username: show.updater_username
-      } : null
+      ...updatedShow.toJSON(),
+      equipmentCount: updatedShow.showEquipment ? updatedShow.showEquipment.length : 0
     });
   } catch (error) {
     console.error('Error updating show:', error);
@@ -235,35 +210,29 @@ router.put('/:id', authenticate, async (req, res) => {
 // Delete show
 router.delete('/:id', authenticate, async (req, res) => {
   try {
-    // Check if show exists
-    const [existingShows] = await sequelize.query('SELECT id FROM shows WHERE id = ?', {
-      replacements: [req.params.id]
+    // Find the show
+    const show = await Show.findByPk(req.params.id, {
+      include: [
+        {
+          model: ShowEquipment,
+          as: 'showEquipment'
+        }
+      ]
     });
 
-    if (!existingShows.length) {
+    if (!show) {
       return res.status(404).json({ message: 'Show not found' });
     }
 
-    // Check if show has equipment allocated (if table exists)
-    try {
-      const [equipmentCount] = await sequelize.query('SELECT COUNT(*) as count FROM show_equipment WHERE show_id = ?', {
-        replacements: [req.params.id]
+    // Check if show has equipment allocated
+    if (show.showEquipment && show.showEquipment.length > 0) {
+      return res.status(400).json({
+        message: 'Cannot delete show with allocated equipment. Please remove all equipment first.'
       });
-
-      if (equipmentCount[0].count > 0) {
-        return res.status(400).json({
-          message: 'Cannot delete show with allocated equipment. Please remove all equipment first.'
-        });
-      }
-    } catch (tableError) {
-      // show_equipment table doesn't exist, safe to delete
-      console.log('show_equipment table does not exist, proceeding with deletion');
     }
 
     // Delete the show
-    await sequelize.query('DELETE FROM shows WHERE id = ?', {
-      replacements: [req.params.id]
-    });
+    await show.destroy();
 
     res.json({ message: 'Show deleted successfully' });
   } catch (error) {

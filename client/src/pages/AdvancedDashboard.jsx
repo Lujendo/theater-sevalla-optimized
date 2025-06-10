@@ -1426,7 +1426,7 @@ const AdvancedDashboard = () => {
             {viewMode === 'list' && (
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="table">
+                  <table className="table-wide">
                     <thead className="table-header">
                       <tr>
                         <th className="table-header-cell">Equipment</th>

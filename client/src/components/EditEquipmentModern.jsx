@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 import { getEquipmentById, updateEquipment, deleteFile } from '../services/equipmentService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
 import { getCategories } from '../services/categoryService';
@@ -11,7 +12,9 @@ import ReferenceImageModal from './ReferenceImageModal';
 import EquipmentLogList from './EquipmentLogList';
 import FileGallery from './FileGallery';
 import FileUploadModal from './FileUploadModal';
-import { CardViewIcon, ListViewIcon } from './Icons';
+import AllocateToShowModal from './AllocateToShowModal';
+import ShowEquipmentEditModal from './ShowEquipmentEditModal';
+import { CardViewIcon, ListViewIcon, EditIcon, TrashIcon } from './Icons';
 import { toast } from 'react-toastify';
 
 // Helper function to get file URL
@@ -38,6 +41,15 @@ const EditEquipmentModern = () => {
     description: '',
     reference_image_id: '',
     quantity: 1, // Default quantity is 1
+    // Installation fields
+    installation_type: 'portable',
+    installation_location: '',
+    installation_quantity: 0,
+    installation_date: '',
+    installation_notes: '',
+    maintenance_schedule: '',
+    last_maintenance_date: '',
+    next_maintenance_date: ''
   });
 
   const [filesToUpload, setFilesToUpload] = useState([]);
@@ -46,6 +58,9 @@ const EditEquipmentModern = () => {
   const [error, setError] = useState('');
   const [showReferenceImageModal, setShowReferenceImageModal] = useState(false);
   const [showFileUploadModal, setShowFileUploadModal] = useState(false);
+  const [showAllocateModal, setShowAllocateModal] = useState(false);
+  const [showAllocationEditModal, setShowAllocationEditModal] = useState(false);
+  const [editingAllocation, setEditingAllocation] = useState(null);
   const [activeTab, setActiveTab] = useState('details');
   const [layout, setLayout] = useState('grid');
 
@@ -63,23 +78,68 @@ const EditEquipmentModern = () => {
     staleTime: 300000, // 5 minutes
   });
 
-  // Fetch locations for dropdown
-  const { data: locationsData } = useQuery({
+  // Fetch locations for dropdown and inventory management
+  const { data: locationsData, isLoading: locationsLoading, error: locationsError } = useQuery({
     queryKey: ['locations'],
-    queryFn: getLocations,
+    queryFn: async () => {
+      try {
+        const response = await axios.get('/api/locations');
+        // The API returns { locations: [...] }
+        return response.data.locations || response.data;
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        return []; // Return empty array on error
+      }
+    },
     staleTime: 300000, // 5 minutes
   });
 
   // Equipment status options for dropdown
   const statusOptions = ['available', 'in-use', 'maintenance', 'unavailable', 'broken'];
 
+  // Fetch show allocations for this equipment (optional - may not exist)
+  const { data: showAllocations } = useQuery({
+    queryKey: ['show-equipment', id],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`/api/show-equipment/equipment/${id}/shows`);
+        return response.data;
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // No allocations found - return empty array
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled: !!id,
+    retry: false, // Don't retry on 404
+  });
+
+  // Fetch availability data for this equipment (optional - may not exist)
+  const { data: availabilityData } = useQuery({
+    queryKey: ['equipment-availability', id],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`/api/show-equipment/equipment/${id}/availability`);
+        return response.data;
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // No availability data - return default structure
+          return { available: 0, allocated: 0, total: 0 };
+        }
+        throw error;
+      }
+    },
+    enabled: !!id,
+    retry: false, // Don't retry on 404
+  });
+
   // Fetch equipment details
   const { data: equipmentData, isLoading, isError, error: fetchError } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id),
     onSuccess: (data) => {
-      console.log('Equipment data loaded:', data);
-      console.log('Location ID:', data.location_id, typeof data.location_id);
       setFormData({
         type_id: data.type_id ? data.type_id.toString() : '',
         category_id: data.category_id ? data.category_id.toString() : '',
@@ -93,6 +153,15 @@ const EditEquipmentModern = () => {
         description: data.description || '',
         reference_image_id: data.reference_image_id ? data.reference_image_id.toString() : '',
         quantity: data.quantity || 1, // Default to 1 if not set
+        // Installation fields
+        installation_type: data.installation_type || 'portable',
+        installation_location: data.installation_location || '',
+        installation_quantity: data.installation_quantity || 0,
+        installation_date: data.installation_date || '',
+        installation_notes: data.installation_notes || '',
+        maintenance_schedule: data.maintenance_schedule || '',
+        last_maintenance_date: data.last_maintenance_date || '',
+        next_maintenance_date: data.next_maintenance_date || ''
       });
 
       // Log the location details for debugging
@@ -101,6 +170,12 @@ const EditEquipmentModern = () => {
       }
     },
   });
+
+  // Get current location details for this equipment (after equipmentData is defined)
+  const locationsArray = Array.isArray(locationsData) ? locationsData : [];
+  const currentLocation = locationsArray.find(loc =>
+    loc.id === equipmentData?.location_id || loc.name === equipmentData?.location
+  );
 
   // Update equipment mutation
   const updateMutation = useMutation({
@@ -150,7 +225,7 @@ const EditEquipmentModern = () => {
     // Special handling for location_id
     if (name === 'location_id' && value) {
       // Find the location name from the selected location_id
-      const selectedLocation = locationsData?.locations.find(loc => loc.id.toString() === value);
+      const selectedLocation = locationsArray.find(loc => loc.id.toString() === value);
 
       if (selectedLocation) {
         console.log('Selected location:', selectedLocation);
@@ -165,16 +240,15 @@ const EditEquipmentModern = () => {
         // Check if the location is "Lager" (case insensitive)
         const isLager = selectedLocation.name.toLowerCase() === 'lager';
 
-        // Update status based on location
+        // SIMPLIFIED LOGIC: Only auto-set status for Lager location
         if (isLager) {
-          // If location is Lager, set status to "available"
-          updatedFormData.status = 'available';
-          console.log('Setting status to "available" because location is Lager');
-        } else if (updatedFormData.status === 'available') {
-          // If location is not Lager and status is "available", set status to "in-use"
-          updatedFormData.status = 'in-use';
-          console.log(`Setting status to "in-use" because location is not Lager (${selectedLocation.name})`);
+          // Lager = storage location = available (unless maintenance/broken)
+          if (!['maintenance', 'broken', 'unavailable'].includes(updatedFormData.status)) {
+            updatedFormData.status = 'available';
+            console.log('Setting status to "available" because location is Lager (storage)');
+          }
         }
+        // For non-Lager locations, let user choose status manually
       }
     }
     // Special handling for location field - custom location entry
@@ -189,16 +263,41 @@ const EditEquipmentModern = () => {
       // Check if the location is "Lager" (case insensitive)
       const isLager = value.toLowerCase() === 'lager';
 
-      // Update status based on location
+      // SIMPLIFIED LOGIC: Only auto-set status for Lager location
       if (isLager) {
-        // If location is Lager, set status to "available"
-        updatedFormData.status = 'available';
-        console.log('Setting status to "available" because custom location is Lager');
-      } else if (updatedFormData.status === 'available') {
-        // If location is not Lager and status is "available", set status to "in-use"
-        updatedFormData.status = 'in-use';
-        console.log(`Setting status to "in-use" because custom location is not Lager (${value})`);
+        // Lager = storage location = available (unless maintenance/broken)
+        if (!['maintenance', 'broken', 'unavailable'].includes(updatedFormData.status)) {
+          updatedFormData.status = 'available';
+          console.log('Setting status to "available" because custom location is Lager (storage)');
+        }
       }
+      // For non-Lager locations, let user choose status manually
+    }
+
+    // Special handling for installation_location_id
+    if (name === 'installation_location_id' && value) {
+      // Find the installation location name from the selected installation_location_id
+      const selectedInstallationLocation = locationsArray.find(loc => loc.id.toString() === value);
+
+      if (selectedInstallationLocation) {
+        console.log('Selected installation location:', selectedInstallationLocation);
+
+        // Update both installation_location_id and installation_location name
+        updatedFormData = {
+          ...updatedFormData,
+          installation_location_id: value,
+          installation_location: selectedInstallationLocation.name // Set the installation location name
+        };
+      }
+    }
+    // Special handling for installation_location field - custom installation location entry
+    else if (name === 'installation_location' && value) {
+      updatedFormData = {
+        ...updatedFormData,
+        installation_location: value,
+        // Clear installation_location_id when custom installation location is entered
+        installation_location_id: ''
+      };
     }
 
     // Special handling for quantity field
@@ -208,19 +307,11 @@ const EditEquipmentModern = () => {
       updatedFormData.quantity = Math.max(1, quantityValue);
       console.log(`Setting quantity to: ${updatedFormData.quantity}`);
     }
-    // Special handling for status field
+    // Special handling for status field - REMOVE FORCED OVERRIDES
     else if (name === 'status') {
-      // If user manually changes status, respect their choice
-      console.log(`User manually changed status to: ${value}`);
-
-      // But if location is "Lager", force status to "available"
-      const locationName = formData.location || '';
-      const isLager = locationName.toLowerCase() === 'lager';
-
-      if (isLager && value !== 'available') {
-        console.log('Forcing status back to "available" because location is Lager');
-        updatedFormData.status = 'available';
-      }
+      // User manually changes status - ALWAYS respect their choice
+      console.log(`User manually changed status to: ${value} - respecting user choice`);
+      // No forced overrides - user has full control
     }
 
     // Update the form data
@@ -282,11 +373,10 @@ const EditEquipmentModern = () => {
       type_id: formData.type_id ? parseInt(formData.type_id) : null,
       category_id: formData.category_id ? parseInt(formData.category_id) : null,
       location_id: formData.location_id ? parseInt(formData.location_id) : null,
+      installation_location_id: formData.installation_location_id ? parseInt(formData.installation_location_id) : null,
       // If reference_image_id is 'new', it will be handled by the backend
       reference_image_id: formData.reference_image_id === 'new' ? 'new' : formData.reference_image_id,
     };
-
-    console.log('Submitting equipment data:', equipmentData);
 
     updateMutation.mutate({
       equipment: equipmentData,
@@ -325,6 +415,51 @@ const EditEquipmentModern = () => {
     // Invalidate the equipment query to refetch with the new files
     queryClient.invalidateQueries(['equipment', id]);
     toast.success(`Successfully uploaded ${files.length} file(s)`);
+  };
+
+  // Handle allocate to show button click
+  const handleAllocateToShow = () => {
+    setShowAllocateModal(true);
+  };
+
+  // Handle edit allocation
+  const handleEditAllocation = (allocation) => {
+    setEditingAllocation(allocation);
+    setShowAllocationEditModal(true);
+  };
+
+  // Handle remove allocation
+  const handleRemoveAllocation = async (allocation) => {
+    if (window.confirm('Are you sure you want to remove this allocation?')) {
+      try {
+        await axios.delete(`/api/show-equipment/${allocation.id}`);
+        queryClient.invalidateQueries(['show-equipment', id]);
+        queryClient.invalidateQueries(['equipment-availability', id]);
+      } catch (error) {
+        console.error('Error removing allocation:', error);
+        if (error.response?.status === 404) {
+          setError('Allocation not found or already removed');
+        } else {
+          setError('Failed to remove allocation');
+        }
+      }
+    }
+  };
+
+  // Handle allocation edit modal close
+  const handleAllocationEditClose = () => {
+    setEditingAllocation(null);
+    setShowAllocationEditModal(false);
+    // Refresh allocations data
+    queryClient.invalidateQueries(['show-equipment', id]);
+    queryClient.invalidateQueries(['equipment-availability', id]);
+  };
+
+  // Calculate missing quantity for allocations
+  const calculateMissingQuantity = (needed, allocated) => {
+    const neededNum = parseInt(needed) || 0;
+    const allocatedNum = parseInt(allocated) || 0;
+    return Math.max(0, neededNum - allocatedNum);
   };
 
   if (isLoading) {
@@ -466,17 +601,31 @@ const EditEquipmentModern = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setActiveTab('documents')}
+                  onClick={() => setActiveTab('inventory')}
                   className={`py-4 px-6 font-medium text-sm border-b-2 focus:outline-none transition-colors flex items-center ${
-                    activeTab === 'documents'
+                    activeTab === 'inventory'
                       ? 'border-primary-500 text-primary-600 bg-primary-50'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-2 ${activeTab === 'documents' ? 'text-primary-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-2 ${activeTab === 'inventory' ? 'text-primary-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  Documents & Attachments
+                  Inventory & Location
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('allocations')}
+                  className={`py-4 px-6 font-medium text-sm border-b-2 focus:outline-none transition-colors flex items-center ${
+                    activeTab === 'allocations'
+                      ? 'border-primary-500 text-primary-600 bg-primary-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-2 ${activeTab === 'allocations' ? 'text-primary-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                  Show Allocations
                 </button>
                 <button
                   type="button"
@@ -491,6 +640,20 @@ const EditEquipmentModern = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Movement History
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('documents')}
+                  className={`py-4 px-6 font-medium text-sm border-b-2 focus:outline-none transition-colors flex items-center ${
+                    activeTab === 'documents'
+                      ? 'border-primary-500 text-primary-600 bg-primary-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-2 ${activeTab === 'documents' ? 'text-primary-500' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                  Documents & Attachments
                 </button>
               </nav>
             </div>
@@ -589,38 +752,6 @@ const EditEquipmentModern = () => {
                               />
                             </div>
 
-                            {/* Status */}
-                            <div>
-                              <Select
-                                id="status"
-                                name="status"
-                                label="Status"
-                                value={formData.status}
-                                onChange={handleInputChange}
-                                options={statusOptions.map((status) => ({
-                                  value: status,
-                                  label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' '),
-                                }))}
-                                required
-                              />
-                            </div>
-
-                            {/* Quantity */}
-                            <div>
-                              <Input
-                                id="quantity"
-                                name="quantity"
-                                label="Quantity"
-                                type="number"
-                                min="1"
-                                value={formData.quantity || 1}
-                                onChange={handleInputChange}
-                                placeholder="Enter quantity"
-                                required
-                                helpText="Number of items (minimum: 1)"
-                              />
-                            </div>
-
                             {/* Location */}
                             <div>
                               <Select
@@ -631,7 +762,7 @@ const EditEquipmentModern = () => {
                                 onChange={handleInputChange}
                                 options={[
                                   { value: '', label: 'Select Location' },
-                                  ...(locationsData?.locations || []).map((location) => {
+                                  ...(locationsArray || []).map((location) => {
                                     let label = location.name;
                                     const addressParts = [];
 
@@ -660,6 +791,38 @@ const EditEquipmentModern = () => {
                                   placeholder="Enter custom location"
                                 />
                               </div>
+                            </div>
+
+                            {/* Quantity */}
+                            <div>
+                              <Input
+                                id="quantity"
+                                name="quantity"
+                                label="Quantity"
+                                type="number"
+                                min="1"
+                                value={formData.quantity || 1}
+                                onChange={handleInputChange}
+                                placeholder="Enter quantity"
+                                required
+                                helpText="Number of items (minimum: 1)"
+                              />
+                            </div>
+
+                            {/* Status */}
+                            <div>
+                              <Select
+                                id="status"
+                                name="status"
+                                label="Status"
+                                value={formData.status}
+                                onChange={handleInputChange}
+                                options={statusOptions.map((status) => ({
+                                  value: status,
+                                  label: status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' '),
+                                }))}
+                                required
+                              />
                             </div>
                           </div>
 
@@ -751,12 +914,15 @@ const EditEquipmentModern = () => {
                       </div>
 
                       <FileGallery
-                        files={equipmentData.files.filter(file => !referenceImage || file.id !== referenceImage.id)}
+                        files={equipmentData.files.filter(file =>
+                          (!referenceImage || file.id !== referenceImage.id) &&
+                          !filesToDelete.includes(file.id)
+                        )}
                         layout={layout}
                         size="medium"
                         showDownload={true}
                         canDelete={true}
-                        onDelete={handleFileDelete}
+                        onFileDelete={handleFileDelete}
                       />
                     </div>
                   ) : (
@@ -779,6 +945,522 @@ const EditEquipmentModern = () => {
                           Add Documents
                         </Button>
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Inventory & Location Tab - Enhanced Location Management */}
+              {activeTab === 'inventory' && (
+                <div>
+                  <div className="flex items-center mb-6">
+                    <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-800">Inventory & Location Management</h2>
+                  </div>
+
+                  {/* Current Location Section - Editable */}
+                  <div className="bg-white rounded-lg border border-slate-200 shadow-sm mb-6">
+                    <div className="p-4 border-b border-slate-200">
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-sm font-medium text-slate-700">Storage Location (Editable)</span>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Location Dropdown */}
+                        <div>
+                          <Select
+                            id="location_id_inventory"
+                            name="location_id"
+                            label="Select Location"
+                            value={formData.location_id ? formData.location_id.toString() : ''}
+                            onChange={handleInputChange}
+                            options={[
+                              { value: '', label: 'Select Location' },
+                              ...(locationsArray || []).map((location) => {
+                                let label = location.name;
+                                const addressParts = [];
+
+                                if (location.city) addressParts.push(location.city);
+                                if (location.region) addressParts.push(location.region);
+                                if (location.country) addressParts.push(location.country);
+
+                                if (addressParts.length > 0) {
+                                  label += ` (${addressParts.join(', ')})`;
+                                }
+
+                                return {
+                                  value: location.id.toString(),
+                                  label: label,
+                                };
+                              })
+                            ]}
+                          />
+                        </div>
+
+                        {/* Custom Location Input */}
+                        <div>
+                          <Input
+                            id="location_inventory"
+                            name="location"
+                            label="Custom Location"
+                            value={formData.location || ''}
+                            onChange={handleInputChange}
+                            placeholder="Enter custom location"
+                            helpText="Use this if location is not in the dropdown"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Current Location Display */}
+                      {(currentLocation || formData.location) && (
+                        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                          <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Current Location Details
+                          </h4>
+                          <div className="text-sm space-y-2">
+                            <div>
+                              <span className="font-medium text-slate-800">
+                                {currentLocation?.name || formData.location}
+                              </span>
+                            </div>
+                            {currentLocation && (
+                              <>
+                                {currentLocation.street && (
+                                  <div className="text-slate-600">{currentLocation.street}</div>
+                                )}
+                                {(currentLocation.postal_code || currentLocation.city) && (
+                                  <div className="text-slate-600">
+                                    {currentLocation.postal_code && `${currentLocation.postal_code} `}
+                                    {currentLocation.city}
+                                  </div>
+                                )}
+                                {(currentLocation.region || currentLocation.country) && (
+                                  <div className="text-slate-600">
+                                    {currentLocation.region && `${currentLocation.region}, `}
+                                    {currentLocation.country}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Inventory Summary - Preview */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                      <div className="flex items-center">
+                        <div className="bg-green-100 p-2 rounded-lg mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="text-lg font-semibold text-slate-800">
+                            {formData.quantity || 1}
+                          </div>
+                          <div className="text-xs text-slate-600">Total Items</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="text-lg font-semibold text-slate-800">
+                            {formData.status === 'available' ? 'Available' : 'In Use'}
+                          </div>
+                          <div className="text-xs text-slate-600">Current Status</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-4">
+                      <div className="flex items-center">
+                        <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="text-lg font-semibold text-slate-800">
+                            {currentLocation?.name || formData.location || 'Not Set'}
+                          </div>
+                          <div className="text-xs text-slate-600">Location</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Installation Information Section */}
+                  <div className="bg-white rounded-lg border border-slate-200 shadow-sm mb-6">
+                    <div className="p-4 border-b border-slate-200">
+                      <div className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="text-lg font-medium text-slate-800">Installation Information</span>
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Installation Type */}
+                        <div>
+                          <Select
+                            id="installation_type"
+                            name="installation_type"
+                            label="Installation Type"
+                            value={formData.installation_type || 'portable'}
+                            onChange={handleInputChange}
+                            options={[
+                              { value: 'portable', label: 'Portable - Can be moved freely' },
+                              { value: 'semi-permanent', label: 'Semi-Permanent - Can be moved with approval' },
+                              { value: 'fixed', label: 'Fixed - Permanently installed' }
+                            ]}
+                            helpText="Determines if equipment can be allocated to shows"
+                          />
+                        </div>
+
+                        {/* Maintenance Schedule */}
+                        <div>
+                          <Select
+                            id="maintenance_schedule"
+                            name="maintenance_schedule"
+                            label="Maintenance Schedule"
+                            value={formData.maintenance_schedule || ''}
+                            onChange={handleInputChange}
+                            options={[
+                              { value: '', label: 'No scheduled maintenance' },
+                              { value: 'Weekly', label: 'Weekly' },
+                              { value: 'Monthly', label: 'Monthly' },
+                              { value: 'Quarterly', label: 'Quarterly' },
+                              { value: 'Semi-Annually', label: 'Semi-Annually' },
+                              { value: 'Annually', label: 'Annually' }
+                            ]}
+                            helpText="Regular maintenance schedule for this equipment"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Installation Quantity (for fixed/semi-permanent equipment) */}
+                      {(formData.installation_type === 'fixed' || formData.installation_type === 'semi-permanent') && (
+                        <div className="mt-6 pt-6 border-t border-slate-200">
+                          <div className="mb-6">
+                            <Input
+                              id="installation_quantity"
+                              name="installation_quantity"
+                              label="Installation Quantity"
+                              type="number"
+                              min="0"
+                              max={formData.quantity || 1}
+                              value={formData.installation_quantity || 0}
+                              onChange={handleInputChange}
+                              helpText={`How many items are permanently installed (max: ${formData.quantity || 1})`}
+                              className="w-32"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Select
+                                id="installation_location_id"
+                                name="installation_location_id"
+                                label="Installation Location"
+                                value={formData.installation_location_id ? formData.installation_location_id.toString() : ''}
+                                onChange={handleInputChange}
+                                options={[
+                                  { value: '', label: 'Select Installation Location' },
+                                  ...(locationsArray || []).map((location) => {
+                                    let label = location.name;
+                                    const addressParts = [];
+
+                                    if (location.city) addressParts.push(location.city);
+                                    if (location.region) addressParts.push(location.region);
+                                    if (location.country) addressParts.push(location.country);
+
+                                    if (addressParts.length > 0) {
+                                      label += ` (${addressParts.join(', ')})`;
+                                    }
+
+                                    return {
+                                      value: location.id.toString(),
+                                      label: label,
+                                    };
+                                  })
+                                ]}
+                                helpText="Select from predefined locations"
+                              />
+                              <div className="mt-2">
+                                <Input
+                                  id="installation_location"
+                                  name="installation_location"
+                                  label="Custom Installation Location (if not in list)"
+                                  value={formData.installation_location || ''}
+                                  onChange={handleInputChange}
+                                  placeholder="e.g., Main Stage - FOH Position, Booth #3"
+                                  helpText="Specific installation position or custom location"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Input
+                                id="installation_date"
+                                name="installation_date"
+                                label="Installation Date"
+                                type="date"
+                                value={formData.installation_date || ''}
+                                onChange={handleInputChange}
+                                helpText="When the equipment was installed"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Maintenance Dates */}
+                      {formData.maintenance_schedule && (
+                        <div className="mt-6 pt-6 border-t border-slate-200">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Input
+                                id="last_maintenance_date"
+                                name="last_maintenance_date"
+                                label="Last Maintenance Date"
+                                type="date"
+                                value={formData.last_maintenance_date || ''}
+                                onChange={handleInputChange}
+                                helpText="When maintenance was last performed"
+                              />
+                            </div>
+                            <div>
+                              <Input
+                                id="next_maintenance_date"
+                                name="next_maintenance_date"
+                                label="Next Maintenance Date"
+                                type="date"
+                                value={formData.next_maintenance_date || ''}
+                                onChange={handleInputChange}
+                                helpText="When next maintenance is due"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Installation Notes */}
+                      <div className="mt-6 pt-6 border-t border-slate-200">
+                        <div>
+                          <label htmlFor="installation_notes" className="block text-sm font-medium text-slate-700 mb-1">
+                            Installation Notes
+                          </label>
+                          <textarea
+                            id="installation_notes"
+                            name="installation_notes"
+                            value={formData.installation_notes || ''}
+                            onChange={handleInputChange}
+                            placeholder="Technical notes about installation, access requirements, special considerations..."
+                            rows={4}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                          <p className="mt-1 text-sm text-slate-500">Any important notes about the installation or maintenance</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location Management Tips */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-800 mb-1">Location & Installation Tips</h4>
+                        <ul className="text-sm text-blue-700 space-y-1">
+                          <li>• <strong>Portable:</strong> Can be allocated to shows and moved freely</li>
+                          <li>• <strong>Semi-Permanent:</strong> Can be moved with special approval</li>
+                          <li>• <strong>Fixed:</strong> Cannot be allocated to shows (permanently installed)</li>
+                          <li>• Location "Lager" suggests status "Available" (you can override)</li>
+                          <li>• Set maintenance schedules for equipment requiring regular servicing</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Show Allocations Tab - Read-only with edit/remove actions */}
+              {activeTab === 'allocations' && (
+                <div>
+                  <div className="flex items-center mb-6">
+                    <div className="bg-purple-100 p-2 rounded-lg mr-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-800">Show Allocations</h2>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto flex items-center"
+                      onClick={handleAllocateToShow}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Allocate to Show
+                    </Button>
+                  </div>
+
+                  {showAllocations && Array.isArray(showAllocations) && showAllocations.length > 0 ? (
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm">
+                      <div className="p-4 border-b border-slate-200">
+                        <div className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                          <span className="text-sm font-medium text-slate-700">
+                            {showAllocations.length} show{showAllocations.length !== 1 ? 's' : ''} using this equipment
+                          </span>
+                        </div>
+                      </div>
+                      <div className="divide-y divide-slate-200">
+                        {showAllocations.map((allocation) => (
+                          <div key={allocation.id} className="p-4 hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <h4 className="font-medium text-slate-800">{allocation.show_name}</h4>
+                                <p className="text-sm text-slate-600">
+                                  {allocation.show_date ? new Date(allocation.show_date).toLocaleDateString() : 'No date set'}
+                                </p>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  allocation.status === 'requested' ? 'bg-blue-100 text-blue-800' :
+                                  allocation.status === 'allocated' ? 'bg-yellow-100 text-yellow-800' :
+                                  allocation.status === 'checked-out' ? 'bg-orange-100 text-orange-800' :
+                                  allocation.status === 'in-use' ? 'bg-red-100 text-red-800' :
+                                  allocation.status === 'returned' ? 'bg-green-100 text-green-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {allocation.status}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-slate-600">Quantity Needed:</span>
+                                <span className="ml-2 font-medium text-slate-800">{allocation.quantity_needed}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-600">Quantity Allocated:</span>
+                                <span className="ml-2 font-medium text-slate-800">{allocation.quantity_allocated}</span>
+                              </div>
+                            </div>
+
+                            {/* Missing Quantity Display */}
+                            {(() => {
+                              const missing = calculateMissingQuantity(allocation.quantity_needed, allocation.quantity_allocated);
+                              return missing > 0 ? (
+                                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-md">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-red-600 font-medium">Missing Items:</span>
+                                    <span className="font-bold text-red-600">
+                                      {missing} item{missing !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : null;
+                            })()}
+
+                            {/* Allocation Actions */}
+                            <div className="mt-3 flex items-center justify-end space-x-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditAllocation(allocation)}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRemoveAllocation(allocation)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Remove
+                              </Button>
+                            </div>
+
+                            {allocation.notes && (
+                              <div className="mt-3 text-sm">
+                                <span className="text-slate-600">Notes:</span>
+                                <p className="text-slate-800 mt-1 bg-slate-50 p-2 rounded">{allocation.notes}</p>
+                              </div>
+                            )}
+
+                            {allocation.venue && (
+                              <div className="mt-2 text-sm">
+                                <span className="text-slate-600">Venue:</span>
+                                <span className="ml-2 text-slate-800">{allocation.venue}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-lg border border-slate-200 shadow-sm p-8 text-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                      </svg>
+                      <p className="text-slate-600 font-medium mb-2">No show allocations</p>
+                      <p className="text-slate-500 text-sm mb-4">This equipment is not currently allocated to any shows</p>
+                      {/* Only show allocate button if we have the necessary APIs */}
+                      {typeof handleAllocateToShow === 'function' && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleAllocateToShow}
+                          className="flex items-center mx-auto"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Allocate to Show
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1033,6 +1715,23 @@ const EditEquipmentModern = () => {
         onClose={() => setShowFileUploadModal(false)}
         onSuccess={handleFileUploadSuccess}
       />
+
+      {/* Allocate to Show Modal */}
+      <AllocateToShowModal
+        isOpen={showAllocateModal}
+        onClose={() => setShowAllocateModal(false)}
+        equipment={equipmentData}
+        availabilityData={availabilityData}
+      />
+
+      {/* Allocation Edit Modal */}
+      {editingAllocation && (
+        <ShowEquipmentEditModal
+          showEquipment={editingAllocation}
+          showId={editingAllocation.show_id}
+          onClose={handleAllocationEditClose}
+        />
+      )}
     </form>
   );
 };

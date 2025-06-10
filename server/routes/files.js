@@ -2,7 +2,11 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { promisify } = require('util');
-const { File, sequelize, Equipment } = require('../models');
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
+  ? require('../models/index.local')
+  : require('../models');
+const { File, sequelize, Equipment } = models;
 const auth = require('../middleware/flexAuth');
 const mediaAccess = require('../middleware/mediaAccess');
 const { upload, processImages, MAX_FILES } = require('../middleware/upload');
@@ -46,7 +50,6 @@ router.delete('/:id', auth.required, async (req, res) => {
     });
 
     // Check if this file is used as a reference image for any equipment
-    const { Equipment } = require('../models');
     const referencingEquipment = await Equipment.findOne({
       where: { reference_image_id: file.id },
       transaction

@@ -21,6 +21,7 @@ import EditEquipment from './components/EditEquipment';
 import EditEquipmentModern from './components/EditEquipmentModern';
 import NewEquipment from './components/NewEquipment';
 import NewEquipmentModern from './components/NewEquipmentModern';
+import NewEquipmentResponsive from './components/NewEquipmentResponsive';
 import AdminDashboard from './components/AdminDashboard';
 import EquipmentLogsPage from './pages/EquipmentLogsPage';
 import ShowList from './pages/ShowList';
@@ -99,10 +100,41 @@ const Layout = ({ children }) => {
   );
 };
 
+// Wide Layout component for pages that need more space
+const WideLayout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <ImpersonationBanner />
+      <Navbar />
+      <Sidebar
+        isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        toggleSidebar={setSidebarOpen}
+        toggleCollapse={setSidebarCollapsed}
+      />
+      <main className={`main-content pt-16 ${sidebarOpen ? (sidebarCollapsed ? 'main-content-with-sidebar-collapsed' : 'main-content-with-sidebar') : ''}`}>
+        <div className="container-app-wide">
+          <div className="space-y-6">
+            {children}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
 // Main App component
 const AppContent = () => {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
         <Route path="/login" element={<Login />} />
 
@@ -110,9 +142,9 @@ const AppContent = () => {
           path="/"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <AdvancedDashboard />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -121,9 +153,9 @@ const AppContent = () => {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <AdvancedDashboard />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -145,9 +177,7 @@ const AppContent = () => {
           path="/equipment/new"
           element={
             <ProtectedRoute>
-              <Layout>
-                <NewEquipmentModern />
-              </Layout>
+              <NewEquipmentResponsive />
             </ProtectedRoute>
           }
         />
@@ -156,9 +186,9 @@ const AppContent = () => {
           path="/equipment/:id/edit"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <EditEquipmentModern />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -167,9 +197,9 @@ const AppContent = () => {
           path="/equipment/:id"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <EquipmentDetailsModern />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -178,9 +208,9 @@ const AppContent = () => {
           path="/equipment"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <EquipmentList />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -189,9 +219,9 @@ const AppContent = () => {
           path="/show-list"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <ShowList />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -200,9 +230,9 @@ const AppContent = () => {
           path="/show/:showId"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <ShowDetails />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -211,9 +241,9 @@ const AppContent = () => {
           path="/show/:showId/manage-equipment"
           element={
             <ProtectedRoute>
-              <Layout>
+              <WideLayout>
                 <ManageEquipment />
-              </Layout>
+              </WideLayout>
             </ProtectedRoute>
           }
         />
@@ -233,9 +263,9 @@ const AppContent = () => {
           path="/equipment-logs"
           element={
             <AdminRoute>
-              <Layout>
+              <WideLayout>
                 <EquipmentLogsPage />
-              </Layout>
+              </WideLayout>
             </AdminRoute>
           }
         />

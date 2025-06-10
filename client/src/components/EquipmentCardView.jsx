@@ -119,6 +119,9 @@ const EquipmentCardView = ({ equipment, onDuplicate, onSelect, isSelected }) => 
             Location: {equipment.location}
           </p>
         )}
+        <p className="text-sm text-slate-500 mb-2">
+          Quantity: <span className="font-medium text-slate-800">{equipment.quantity || 1}</span>
+        </p>
 
         <div className="flex justify-between mt-auto pt-2 border-t border-slate-100">
           <Link

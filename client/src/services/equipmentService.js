@@ -124,8 +124,7 @@ export const updateEquipment = async (id, equipmentData, files = [], filesToDele
       Object.entries(equipmentData).filter(([_, v]) => v !== undefined)
     );
 
-    // Log the full equipment data for debugging
-    console.log('Full equipment data:', equipmentData);
+
 
     // Handle special fields that need to be null instead of empty string
     const integerFields = ['location_id', 'type_id'];
@@ -167,10 +166,7 @@ export const updateEquipment = async (id, equipmentData, files = [], filesToDele
       formData.append('filesToDelete', JSON.stringify(filesToDelete));
     }
 
-    console.log('Updating equipment with data:', cleanEquipmentData);
-    console.log('Files to delete:', filesToDelete);
-    console.log('Reference image file:', referenceImageFile ? referenceImageFile.name : 'None');
-    console.log('Remove reference image:', removeReferenceImage);
+
 
     const response = await axios.put(`/api/equipment/${id}`, formData, {
       headers: {
@@ -189,6 +185,21 @@ export const updateEquipment = async (id, equipmentData, files = [], filesToDele
 export const deleteEquipment = async (id) => {
   const response = await axios.delete(`/api/equipment/${id}`);
   return response.data;
+};
+
+// Return equipment from installation (set back to portable)
+export const returnFromInstallation = async (id, quantity = null) => {
+  try {
+    console.log(`Returning equipment ${id} from installation${quantity ? ` (quantity: ${quantity})` : ''}`);
+    const response = await axios.delete(`/api/equipment/${id}/installation`, {
+      data: quantity ? { quantity } : {}
+    });
+    console.log('Return from installation response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error returning equipment ${id} from installation:`, error);
+    throw error;
+  }
 };
 
 // Delete file
@@ -287,7 +298,6 @@ export const duplicateEquipment = async (id) => {
 // Update equipment status
 export const updateEquipmentStatus = async (id, status) => {
   try {
-    console.log(`Updating equipment ${id} status to ${status}`);
     const response = await axios.patch(`/api/equipment/${id}/status`, { status });
     return response.data;
   } catch (error) {
@@ -299,7 +309,6 @@ export const updateEquipmentStatus = async (id, status) => {
 // Update equipment location
 export const updateEquipmentLocation = async (id, locationData) => {
   try {
-    console.log(`Updating equipment ${id} location:`, locationData);
     const response = await axios.patch(`/api/equipment/${id}/location`, locationData);
     return response.data;
   } catch (error) {
@@ -311,7 +320,6 @@ export const updateEquipmentLocation = async (id, locationData) => {
 // Update equipment type
 export const updateEquipmentType = async (id, typeId) => {
   try {
-    console.log(`Updating equipment ${id} type to ${typeId}`);
     const response = await axios.patch(`/api/equipment/${id}/type`, { type_id: typeId });
     return response.data;
   } catch (error) {

@@ -550,10 +550,10 @@ const EquipmentList = () => {
         {/* List View */}
         {viewMode === 'list' && (
           <div className="table-container">
-            <table className="table">
+            <table className="table-wide">
               <thead className="table-header">
                 <tr>
-                  <th className="table-header-cell w-10">
+                  <th className="table-header-cell w-12">
                     <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
@@ -570,6 +570,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/6"
                   />
                   <SortableHeader
                     field="category"
@@ -577,6 +578,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/8"
                   />
                   <SortableHeader
                     field="brand"
@@ -584,6 +586,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/8"
                   />
                   <SortableHeader
                     field="model"
@@ -591,6 +594,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/8"
                   />
                   <SortableHeader
                     field="serial_number"
@@ -598,6 +602,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/6"
                   />
                   <SortableHeader
                     field="status"
@@ -605,6 +610,7 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-20"
                   />
                   <SortableHeader
                     field="location"
@@ -612,8 +618,17 @@ const EquipmentList = () => {
                     currentSortField={sortBy}
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
+                    className="w-1/8"
                   />
-                  <th className="table-header-cell">Actions</th>
+                  <SortableHeader
+                    field="quantity"
+                    label="Quantity"
+                    currentSortField={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSortChange}
+                    className="w-16"
+                  />
+                  <th className="table-header-cell w-20">Actions</th>
                 </tr>
               </thead>
               <tbody className="table-body">
@@ -665,6 +680,11 @@ const EquipmentList = () => {
                       </td>
                       <td className="table-cell">{item.locationDetails?.name || item.location || '-'}</td>
                       <td className="table-cell">
+                        <span className="font-medium text-slate-800">
+                          {item.quantity || 1}
+                        </span>
+                      </td>
+                      <td className="table-cell">
                         <div className="flex items-center justify-end">
                           <BatchActionsMenu
                             equipmentId={item.id}
@@ -687,7 +707,7 @@ const EquipmentList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan="9" className="px-6 py-4 text-center text-gray-500">
                       No equipment found
                     </td>
                   </tr>

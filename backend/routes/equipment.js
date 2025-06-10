@@ -858,7 +858,9 @@ router.delete('/:id', authenticate, restrictTo('admin', 'advanced'), async (req,
       }
 
       // Step 6: Create a log entry for the deletion
-      await equipmentLogService.logDeletion(req.params.id, req.user.id, equipmentData);
+      // DISABLED - Deletion logging causes foreign key constraint issues
+      console.log(`[EQUIPMENT] Skipping deletion log entry for equipment ID: ${req.params.id} (disabled to prevent FK issues)`);
+      // await equipmentLogService.logDeletion(req.params.id, req.user.id, equipmentData);
 
       // Commit the transaction
       await transaction.commit();

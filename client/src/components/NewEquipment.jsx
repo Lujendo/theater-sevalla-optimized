@@ -79,21 +79,18 @@ const NewEquipment = () => {
         if (selectedLocation) {
           console.log('Selected location:', selectedLocation);
 
-          // Check if location is Lager and update status accordingly
+          // SIMPLIFIED LOGIC: Only auto-set status for Lager location
           const isLager = selectedLocation.name.toLowerCase() === 'lager';
-
-          // If location is Lager, set status to available
-          // If location is not Lager, set status to in-use
-          // Unless status is something other than available/in-use (like maintenance or broken)
           let newStatus = formData.status;
 
-          if (isLager && formData.status === 'in-use') {
-            newStatus = 'available';
-            console.log(`Location is Lager, setting status to available`);
-          } else if (!isLager && formData.status === 'available') {
-            newStatus = 'in-use';
-            console.log(`Location is not Lager (${selectedLocation.name}), setting status to in-use`);
+          if (isLager) {
+            // Lager = storage location = available (unless maintenance/broken)
+            if (!['maintenance', 'broken', 'unavailable'].includes(formData.status)) {
+              newStatus = 'available';
+              console.log(`Location is Lager, suggesting status: available`);
+            }
           }
+          // For non-Lager locations, let user choose status manually
 
           // Update location_id but don't set location name - it will be fetched from DB
           setFormData(prev => ({
@@ -117,21 +114,18 @@ const NewEquipment = () => {
 
     // Special handling for location field - clear location_id if location is manually entered
     if (name === 'location') {
-      // Check if custom location is Lager and update status accordingly
+      // SIMPLIFIED LOGIC: Only auto-set status for Lager location
       const isLager = value.toLowerCase() === 'lager';
-
-      // If location is Lager, set status to available
-      // If location is not Lager, set status to in-use
-      // Unless status is something other than available/in-use (like maintenance or broken)
       let newStatus = formData.status;
 
-      if (isLager && value !== '' && formData.status === 'in-use') {
-        newStatus = 'available';
-        console.log(`Custom location is Lager, setting status to available`);
-      } else if (!isLager && value !== '' && formData.status === 'available') {
-        newStatus = 'in-use';
-        console.log(`Custom location is not Lager (${value}), setting status to in-use`);
+      if (isLager && value !== '') {
+        // Lager = storage location = available (unless maintenance/broken)
+        if (!['maintenance', 'broken', 'unavailable'].includes(formData.status)) {
+          newStatus = 'available';
+          console.log(`Custom location is Lager, suggesting status: available`);
+        }
       }
+      // For non-Lager locations, let user choose status manually
 
       setFormData(prev => ({
         ...prev,
@@ -365,21 +359,27 @@ const NewEquipment = () => {
                 {/* Status info message */}
                 {formData.location_id || formData.location ?
                   (formData.location_id ?
-                    (locationsData?.locations.find(loc => loc.id.toString() === formData.location_id.toString())?.name.toLowerCase() !== 'lager') :
-                    (formData.location.toLowerCase() !== 'lager')) ?
-                    <p className="mt-1 text-sm text-yellow-600">
-                      <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Status automatically set to "In-use" for non-Lager locations
-                    </p> :
+                    (locationsData?.locations.find(loc => loc.id.toString() === formData.location_id.toString())?.name.toLowerCase() === 'lager') :
+                    (formData.location.toLowerCase() === 'lager')) ?
                     <p className="mt-1 text-sm text-green-600">
                       <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
-                      Status automatically set to "Available" for Lager location
+                      Lager location suggests "Available" status (you can override)
+                    </p> :
+                    <p className="mt-1 text-sm text-blue-600">
+                      <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      You can choose any status for this location
                     </p>
-                  : null
+                  :
+                  <p className="mt-1 text-sm text-blue-600">
+                    <svg className="inline-block h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Will use default storage location (Ton Lager) if no location is specified
+                  </p>
                 }
               </div>
 
@@ -429,6 +429,11 @@ const NewEquipment = () => {
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   placeholder="Enter custom location"
                 />
+                {!formData.location_id && !formData.location && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    💡 If no location is specified, equipment will be placed in the default storage location (Ton Lager)
+                  </p>
+                )}
               </div>
             </div>
 

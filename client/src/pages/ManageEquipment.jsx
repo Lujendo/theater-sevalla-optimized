@@ -2,10 +2,23 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 import { Card, Button, Input } from '../components/ui';
-import { ChevronLeftIcon, AddIcon, TrashIcon, ListViewIcon, CardViewIcon } from '../components/Icons';
+import { ChevronLeftIcon, AddIcon, TrashIcon, ListViewIcon, CardViewIcon, InfoIcon, EditIcon, ExternalLinkIcon } from '../components/Icons';
 import { getShow, getShowEquipment, addEquipmentToShow, updateShowEquipment, removeEquipmentFromShow, checkoutEquipment, returnEquipment } from '../services/showService';
 import { getEquipment } from '../services/equipmentService';
+import EquipmentAvailability from '../components/EquipmentAvailability';
+import ShowEquipmentEditModal from '../components/ShowEquipmentEditModal';
+import InlineQuantityEdit from '../components/InlineQuantityEdit';
+import InlineStatusEdit from '../components/InlineStatusEdit';
+import ShowListExportModal from '../components/ShowListExportModal';
+
+// Utility function to calculate missing quantity
+const calculateMissingQuantity = (quantityNeeded, quantityAllocated) => {
+  const needed = parseInt(quantityNeeded) || 0;
+  const allocated = parseInt(quantityAllocated) || 0;
+  return Math.max(0, needed - allocated);
+};
 
 const ManageEquipment = () => {
   const { showId } = useParams();
@@ -20,6 +33,17 @@ const ManageEquipment = () => {
   const [quantityNeeded, setQuantityNeeded] = useState(1);
   const [notes, setNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
+  const [availabilityEquipmentId, setAvailabilityEquipmentId] = useState(null);
+
+  // Independent editing states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState(null);
+  const [inlineEditingId, setInlineEditingId] = useState(null);
+  const [inlineEditingField, setInlineEditingField] = useState(null);
+
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Fetch show details
   const { data: show, isLoading: showLoading } = useQuery({
@@ -91,27 +115,63 @@ const ManageEquipment = () => {
     }
   });
 
-  // Checkout equipment mutation
+  // Checkout equipment mutation with validation
   const checkoutMutation = useMutation({
-    mutationFn: checkoutEquipment,
+    mutationFn: async (allocationId) => {
+      // First validate the status change
+      const validation = await axios.post(`/api/show-equipment/allocation/${allocationId}/validate-status`, {
+        newStatus: 'checked-out',
+        quantity: 1
+      });
+
+      if (!validation.data.valid) {
+        throw new Error(validation.data.conflicts[0]?.message || 'Status change not allowed');
+      }
+
+      // If validation passes, update the status
+      const response = await axios.put(`/api/show-equipment/allocation/${allocationId}`, {
+        status: 'checked-out'
+      });
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['showEquipment', showId]);
+      queryClient.invalidateQueries(['equipmentAvailability']);
       toast.success('Equipment checked out');
     },
     onError: (error) => {
-      toast.error(`Failed to checkout equipment: ${error.message}`);
+      const errorMessage = error.response?.data?.conflicts?.[0]?.message || error.message;
+      toast.error(`Failed to checkout equipment: ${errorMessage}`);
     }
   });
 
-  // Return equipment mutation
+  // Return equipment mutation with validation
   const returnMutation = useMutation({
-    mutationFn: returnEquipment,
+    mutationFn: async (allocationId) => {
+      // First validate the status change
+      const validation = await axios.post(`/api/show-equipment/allocation/${allocationId}/validate-status`, {
+        newStatus: 'returned',
+        quantity: 1
+      });
+
+      if (!validation.data.valid) {
+        throw new Error(validation.data.conflicts[0]?.message || 'Status change not allowed');
+      }
+
+      // If validation passes, update the status
+      const response = await axios.put(`/api/show-equipment/allocation/${allocationId}`, {
+        status: 'returned'
+      });
+      return response.data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['showEquipment', showId]);
+      queryClient.invalidateQueries(['equipmentAvailability']);
       toast.success('Equipment returned');
     },
     onError: (error) => {
-      toast.error(`Failed to return equipment: ${error.message}`);
+      const errorMessage = error.response?.data?.conflicts?.[0]?.message || error.message;
+      toast.error(`Failed to return equipment: ${errorMessage}`);
     }
   });
 
@@ -174,6 +234,32 @@ const ManageEquipment = () => {
 
   const handleReturn = (equipmentId) => {
     returnMutation.mutate(equipmentId);
+  };
+
+  const handleShowAvailability = (equipmentId) => {
+    setAvailabilityEquipmentId(equipmentId);
+    setShowAvailabilityModal(true);
+  };
+
+  // Navigate to equipment details
+  const handleNavigateToEquipment = (equipmentId) => {
+    navigate(`/equipment/${equipmentId}`);
+  };
+
+  // Independent editing handlers
+  const handleEditEquipment = (equipment) => {
+    setEditingEquipment(equipment);
+    setShowEditModal(true);
+  };
+
+  const handleInlineEdit = (equipmentId, field) => {
+    setInlineEditingId(equipmentId);
+    setInlineEditingField(field);
+  };
+
+  const handleCancelInlineEdit = () => {
+    setInlineEditingId(null);
+    setInlineEditingField(null);
   };
 
   const getStatusBadge = (status) => {
@@ -254,6 +340,21 @@ const ManageEquipment = () => {
               <CardViewIcon className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Export Button */}
+          {showEquipment.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center space-x-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Export List</span>
+            </Button>
+          )}
+
           <Button
             onClick={() => setShowAddModal(true)}
             className="flex items-center space-x-2"
@@ -283,7 +384,7 @@ const ManageEquipment = () => {
         <Card>
           <Card.Body className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="table-wide">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Equipment</th>
@@ -298,20 +399,89 @@ const ManageEquipment = () => {
                     <tr key={item.id} className="hover:bg-slate-50">
                       <td className="py-3 px-4">
                         <div>
-                          <div className="font-medium text-slate-800">{item.equipment?.name || item.equipment?.type}</div>
+                          <button
+                            onClick={() => handleNavigateToEquipment(item.equipment_id)}
+                            className="font-medium text-slate-800 hover:text-primary-600 hover:underline transition-colors text-left flex items-center space-x-1 group"
+                            title="Click to view equipment details"
+                          >
+                            <span>{item.equipment?.name || item.equipment?.type}</span>
+                            <ExternalLinkIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
                           <div className="text-sm text-slate-600">
                             {item.equipment?.brand} {item.equipment?.model}
                           </div>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="text-sm">
-                          <div>Needed: {item.quantity_needed}</div>
-                          <div>Allocated: {item.quantity_allocated}</div>
+                        <div className="text-sm space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-slate-600">Needed:</span>
+                            {inlineEditingId === item.id && inlineEditingField === 'quantityNeeded' ? (
+                              <InlineQuantityEdit
+                                showEquipment={item}
+                                field="quantityNeeded"
+                                showId={showId}
+                                onCancel={handleCancelInlineEdit}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => handleInlineEdit(item.id, 'quantityNeeded')}
+                                className="font-medium text-slate-800 hover:text-primary-600 hover:bg-primary-50 px-1 py-0.5 rounded transition-colors"
+                                title="Click to edit"
+                              >
+                                {item.quantity_needed}
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-slate-600">Allocated:</span>
+                            {inlineEditingId === item.id && inlineEditingField === 'quantityAllocated' ? (
+                              <InlineQuantityEdit
+                                showEquipment={item}
+                                field="quantityAllocated"
+                                showId={showId}
+                                onCancel={handleCancelInlineEdit}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => handleInlineEdit(item.id, 'quantityAllocated')}
+                                className="font-medium text-slate-800 hover:text-primary-600 hover:bg-primary-50 px-1 py-0.5 rounded transition-colors"
+                                title="Click to edit"
+                              >
+                                {item.quantity_allocated}
+                              </button>
+                            )}
+                          </div>
+                          {/* Missing Quantity Display */}
+                          {(() => {
+                            const missing = calculateMissingQuantity(item.quantity_needed, item.quantity_allocated);
+                            return missing > 0 ? (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-red-600 font-medium">Missing:</span>
+                                <span className="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded text-xs">
+                                  {missing}
+                                </span>
+                              </div>
+                            ) : null;
+                          })()}
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        {getStatusBadge(item.status)}
+                        {inlineEditingId === item.id && inlineEditingField === 'status' ? (
+                          <InlineStatusEdit
+                            showEquipment={item}
+                            showId={showId}
+                            onCancel={handleCancelInlineEdit}
+                          />
+                        ) : (
+                          <button
+                            onClick={() => handleInlineEdit(item.id, 'status')}
+                            className="hover:bg-slate-50 p-1 rounded transition-colors"
+                            title="Click to edit status"
+                          >
+                            {getStatusBadge(item.status)}
+                          </button>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-sm text-slate-600 max-w-xs truncate">
@@ -320,6 +490,24 @@ const ManageEquipment = () => {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditEquipment(item)}
+                            className="text-slate-600 hover:text-slate-700"
+                            title="Edit allocation"
+                          >
+                            <EditIcon className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleShowAvailability(item.equipment_id)}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="View availability"
+                          >
+                            <InfoIcon className="w-3 h-3" />
+                          </Button>
                           {item.status === 'requested' && (
                             <Button
                               size="sm"
@@ -365,7 +553,14 @@ const ManageEquipment = () => {
               <Card.Body>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h3 className="font-medium text-slate-800">{item.equipment?.name || item.equipment?.type}</h3>
+                    <button
+                      onClick={() => handleNavigateToEquipment(item.equipment_id)}
+                      className="font-medium text-slate-800 hover:text-primary-600 hover:underline transition-colors text-left flex items-center space-x-1 group"
+                      title="Click to view equipment details"
+                    >
+                      <span>{item.equipment?.name || item.equipment?.type}</span>
+                      <ExternalLinkIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
                     <p className="text-sm text-slate-600">
                       {item.equipment?.brand} {item.equipment?.model}
                     </p>
@@ -376,12 +571,72 @@ const ManageEquipment = () => {
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Needed:</span>
-                    <span className="font-medium">{item.quantity_needed}</span>
+                    {inlineEditingId === item.id && inlineEditingField === 'quantityNeeded' ? (
+                      <InlineQuantityEdit
+                        showEquipment={item}
+                        field="quantityNeeded"
+                        showId={showId}
+                        onCancel={handleCancelInlineEdit}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => handleInlineEdit(item.id, 'quantityNeeded')}
+                        className="font-medium text-slate-800 hover:text-primary-600 hover:bg-primary-50 px-1 py-0.5 rounded transition-colors"
+                        title="Click to edit"
+                      >
+                        {item.quantity_needed}
+                      </button>
+                    )}
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Allocated:</span>
-                    <span className="font-medium">{item.quantity_allocated}</span>
+                    {inlineEditingId === item.id && inlineEditingField === 'quantityAllocated' ? (
+                      <InlineQuantityEdit
+                        showEquipment={item}
+                        field="quantityAllocated"
+                        showId={showId}
+                        onCancel={handleCancelInlineEdit}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => handleInlineEdit(item.id, 'quantityAllocated')}
+                        className="font-medium text-slate-800 hover:text-primary-600 hover:bg-primary-50 px-1 py-0.5 rounded transition-colors"
+                        title="Click to edit"
+                      >
+                        {item.quantity_allocated}
+                      </button>
+                    )}
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">Status:</span>
+                    {inlineEditingId === item.id && inlineEditingField === 'status' ? (
+                      <InlineStatusEdit
+                        showEquipment={item}
+                        showId={showId}
+                        onCancel={handleCancelInlineEdit}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => handleInlineEdit(item.id, 'status')}
+                        className="hover:bg-slate-50 p-1 rounded transition-colors"
+                        title="Click to edit status"
+                      >
+                        {getStatusBadge(item.status)}
+                      </button>
+                    )}
+                  </div>
+                  {/* Missing Quantity Display */}
+                  {(() => {
+                    const missing = calculateMissingQuantity(item.quantity_needed, item.quantity_allocated);
+                    return missing > 0 ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-red-600 font-medium">Missing:</span>
+                        <span className="font-bold text-red-600 bg-red-50 px-2 py-1 rounded text-xs">
+                          {missing} item{missing !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    ) : null;
+                  })()}
                   {item.notes && (
                     <div className="text-sm">
                       <span className="text-slate-600">Notes:</span>
@@ -391,6 +646,24 @@ const ManageEquipment = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditEquipment(item)}
+                    className="text-slate-600 hover:text-slate-700"
+                    title="Edit allocation"
+                  >
+                    <EditIcon className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleShowAvailability(item.equipment_id)}
+                    className="text-blue-600 hover:text-blue-700"
+                    title="View availability"
+                  >
+                    <InfoIcon className="w-4 h-4" />
+                  </Button>
                   {item.status === 'requested' && (
                     <Button
                       size="sm"
@@ -619,6 +892,39 @@ const ManageEquipment = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Equipment Availability Modal */}
+      {showAvailabilityModal && availabilityEquipmentId && (
+        <EquipmentAvailability
+          equipmentId={availabilityEquipmentId}
+          onClose={() => {
+            setShowAvailabilityModal(false);
+            setAvailabilityEquipmentId(null);
+          }}
+        />
+      )}
+
+      {/* Show Equipment Edit Modal */}
+      {showEditModal && editingEquipment && (
+        <ShowEquipmentEditModal
+          showEquipment={editingEquipment}
+          showId={showId}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingEquipment(null);
+          }}
+        />
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <ShowListExportModal
+          isOpen={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          show={show}
+          equipmentList={showEquipment}
+        />
       )}
     </div>
   );

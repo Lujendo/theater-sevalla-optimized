@@ -17,6 +17,7 @@ const Select = ({
   required = false,
   placeholder = 'Select an option',
   className = '',
+  helpText,
   ...props
 }) => {
   // Base classes
@@ -84,6 +85,10 @@ const Select = ({
       {error && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
       )}
+
+      {helpText && !error && (
+        <p className="mt-1 text-sm text-slate-500">{helpText}</p>
+      )}
     </div>
   );
 };
@@ -109,6 +114,7 @@ Select.propTypes = {
   required: PropTypes.bool,
   placeholder: PropTypes.string,
   className: PropTypes.string,
+  helpText: PropTypes.string,
 };
 
 export default Select;

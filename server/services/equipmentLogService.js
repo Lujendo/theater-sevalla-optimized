@@ -1,4 +1,8 @@
-const { EquipmentLog, Equipment, User } = require('../models');
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
+  ? require('../models/index.local')
+  : require('../models');
+const { EquipmentLog, Equipment, User } = models;
 
 /**
  * Service for handling equipment movement logs

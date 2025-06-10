@@ -1,7 +1,7 @@
 const express = require('express');
 const { Op } = require('sequelize');
-// Use environment-aware models
-const models = process.env.NODE_ENV === 'development'
+// Use environment-aware models based on database type
+const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE === 'sqlite')
   ? require('../models/index.local')
   : require('../models');
 const { EquipmentType, sequelize } = models;

@@ -77,29 +77,7 @@ if (process.env.NODE_ENV === 'development' && (process.env.DB_TYPE === 'sqlite' 
     }
   });
 
-  sequelize = new Sequelize(dbUrl, {
-    dialect: 'mysql',
-    dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        require: true,
-        rejectUnauthorized: false
-      } : false,
-    },
-    logging: false,
-    define: {
-      timestamps: true,
-      underscored: true,
-      freezeTableName: true
-    },
-    pool: {
-      max: 10,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
-  });
-
-  console.log('🗄️  Using production MySQL database');
+  console.log(`🗄️  Using SQLite database: ${dbPath}`);
 }
 
 const testConnection = async () => {

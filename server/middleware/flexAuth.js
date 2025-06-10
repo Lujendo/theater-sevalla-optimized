@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
-// Use environment-aware models
-const { User } = process.env.NODE_ENV === 'development'
-  ? require('../models/index.local')
-  : require('../models');
+// Use environment-aware models based on database type
+const { User } = (process.env.DB_TYPE === 'mysql')
+  ? require('../models')
+  : require('../models/index.local');
 
 /**
  * Flexible authentication middleware that provides different levels of authentication

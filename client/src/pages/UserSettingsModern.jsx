@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import EquipmentTypeManagerModern from '../components/EquipmentTypeManagerModern';
 import CategoryManagerModern from '../components/CategoryManagerModern';
 import LocationManagement from '../components/LocationManagement';
+import DefaultStorageLocations from '../components/DefaultStorageLocations';
 import DatabaseManager from '../components/DatabaseManager';
 import { Card, Button, Input } from '../components/ui';
 
@@ -39,6 +40,13 @@ const LocationIcon = () => (
   </svg>
 );
 
+const StorageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+    <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+  </svg>
+);
+
 const UserSettingsModern = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
@@ -60,6 +68,7 @@ const UserSettingsModern = () => {
     tabs.push({ id: 'equipmentTypes', label: 'Equipment Types', icon: <TagIcon /> });
     tabs.push({ id: 'categories', label: 'Categories', icon: <TagIcon /> });
     tabs.push({ id: 'locations', label: 'Locations', icon: <LocationIcon /> });
+    tabs.push({ id: 'defaultStorage', label: 'Default Storage', icon: <StorageIcon /> });
     tabs.push({ id: 'database', label: 'Database', icon: <DatabaseIcon /> });
   }
 
@@ -233,6 +242,13 @@ const UserSettingsModern = () => {
                 <div>
                   <h2 className="text-xl font-semibold text-slate-800 mb-6">Manage Locations</h2>
                   <LocationManagement />
+                </div>
+              )}
+
+              {activeTab === 'defaultStorage' && user?.role === 'admin' && (
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-800 mb-6">Default Storage Locations</h2>
+                  <DefaultStorageLocations />
                 </div>
               )}
 

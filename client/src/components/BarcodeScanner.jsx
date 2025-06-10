@@ -64,6 +64,17 @@ const BarcodeScanner = ({ onScan, onError = (error) => console.error(error), isO
         config,
         (decodedText) => {
           // On successful scan
+          // Add vibration feedback for mobile devices
+          if (navigator.vibrate) {
+            navigator.vibrate(200); // Vibrate for 200ms
+          }
+
+          // Show success toast
+          toast.success(`Barcode scanned: ${decodedText}`, {
+            icon: '📱✅',
+            toastId: 'barcode-success'
+          });
+
           onScan(decodedText);
           stopScanner();
           onClose();
@@ -133,7 +144,7 @@ const BarcodeScanner = ({ onScan, onError = (error) => console.error(error), isO
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-      <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-md">
+      <div className="bg-white p-4 rounded-lg shadow-lg w-full max-w-md mx-4 md:mx-0">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Scan Barcode</h2>
           <button
@@ -173,10 +184,15 @@ const BarcodeScanner = ({ onScan, onError = (error) => console.error(error), isO
         </div>
 
         <div className="text-sm text-gray-500 mb-4">
-          {!errorMessage ?
-            "Position the barcode within the scanner area. The scanner will automatically detect and process the code." :
+          {!errorMessage ? (
+            <div>
+              <p className="mb-2">📱 <strong>Mobile users:</strong> Hold your phone steady and point the camera at the barcode.</p>
+              <p>🖥️ <strong>Desktop users:</strong> Position the barcode within the scanner area.</p>
+              <p className="mt-2 text-xs">The scanner will automatically detect and process the code.</p>
+            </div>
+          ) : (
             "To use the barcode scanner, you need a device with a camera and permission to access it."
-          }
+          )}
         </div>
 
         <div className="flex justify-end">

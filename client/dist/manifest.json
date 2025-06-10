@@ -1,0 +1,31 @@
+{
+  "name": "Theater Equipment Catalog",
+  "short_name": "Theater Catalog",
+  "description": "Professional theater equipment management system with barcode scanning",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "permissions": [
+    "camera"
+  ],
+  "features": [
+    "barcode-scanning",
+    "camera-access"
+  ]
+}
