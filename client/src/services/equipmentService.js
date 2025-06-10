@@ -43,9 +43,28 @@ export const getEquipmentById = async (id) => {
 };
 
 // Create new equipment
-export const createEquipment = async (equipmentData, files = [], referenceImageFile = null) => {
+export const createEquipment = async (params) => {
+  // Handle both old signature (equipmentData, files, referenceImageFile) and new object signature
+  let equipmentData, files, referenceImageFile;
+
+  if (params && typeof params === 'object' && params.equipment) {
+    // New object signature from mutations
+    equipmentData = params.equipment;
+    files = params.files || [];
+    referenceImageFile = params.referenceImageFile || null;
+    console.log('📱 Service received object params:', params);
+  } else {
+    // Old signature for backward compatibility
+    equipmentData = params;
+    files = arguments[1] || [];
+    referenceImageFile = arguments[2] || null;
+    console.log('📱 Service received individual params:', equipmentData);
+  }
+
   // Handle form data with files
   const formData = new FormData();
+
+  console.log('📱 Service processing equipment data:', equipmentData);
 
   // Ensure required fields are present
   if (!equipmentData.type_id || equipmentData.type_id === '' || equipmentData.type_id === '0') {
