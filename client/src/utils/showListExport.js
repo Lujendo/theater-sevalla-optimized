@@ -1,20 +1,45 @@
-// Dynamic imports for better build compatibility
-let jsPDF, XLSX, saveAs;
+// Conditional export functionality - only loads dependencies when actually used
 
-// Initialize dependencies
-const initializeDependencies = async () => {
-  if (!jsPDF) {
+// Check if export dependencies are available
+export const isExportAvailable = async () => {
+  try {
+    await import('jspdf');
+    await import('xlsx');
+    await import('file-saver');
+    return true;
+  } catch (error) {
+    console.warn('Export dependencies not available:', error);
+    return false;
+  }
+};
+
+// Initialize dependencies dynamically only when needed
+const loadExportDependencies = async () => {
+  try {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      throw new Error('Export functionality only available in browser');
+    }
+
+    // Dynamic import of jsPDF
     const jsPDFModule = await import('jspdf');
-    jsPDF = jsPDFModule.default;
+    const jsPDF = jsPDFModule.default;
+
+    // Dynamic import of jspdf-autotable
     await import('jspdf-autotable');
-  }
-  if (!XLSX) {
+
+    // Dynamic import of XLSX
     const XLSXModule = await import('xlsx');
-    XLSX = XLSXModule;
-  }
-  if (!saveAs) {
+    const XLSX = XLSXModule;
+
+    // Dynamic import of file-saver
     const fileSaverModule = await import('file-saver');
-    saveAs = fileSaverModule.saveAs;
+    const saveAs = fileSaverModule.saveAs;
+
+    return { jsPDF, XLSX, saveAs };
+  } catch (error) {
+    console.error('Failed to load export dependencies:', error);
+    throw new Error('PDF/Excel export libraries are not available. Please check your internet connection and try again.');
   }
 };
 
@@ -29,8 +54,8 @@ const A4_HEIGHT = 297;
  * @param {Object} options - Export options
  */
 export const exportShowListToPDF = async (show, equipmentList, options = {}) => {
-  // Initialize dependencies
-  await initializeDependencies();
+  // Load dependencies
+  const { jsPDF } = await loadExportDependencies();
   const {
     includeImages = false,
     includeNotes = true,
@@ -292,8 +317,8 @@ export const exportShowListToPDF = async (show, equipmentList, options = {}) => 
  * @param {Object} options - Export options
  */
 export const exportShowListToExcel = async (show, equipmentList, options = {}) => {
-  // Initialize dependencies
-  await initializeDependencies();
+  // Load dependencies
+  const { XLSX } = await loadExportDependencies();
   const {
     includeNotes = true,
     includeQuantities = true,
@@ -451,8 +476,8 @@ export const downloadPDF = (doc, filename) => {
  * Download Excel file in Microsoft Excel format
  */
 export const downloadExcel = async (workbook, filename) => {
-  // Initialize dependencies
-  await initializeDependencies();
+  // Load dependencies
+  const { XLSX, saveAs } = await loadExportDependencies();
   // Write workbook in Microsoft Excel format (.xlsx) with minimal options to avoid corruption
   const excelBuffer = XLSX.write(workbook, {
     bookType: 'xlsx',
