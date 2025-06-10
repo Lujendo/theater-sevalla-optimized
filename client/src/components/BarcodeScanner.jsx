@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Html5Qrcode } from 'html5-qrcode';
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
 
 /**
  * A component that provides barcode and QR code scanning functionality
@@ -71,8 +71,7 @@ const BarcodeScanner = ({ onScan, onError = (error) => console.error(error), isO
 
           // Show success toast
           toast.success(`Barcode scanned: ${decodedText}`, {
-            icon: '📱✅',
-            toastId: 'barcode-success'
+            icon: '📱✅'
           });
 
           onScan(decodedText);
@@ -97,21 +96,17 @@ const BarcodeScanner = ({ onScan, onError = (error) => console.error(error), isO
         errorMsg = 'No camera found. Please make sure your device has a camera and you have granted permission to use it.';
         toastMsg = 'No camera detected. You can manually enter the barcode value instead.';
         toast.error(toastMsg, {
-          icon: '📷❌',
-          toastId: 'camera-not-found'
+          icon: '📷❌'
         });
       } else if (err.name === 'NotAllowedError' || (err.message && err.message.includes('Permission denied'))) {
         errorMsg = 'Camera access denied. Please grant permission to use your camera.';
         toastMsg = 'Camera access denied. Please check your browser permissions.';
         toast.error(toastMsg, {
-          icon: '🔒',
-          toastId: 'camera-permission-denied'
+          icon: '🔒'
         });
       } else {
         errorMsg = (err && err.message) ? err.message : 'Failed to start scanner';
-        toast.error('Failed to start barcode scanner. Please try again later.', {
-          toastId: 'scanner-error'
-        });
+        toast.error('Failed to start barcode scanner. Please try again later.');
       }
 
       setErrorMessage(errorMsg);

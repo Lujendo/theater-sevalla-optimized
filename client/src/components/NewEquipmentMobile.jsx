@@ -237,6 +237,24 @@ const NewEquipmentMobile = () => {
                 </select>
               </div>
 
+              {/* Category */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  name="category_id"
+                  value={formData.category_id}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Select Category</option>
+                  {categoriesData?.categories?.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Brand */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Brand *</label>
@@ -387,6 +405,7 @@ const NewEquipmentMobile = () => {
                 <h3 className="text-sm font-medium text-gray-800 mb-2">Review</h3>
                 <div className="space-y-1 text-sm text-gray-600">
                   <div><strong>Type:</strong> {typesData?.types?.find(t => t.id.toString() === formData.type_id)?.name || 'Not selected'}</div>
+                  <div><strong>Category:</strong> {categoriesData?.categories?.find(c => c.id.toString() === formData.category_id)?.name || 'Not selected'}</div>
                   <div><strong>Brand:</strong> {formData.brand || 'Not entered'}</div>
                   <div><strong>Model:</strong> {formData.model || 'Not entered'}</div>
                   <div><strong>Serial:</strong> {formData.serial_number || 'Not entered'}</div>
@@ -449,12 +468,15 @@ const NewEquipmentMobile = () => {
       </div>
 
       {/* Barcode Scanner Modal */}
-      {showBarcodeScanner && (
-        <BarcodeScanner
-          onScan={handleBarcodeScan}
-          onClose={() => setShowBarcodeScanner(false)}
-        />
-      )}
+      <BarcodeScanner
+        isOpen={showBarcodeScanner}
+        onScan={handleBarcodeScan}
+        onClose={() => setShowBarcodeScanner(false)}
+        onError={(error) => {
+          console.error('Barcode scanner error:', error);
+          toast.error('Scanner error: ' + error, { icon: '📱❌' });
+        }}
+      />
     </div>
   );
 };
