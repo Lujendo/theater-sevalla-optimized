@@ -192,22 +192,24 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       next_maintenance_date
     } = req.body;
 
-    // Validate required fields
-    if (!type_id || !brand || !model || !serial_number) {
+    // Validate required fields (serial number is now optional)
+    if (!type_id || !brand || !model) {
       return res.status(400).json({
-        message: 'Type, brand, model, and serial number are required'
+        message: 'Type, brand, and model are required'
       });
     }
 
-    // Check if serial number already exists
-    const existingEquipment = await Equipment.findOne({
-      where: { serial_number }
-    });
-
-    if (existingEquipment) {
-      return res.status(400).json({
-        message: 'Equipment with this serial number already exists'
+    // Check if serial number already exists (only if provided)
+    if (serial_number && serial_number.trim() !== '') {
+      const existingEquipment = await Equipment.findOne({
+        where: { serial_number }
       });
+
+      if (existingEquipment) {
+        return res.status(400).json({
+          message: 'Equipment with this serial number already exists'
+        });
+      }
     }
 
     // Get the type name from the type_id
