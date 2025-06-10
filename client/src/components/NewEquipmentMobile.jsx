@@ -96,7 +96,8 @@ const NewEquipmentMobile = () => {
     },
     onError: (error) => {
       console.error('📱 Mobile equipment creation error:', error);
-      console.error('📱 Error response:', error.response?.data);
+      console.error('📱 Error response:', JSON.stringify(error.response?.data, null, 2));
+      console.error('📱 Error status:', error.response?.status);
       console.error('📱 Error message:', error.message);
 
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create equipment';
@@ -157,7 +158,7 @@ const NewEquipmentMobile = () => {
     e.preventDefault();
 
     // Debug logging
-    console.log('📱 Mobile form submission data:', formData);
+    console.log('📱 Mobile form submission data:', JSON.stringify(formData, null, 2));
     console.log('📱 Type ID:', formData.type_id, 'Type:', typeof formData.type_id);
     console.log('📱 Brand:', formData.brand);
     console.log('📱 Model:', formData.model);
@@ -194,7 +195,7 @@ const NewEquipmentMobile = () => {
       type_id: typeId
     };
 
-    console.log('📱 Final equipment data being sent:', equipmentData);
+    console.log('📱 Final equipment data being sent:', JSON.stringify(equipmentData, null, 2));
 
     createMutation.mutate({
       equipment: equipmentData,

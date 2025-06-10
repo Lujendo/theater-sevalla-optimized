@@ -52,19 +52,19 @@ export const createEquipment = async (params) => {
     equipmentData = params.equipment;
     files = params.files || [];
     referenceImageFile = params.referenceImageFile || null;
-    console.log('📱 Service received object params:', params);
+    console.log('📱 Service received object params:', JSON.stringify(params, null, 2));
   } else {
     // Old signature for backward compatibility
     equipmentData = params;
     files = arguments[1] || [];
     referenceImageFile = arguments[2] || null;
-    console.log('📱 Service received individual params:', equipmentData);
+    console.log('📱 Service received individual params:', JSON.stringify(equipmentData, null, 2));
   }
 
   // Handle form data with files
   const formData = new FormData();
 
-  console.log('📱 Service processing equipment data:', equipmentData);
+  console.log('📱 Service processing equipment data:', JSON.stringify(equipmentData, null, 2));
 
   // Ensure required fields are present
   if (!equipmentData.type_id || equipmentData.type_id === '' || equipmentData.type_id === '0') {
@@ -119,15 +119,28 @@ export const createEquipment = async (params) => {
   }
 
   try {
+    console.log('📱 Sending FormData to API...');
+    // Log FormData contents
+    for (let [key, value] of formData.entries()) {
+      console.log(`📱 FormData: ${key} =`, value);
+    }
+
     const response = await axios.post('/api/equipment', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     });
 
+    console.log('📱 API Success Response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error in createEquipment:', error);
+    console.error('📱 API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
+    console.error('📱 Full error object:', error);
     throw error;
   }
 };
