@@ -98,12 +98,26 @@ export const createEquipment = async (params) => {
 
   // Add equipment data
   Object.keys(cleanEquipmentData).forEach(key => {
+    let value = cleanEquipmentData[key];
+
     // Convert type_id to a number if it's a string
-    if (key === 'type_id' && typeof cleanEquipmentData[key] === 'string') {
-      formData.append(key, parseInt(cleanEquipmentData[key], 10));
-    } else {
-      formData.append(key, cleanEquipmentData[key]);
+    if (key === 'type_id' && typeof value === 'string') {
+      value = parseInt(value, 10);
     }
+
+    // Handle empty strings for optional fields - convert to null for database
+    if (value === '' && ['location_id', 'category_id', 'serial_number', 'reference_image_id'].includes(key)) {
+      // Don't append empty optional fields - let backend handle defaults
+      console.log(`📱 Skipping empty optional field: ${key}`);
+      return;
+    }
+
+    // Convert numeric string fields to numbers
+    if (['location_id', 'category_id', 'quantity'].includes(key) && typeof value === 'string' && value !== '') {
+      value = parseInt(value, 10);
+    }
+
+    formData.append(key, value);
   });
 
   // Add reference image if provided
