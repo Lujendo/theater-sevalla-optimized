@@ -146,8 +146,7 @@ const EquipmentForm = ({
               label="Serial Number"
               value={formData.serial_number}
               onChange={handleInputChange}
-              placeholder="Enter serial number"
-              required
+              placeholder="Enter serial number (optional)"
               onScan={(scannedValue) => {
                 handleInputChange({ target: { name: 'serial_number', value: scannedValue } });
               }}

@@ -114,9 +114,9 @@ const NewEquipmentMobile = () => {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!formData.type_id || !formData.brand || !formData.model || !formData.serial_number) {
-      setError('Type, brand, model, and serial number are required');
+
+    if (!formData.type_id || !formData.brand || !formData.model) {
+      setError('Type, brand, and model are required');
       return;
     }
 
@@ -290,11 +290,11 @@ const NewEquipmentMobile = () => {
         {currentStep === 2 && (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-4 shadow-sm">
-              <h2 className="text-base font-semibold text-gray-800 mb-4">Serial Number</h2>
+              <h2 className="text-base font-semibold text-gray-800 mb-4">Serial Number (Optional)</h2>
               
               {/* Serial Number with Barcode Scanner */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Serial Number</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -302,8 +302,7 @@ const NewEquipmentMobile = () => {
                     value={formData.serial_number}
                     onChange={handleInputChange}
                     className="w-full p-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter or scan serial number"
-                    required
+                    placeholder="Enter or scan serial number (optional)"
                   />
                   <button
                     type="button"
@@ -315,7 +314,7 @@ const NewEquipmentMobile = () => {
                     </svg>
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Tap the scan icon to use your camera</p>
+                <p className="text-xs text-gray-500 mt-1">Tap the scan icon to use your camera, or skip if no barcode available</p>
               </div>
             </div>
           </div>
@@ -408,7 +407,7 @@ const NewEquipmentMobile = () => {
                   <div><strong>Category:</strong> {categoriesData?.categories?.find(c => c.id.toString() === formData.category_id)?.name || 'Not selected'}</div>
                   <div><strong>Brand:</strong> {formData.brand || 'Not entered'}</div>
                   <div><strong>Model:</strong> {formData.model || 'Not entered'}</div>
-                  <div><strong>Serial:</strong> {formData.serial_number || 'Not entered'}</div>
+                  <div><strong>Serial:</strong> {formData.serial_number || 'Not provided'}</div>
                   <div><strong>Location:</strong> {locationsData?.locations?.find(l => l.id.toString() === formData.location_id)?.name || 'Default Storage'}</div>
                   <div><strong>Status:</strong> {formData.status}</div>
                   <div><strong>Quantity:</strong> {formData.quantity}</div>

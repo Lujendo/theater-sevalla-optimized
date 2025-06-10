@@ -469,8 +469,8 @@ const NewEquipmentModern = () => {
     if (e) e.preventDefault();
 
     // Validate required fields
-    if (!formData.type_id || !formData.brand || !formData.model || !formData.serial_number) {
-      setError('Type, brand, model, and serial number are required');
+    if (!formData.type_id || !formData.brand || !formData.model) {
+      setError('Type, brand, and model are required');
       return;
     }
 

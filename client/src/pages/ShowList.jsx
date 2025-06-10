@@ -161,10 +161,10 @@ const ShowList = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center space-x-3">
             <ShowListIcon className="w-8 h-8 text-primary-600" />
-            <span>Show List</span>
+            <span>Production Lists</span>
           </h1>
           <p className="text-slate-600 mt-1">
-            Manage theater shows and their equipment allocations
+            Manage theater productions and their equipment allocations
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -198,7 +198,7 @@ const ShowList = () => {
             className="flex items-center space-x-2"
           >
             <AddIcon className="w-4 h-4" />
-            <span>Create New Show</span>
+            <span>Create New Production</span>
           </Button>
         </div>
       </div>
@@ -209,12 +209,12 @@ const ShowList = () => {
         <Card className="text-center py-12">
           <Card.Body>
             <ShowListIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-800 mb-2">No shows yet</h3>
+            <h3 className="text-lg font-medium text-slate-800 mb-2">No productions yet</h3>
             <p className="text-slate-600 mb-4">
-              Create your first show to start managing equipment allocations
+              Create your first production to start managing equipment allocations
             </p>
             <Button onClick={() => setShowCreateModal(true)}>
-              Create New Show
+              Create New Production
             </Button>
           </Card.Body>
         </Card>
@@ -226,7 +226,7 @@ const ShowList = () => {
               <table className="table-wide">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <th className="text-left py-3 px-4 font-medium text-slate-700">Show</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700">Production</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Date</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Venue</th>
                     <th className="text-left py-3 px-4 font-medium text-slate-700">Director</th>
@@ -390,18 +390,18 @@ const ShowList = () => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">Create New Show</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-4">Create New Production</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Show Name *
+                  Production Name *
                 </label>
                 <Input
                   id="newShowName"
                   name="newShowName"
                   value={newShow.name}
                   onChange={(e) => setNewShow({ ...newShow, name: e.target.value })}
-                  placeholder="Enter show name"
+                  placeholder="Enter production name"
                 />
               </div>
               <div>
@@ -611,14 +611,14 @@ const ShowList = () => {
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">
-                          Show Name *
+                          Production Name *
                         </label>
                         <Input
                           id="editShowName"
                           name="editShowName"
                           value={editingShow.name}
                           onChange={(e) => setEditingShow({ ...editingShow, name: e.target.value })}
-                          placeholder="Enter show name"
+                          placeholder="Enter production name"
                         />
                       </div>
                       <div>

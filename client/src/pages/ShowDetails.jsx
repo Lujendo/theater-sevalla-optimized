@@ -128,7 +128,7 @@ const ShowDetails = () => {
           <div className="text-red-600 mb-4">❌ Show not found</div>
           <p className="text-slate-600 mb-4">{error?.message || 'Show not found'}</p>
           <Button onClick={() => navigate('/show-list')}>
-            Back to Show List
+            Back to Production Lists
           </Button>
         </div>
       </div>

@@ -119,11 +119,11 @@ const Sidebar = ({ isOpen, isCollapsed, toggleSidebar, toggleCollapse }) => {
             to="/show-list"
             className={`sidebar-nav-item ${isActive('/show-list') ? 'sidebar-nav-item-active' : ''}`}
             onClick={() => window.innerWidth < 768 && toggleSidebar(false)}
-            title="Show List"
+            title="Production Lists"
           >
             <ShowListIcon className="sidebar-nav-icon" />
             <span className={`sidebar-nav-text ${isCollapsed ? 'hidden' : 'block'}`}>
-              Show List
+              Production Lists
             </span>
           </Link>
 
