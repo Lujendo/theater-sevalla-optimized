@@ -109,8 +109,18 @@ const NewEquipmentMobile = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
+    console.log(`📱 Input change: ${name} = "${value}" (type: ${typeof value})`);
+
+    // Special handling for type selection
+    if (name === 'type_id') {
+      console.log('📱 Type selection:', value);
+      setFormData(prev => ({
+        ...prev,
+        type_id: value
+      }));
+    }
     // Special handling for category selection
-    if (name === 'category_id') {
+    else if (name === 'category_id') {
       const selectedCategory = categoriesData?.categories?.find(cat => cat.id.toString() === value);
       setFormData(prev => ({
         ...prev,
@@ -152,15 +162,36 @@ const NewEquipmentMobile = () => {
     console.log('📱 Brand:', formData.brand);
     console.log('📱 Model:', formData.model);
 
-    if (!formData.type_id || !formData.brand || !formData.model) {
-      setError('Type, brand, and model are required');
+    // Enhanced validation with specific error messages
+    if (!formData.type_id || formData.type_id === '' || formData.type_id === '0') {
+      console.error('📱 Validation failed: type_id is', formData.type_id);
+      setError('Equipment type is required - please select a type');
+      return;
+    }
+
+    if (!formData.brand || formData.brand.trim() === '') {
+      console.error('📱 Validation failed: brand is', formData.brand);
+      setError('Brand is required');
+      return;
+    }
+
+    if (!formData.model || formData.model.trim() === '') {
+      console.error('📱 Validation failed: model is', formData.model);
+      setError('Model is required');
       return;
     }
 
     // Ensure type_id is a number
+    const typeId = parseInt(formData.type_id, 10);
+    if (isNaN(typeId) || typeId <= 0) {
+      console.error('📱 Invalid type_id conversion:', formData.type_id, '→', typeId);
+      setError('Invalid equipment type selected');
+      return;
+    }
+
     const equipmentData = {
       ...formData,
-      type_id: parseInt(formData.type_id, 10)
+      type_id: typeId
     };
 
     console.log('📱 Final equipment data being sent:', equipmentData);
