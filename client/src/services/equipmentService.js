@@ -48,18 +48,18 @@ export const createEquipment = async (equipmentData, files = [], referenceImageF
   const formData = new FormData();
 
   // Ensure required fields are present
-  if (!equipmentData.type_id) {
-    console.error('Missing required field: type_id');
+  if (!equipmentData.type_id || equipmentData.type_id === '' || equipmentData.type_id === '0') {
+    console.error('Missing required field: type_id', equipmentData.type_id);
     throw new Error('Equipment type is required');
   }
 
-  if (!equipmentData.brand) {
-    console.error('Missing required field: brand');
+  if (!equipmentData.brand || equipmentData.brand.trim() === '') {
+    console.error('Missing required field: brand', equipmentData.brand);
     throw new Error('Brand is required');
   }
 
-  if (!equipmentData.model) {
-    console.error('Missing required field: model');
+  if (!equipmentData.model || equipmentData.model.trim() === '') {
+    console.error('Missing required field: model', equipmentData.model);
     throw new Error('Model is required');
   }
 

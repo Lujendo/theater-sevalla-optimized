@@ -95,9 +95,13 @@ const NewEquipmentMobile = () => {
       }, 1500);
     },
     onError: (error) => {
-      console.error('Error creating equipment:', error);
-      setError(error.response?.data?.message || 'Failed to create equipment');
-      toast.error('Failed to create equipment');
+      console.error('📱 Mobile equipment creation error:', error);
+      console.error('📱 Error response:', error.response?.data);
+      console.error('📱 Error message:', error.message);
+
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create equipment';
+      setError(errorMessage);
+      toast.error(`Failed to create equipment: ${errorMessage}`, { icon: '📱❌' });
     },
   });
 
@@ -142,13 +146,27 @@ const NewEquipmentMobile = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Debug logging
+    console.log('📱 Mobile form submission data:', formData);
+    console.log('📱 Type ID:', formData.type_id, 'Type:', typeof formData.type_id);
+    console.log('📱 Brand:', formData.brand);
+    console.log('📱 Model:', formData.model);
+
     if (!formData.type_id || !formData.brand || !formData.model) {
       setError('Type, brand, and model are required');
       return;
     }
 
+    // Ensure type_id is a number
+    const equipmentData = {
+      ...formData,
+      type_id: parseInt(formData.type_id, 10)
+    };
+
+    console.log('📱 Final equipment data being sent:', equipmentData);
+
     createMutation.mutate({
-      equipment: formData,
+      equipment: equipmentData,
       files: files,
       referenceImageFile: null,
       allocation: null,
