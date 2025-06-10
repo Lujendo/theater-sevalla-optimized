@@ -56,8 +56,10 @@ const flexAuth = (options = {}) => {
         return next();
       }
 
-      // Find user
-      const user = await User.findByPk(decoded.id);
+      // Find user with explicit attributes to avoid email column error
+      const user = await User.findByPk(decoded.id, {
+        attributes: ['id', 'username', 'password', 'role', 'created_at']
+      });
 
       if (!user) {
         if (config.required) {

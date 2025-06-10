@@ -36,6 +36,10 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: false,
+  // Explicitly define which attributes to include by default
+  defaultScope: {
+    attributes: ['id', 'username', 'password', 'role', 'created_at']
+  },
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {

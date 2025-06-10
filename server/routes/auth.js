@@ -19,8 +19,11 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    // Find user
-    const user = await User.findOne({ where: { username } });
+    // Find user with explicit attributes to avoid email column error
+    const user = await User.findOne({
+      where: { username },
+      attributes: ['id', 'username', 'password', 'role', 'created_at']
+    });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -69,8 +72,11 @@ router.post('/register', authenticate, isAdmin, async (req, res) => {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { username } });
+    // Check if user already exists with explicit attributes
+    const existingUser = await User.findOne({
+      where: { username },
+      attributes: ['id', 'username', 'role']
+    });
 
     if (existingUser) {
       return res.status(400).json({ message: 'Username already exists' });
@@ -116,8 +122,10 @@ router.post('/impersonate/:userId', authLimiter, authenticate, restrictTo('admin
   try {
     const { userId } = req.params;
 
-    // Find target user
-    const targetUser = await User.findByPk(userId);
+    // Find target user with explicit attributes
+    const targetUser = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'role', 'created_at']
+    });
 
     if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
