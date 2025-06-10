@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createEquipment } from '../services/equipmentService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
 import { getLocations } from '../services/locationService';
@@ -14,12 +14,14 @@ import BarcodeScanner from './BarcodeScanner';
 const NewEquipmentMobile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Form state
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     type_id: '',
     category_id: '',
+    category: '',
     brand: '',
     model: '',
     serial_number: '',
@@ -81,6 +83,11 @@ const NewEquipmentMobile = () => {
   const createMutation = useMutation({
     mutationFn: createEquipment,
     onSuccess: (data) => {
+      // Invalidate and refetch equipment queries
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+
       setIsSuccess(true);
       toast.success('Equipment created successfully!', { icon: '📱✅' });
       setTimeout(() => {
@@ -97,7 +104,18 @@ const NewEquipmentMobile = () => {
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Special handling for category selection
+    if (name === 'category_id') {
+      const selectedCategory = categoriesData?.categories?.find(cat => cat.id.toString() === value);
+      setFormData(prev => ({
+        ...prev,
+        category_id: value,
+        category: selectedCategory?.name || ''
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   // Handle barcode scan

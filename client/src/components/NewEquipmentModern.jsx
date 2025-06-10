@@ -241,7 +241,11 @@ const NewEquipmentModern = () => {
       return createEquipment(data.equipment, data.files);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['equipment']);
+      // Invalidate and refetch equipment queries
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+
       setIsSuccess(true);
       setError('');
 
