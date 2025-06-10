@@ -1,7 +1,22 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+// Dynamic imports for better build compatibility
+let jsPDF, XLSX, saveAs;
+
+// Initialize dependencies
+const initializeDependencies = async () => {
+  if (!jsPDF) {
+    const jsPDFModule = await import('jspdf');
+    jsPDF = jsPDFModule.default;
+    await import('jspdf-autotable');
+  }
+  if (!XLSX) {
+    const XLSXModule = await import('xlsx');
+    XLSX = XLSXModule;
+  }
+  if (!saveAs) {
+    const fileSaverModule = await import('file-saver');
+    saveAs = fileSaverModule.saveAs;
+  }
+};
 
 // A4 page dimensions in mm
 const A4_WIDTH = 210;
@@ -13,7 +28,9 @@ const A4_HEIGHT = 297;
  * @param {Array} equipmentList - List of equipment items
  * @param {Object} options - Export options
  */
-export const exportShowListToPDF = (show, equipmentList, options = {}) => {
+export const exportShowListToPDF = async (show, equipmentList, options = {}) => {
+  // Initialize dependencies
+  await initializeDependencies();
   const {
     includeImages = false,
     includeNotes = true,
@@ -274,7 +291,9 @@ export const exportShowListToPDF = (show, equipmentList, options = {}) => {
  * @param {Array} equipmentList - List of equipment items
  * @param {Object} options - Export options
  */
-export const exportShowListToExcel = (show, equipmentList, options = {}) => {
+export const exportShowListToExcel = async (show, equipmentList, options = {}) => {
+  // Initialize dependencies
+  await initializeDependencies();
   const {
     includeNotes = true,
     includeQuantities = true,
@@ -431,7 +450,9 @@ export const downloadPDF = (doc, filename) => {
 /**
  * Download Excel file in Microsoft Excel format
  */
-export const downloadExcel = (workbook, filename) => {
+export const downloadExcel = async (workbook, filename) => {
+  // Initialize dependencies
+  await initializeDependencies();
   // Write workbook in Microsoft Excel format (.xlsx) with minimal options to avoid corruption
   const excelBuffer = XLSX.write(workbook, {
     bookType: 'xlsx',

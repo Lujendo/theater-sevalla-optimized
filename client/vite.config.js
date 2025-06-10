@@ -19,6 +19,16 @@ export default defineConfig({
   },
   build: {
     // Generate source maps for better debugging
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      // Ensure these dependencies are bundled, not externalized
+      external: [],
+      output: {
+        manualChunks: {
+          // Group PDF/Excel libraries together
+          'pdf-excel': ['jspdf', 'jspdf-autotable', 'xlsx', 'file-saver']
+        }
+      }
+    }
   }
 })
