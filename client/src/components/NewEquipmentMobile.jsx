@@ -113,6 +113,15 @@ const NewEquipmentMobile = () => {
         category_id: value,
         category: selectedCategory?.name || ''
       }));
+    }
+    // Special handling for location selection
+    else if (name === 'location_id') {
+      const selectedLocation = locationsData?.locations?.find(loc => loc.id.toString() === value);
+      setFormData(prev => ({
+        ...prev,
+        location_id: value,
+        location: selectedLocation?.name || ''
+      }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }

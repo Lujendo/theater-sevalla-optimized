@@ -63,10 +63,11 @@ export const createEquipment = async (equipmentData, files = [], referenceImageF
     throw new Error('Model is required');
   }
 
-  if (!equipmentData.serial_number) {
-    console.error('Missing required field: serial_number');
-    throw new Error('Serial number is required');
-  }
+  // Serial number is now optional
+  // if (!equipmentData.serial_number) {
+  //   console.error('Missing required field: serial_number');
+  //   throw new Error('Serial number is required');
+  // }
 
   // Create a clean copy of the equipment data without any undefined values
   const cleanEquipmentData = Object.fromEntries(
