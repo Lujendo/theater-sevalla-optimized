@@ -36,6 +36,8 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: false,
+  createdAt: false,
+  updatedAt: false,
   // Explicitly define which attributes to include by default
   defaultScope: {
     attributes: ['id', 'username', 'password', 'role', 'created_at']

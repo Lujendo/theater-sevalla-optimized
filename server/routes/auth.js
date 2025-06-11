@@ -119,6 +119,13 @@ router.post('/register', authenticate, isAdmin, async (req, res) => {
       });
     }
 
+    if (error.name === 'SequelizeDatabaseError' && error.original?.code === 'ER_BAD_FIELD_ERROR') {
+      console.error('Database schema mismatch:', error.original.sqlMessage);
+      return res.status(500).json({
+        message: 'Database schema error - please contact administrator'
+      });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 });
