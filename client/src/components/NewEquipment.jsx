@@ -58,7 +58,18 @@ const NewEquipment = () => {
       return createEquipment(equipmentData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['equipment']);
+      // Comprehensive cache invalidation for all equipment-related queries
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-types'] });
+
+      // Force refetch of the main equipment list (infinite query)
+      queryClient.refetchQueries({
+        queryKey: ['equipment'],
+        type: 'active'
+      });
+
       navigate('/equipment');
     },
     onError: (error) => {

@@ -189,7 +189,18 @@ const EditEquipmentModern = () => {
       return updateEquipment(id, cleanEquipmentData, data.filesToUpload, data.filesToDelete);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['equipment']);
+      // Comprehensive cache invalidation for all equipment-related queries
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', id] });
+
+      // Force refetch of the main equipment list (infinite query)
+      queryClient.refetchQueries({
+        queryKey: ['equipment'],
+        type: 'active'
+      });
+
       navigate(`/equipment/${id}`);
     },
     onError: (error) => {

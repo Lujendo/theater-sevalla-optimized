@@ -22,7 +22,17 @@ const BarcodeCardCreator = ({ onEquipmentCreated }) => {
       return createEquipment(data);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries(['equipment']);
+      // Comprehensive cache invalidation for all equipment-related queries
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-list'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-summary'] });
+
+      // Force refetch of the main equipment list (infinite query)
+      queryClient.refetchQueries({
+        queryKey: ['equipment'],
+        type: 'active'
+      });
+
       setSerialNumber('');
       setError('');
       setIsCreating(false);
