@@ -245,10 +245,10 @@ const QuantityLocationModal = ({ isOpen, onClose, equipment }) => {
                         ]}
                         disabled={locationsLoading}
                       />
-                      {!allocation.location_id && (
+                      {(!allocation.location_id || allocation.location_id === '') && (
                         <Input
                           label="Custom Location"
-                          value={allocation.location_name}
+                          value={allocation.location_name || ''}
                           onChange={(e) => handleAllocationChange(index, 'location_name', e.target.value)}
                           placeholder="Enter custom location"
                           className="mt-2"
