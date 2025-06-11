@@ -242,7 +242,7 @@ if (process.env.NODE_ENV === 'production') {
   const fs = require('fs');
 
   // Serve static files from Vite build
-  const distPath = path.join(__dirname, '../dist');
+  const distPath = path.join(__dirname, '../client/dist');
   console.log('Production mode: Serving static files from:', distPath);
 
   if (fs.existsSync(distPath)) {
@@ -255,7 +255,7 @@ if (process.env.NODE_ENV === 'production') {
         return res.status(404).json({ message: 'API endpoint not found' });
       }
 
-      const indexPath = path.join(__dirname, '../dist/index.html');
+      const indexPath = path.join(__dirname, '../client/dist/index.html');
       res.sendFile(indexPath);
     });
   } else {
