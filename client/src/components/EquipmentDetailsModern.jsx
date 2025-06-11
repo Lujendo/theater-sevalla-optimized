@@ -231,9 +231,7 @@ const EquipmentDetailsModern = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [layout, setLayout] = useState('grid');
 
-  // Navigation state
-  const [equipmentList, setEquipmentList] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(-1);
+
 
   // Fetch equipment details
   const { data: equipment, isLoading, isError, error } = useQuery({
@@ -243,50 +241,13 @@ const EquipmentDetailsModern = () => {
     cacheTime: 0, // Don't cache to ensure fresh data
   });
 
-  // Fetch navigation info for current equipment (server-side approach)
-  const { data: navigationInfo, isLoading: navigationLoading } = useQuery({
-    queryKey: ['equipmentNavigation', id],
-    queryFn: async () => {
-      console.log('🔍 Fetching navigation info for equipment:', id);
-      try {
-        const response = await axios.get(`/api/equipment/${id}/navigation`);
-        console.log('🔍 Navigation API response:', response.data);
-        return response.data;
-      } catch (error) {
-        console.error('❌ Error fetching navigation info:', error);
-        // Fallback: return basic info
-        return {
-          currentPosition: 1,
-          totalCount: 1,
-          previousId: null,
-          nextId: null,
-          canNavigatePrevious: false,
-          canNavigateNext: false
-        };
-      }
-    },
-    enabled: !!id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000 // 5 minutes
-  });
-
-  // Update navigation state when navigation info changes
-  useEffect(() => {
-    if (navigationInfo) {
-      console.log('🔍 Navigation info updated:', navigationInfo);
-      setCurrentIndex(navigationInfo.currentPosition - 1); // Convert to 0-based index
-      setEquipmentList({ length: navigationInfo.totalCount }); // Mock list for display
-    }
-  }, [navigationInfo]);
-
-  // Force refresh all queries when equipment ID changes (navigation)
+  // Force refresh all queries when equipment ID changes (for direct URL navigation)
   useEffect(() => {
     console.log('🔄 Equipment ID changed, invalidating all queries for:', id);
     queryClient.invalidateQueries(['equipment', id]);
     queryClient.invalidateQueries(['equipmentAvailability', id]);
     queryClient.invalidateQueries(['equipmentShowAllocations', id]);
     queryClient.invalidateQueries(['inventoryAllocations', id]);
-    queryClient.invalidateQueries(['equipmentNavigation', id]);
   }, [id, queryClient]);
 
   // Fetch equipment availability data using UNIFIED calculation method
@@ -524,38 +485,7 @@ const EquipmentDetailsModern = () => {
     navigate('/equipment');
   };
 
-  // Navigation functions using server-side navigation
-  const handlePrevious = () => {
-    console.log('🔙 Previous button clicked:', {
-      navigationInfo,
-      canNavigate: navigationInfo?.canNavigatePrevious
-    });
 
-    if (navigationInfo?.canNavigatePrevious && navigationInfo?.previousId) {
-      console.log('🔙 Navigating to previous equipment:', navigationInfo.previousId);
-      navigate(`/equipment/${navigationInfo.previousId}`);
-    } else {
-      console.log('❌ Cannot navigate to previous equipment');
-    }
-  };
-
-  const handleNext = () => {
-    console.log('🔜 Next button clicked:', {
-      navigationInfo,
-      canNavigate: navigationInfo?.canNavigateNext
-    });
-
-    if (navigationInfo?.canNavigateNext && navigationInfo?.nextId) {
-      console.log('🔜 Navigating to next equipment:', navigationInfo.nextId);
-      navigate(`/equipment/${navigationInfo.nextId}`);
-    } else {
-      console.log('❌ Cannot navigate to next equipment');
-    }
-  };
-
-  // Check if navigation is possible using server data
-  const canNavigatePrevious = navigationInfo?.canNavigatePrevious || false;
-  const canNavigateNext = navigationInfo?.canNavigateNext || false;
 
   // Handle edit allocation
   const handleEditAllocation = (allocation) => {
@@ -776,9 +706,9 @@ const EquipmentDetailsModern = () => {
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-slate-800">Equipment Details</h1>
+                <h1 className="text-2xl font-bold text-slate-800">Equipment #{equipment.id} - {equipment.brand} {equipment.model}</h1>
                 <p className="text-slate-500 text-sm">
-                  {equipment.brand} {equipment.model} • {equipment.serial_number}
+                  {equipment.type} {equipment.category && `• ${equipment.category}`} • {equipment.serial_number}
                 </p>
               </div>
               <div className="flex items-center space-x-2 ml-6">
@@ -794,48 +724,7 @@ const EquipmentDetailsModern = () => {
                   Back to List
                 </Button>
 
-                {/* Navigation Controls */}
-                <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-                  {/* Previous Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePrevious}
-                    disabled={!canNavigatePrevious}
-                    className="flex items-center px-2 py-1"
-                    title="Previous Equipment"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Button>
 
-                  {/* Position Indicator */}
-                  <span className="text-xs text-slate-500 px-2">
-                    {navigationInfo ? navigationInfo.currentPosition : '?'} of {navigationInfo ? navigationInfo.totalCount : '?'}
-                  </span>
-
-                  {/* Debug Info - Remove after testing */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <span className="text-xs text-red-500 px-2 border-l border-red-200">
-                      Debug: pos={navigationInfo?.currentPosition}, total={navigationInfo?.totalCount}, prev={canNavigatePrevious ? 'Y' : 'N'}, next={canNavigateNext ? 'Y' : 'N'}
-                    </span>
-                  )}
-
-                  {/* Next Button */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleNext}
-                    disabled={!canNavigateNext}
-                    className="flex items-center px-2 py-1"
-                    title="Next Equipment"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
-                </div>
               </div>
             </div>
           </div>

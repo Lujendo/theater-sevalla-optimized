@@ -99,7 +99,10 @@ const EquipmentCardView = ({ equipment, onDuplicate, onSelect, isSelected }) => 
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-medium text-slate-800 capitalize">{equipment.type}</h3>
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="font-mono text-xs text-slate-400">#{equipment.id}</span>
+              <h3 className="font-medium text-slate-800 capitalize">{equipment.type}</h3>
+            </div>
             {equipment.category && (
               <p className="text-xs text-slate-500">Category: {equipment.category}</p>
             )}

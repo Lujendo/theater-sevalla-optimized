@@ -563,6 +563,14 @@ const EquipmentList = () => {
                       />
                     </div>
                   </th>
+                  <SortableHeader
+                    field="id"
+                    label="ID"
+                    currentSortField={sortBy}
+                    currentSortOrder={sortOrder}
+                    onSort={handleSortChange}
+                    className="w-16"
+                  />
                   {/* Thumbnail column removed */}
                   <SortableHeader
                     field="type"
@@ -648,6 +656,11 @@ const EquipmentList = () => {
                             className="h-4 w-4 text-primary-600 border-gray-300 rounded"
                           />
                         </div>
+                      </td>
+                      <td className="table-cell">
+                        <span className="font-mono text-sm text-slate-600">
+                          {item.id}
+                        </span>
                       </td>
                       {/* Thumbnail cell removed */}
                       <td className="table-cell">
