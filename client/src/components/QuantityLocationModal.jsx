@@ -85,14 +85,26 @@ const QuantityLocationModal = ({ isOpen, onClose, equipment }) => {
     const newAllocations = [...allocations];
     newAllocations[index] = { ...newAllocations[index], [field]: value };
 
-    // If location_id changes, update location_name
-    if (field === 'location_id' && value) {
-      const locationsArray = Array.isArray(locations) ? locations : [];
-      const selectedLocation = locationsArray.find(loc => loc.id.toString() === value);
-      if (selectedLocation) {
-        newAllocations[index].location_name = selectedLocation.name;
-        newAllocations[index].location_id = value;
+    // If location_id changes, update location_name accordingly
+    if (field === 'location_id') {
+      if (value && value !== '') {
+        // Predefined location selected - set location_name from database and clear custom location
+        const locationsArray = Array.isArray(locations) ? locations : [];
+        const selectedLocation = locationsArray.find(loc => loc.id.toString() === value);
+        if (selectedLocation) {
+          newAllocations[index].location_name = selectedLocation.name;
+          newAllocations[index].location_id = value;
+        }
+      } else {
+        // Custom location selected - clear location_id but keep location_name for custom entry
+        newAllocations[index].location_id = '';
+        // Don't clear location_name here - let user enter custom location
       }
+    }
+
+    // If location_name changes and location_id is set, clear location_id to use custom location
+    if (field === 'location_name' && newAllocations[index].location_id) {
+      newAllocations[index].location_id = '';
     }
 
     setAllocations(newAllocations);
@@ -234,10 +246,10 @@ const QuantityLocationModal = ({ isOpen, onClose, equipment }) => {
                     <div className="md:col-span-2">
                       <Select
                         label="Location"
-                        value={allocation.location_id}
+                        value={allocation.location_id || ''}
                         onChange={(e) => handleAllocationChange(index, 'location_id', e.target.value)}
                         options={[
-                          { value: '', label: 'Select Location' },
+                          { value: '', label: 'Custom Location (enter below)' },
                           ...locationsArray.map((location) => ({
                             value: location.id.toString(),
                             label: `${location.name}${location.city ? ` (${location.city})` : ''}`,
@@ -245,15 +257,15 @@ const QuantityLocationModal = ({ isOpen, onClose, equipment }) => {
                         ]}
                         disabled={locationsLoading}
                       />
-                      {(!allocation.location_id || allocation.location_id === '') && (
-                        <Input
-                          label="Custom Location"
-                          value={allocation.location_name || ''}
-                          onChange={(e) => handleAllocationChange(index, 'location_name', e.target.value)}
-                          placeholder="Enter custom location"
-                          className="mt-2"
-                        />
-                      )}
+                      <Input
+                        label="Custom Location Name"
+                        value={allocation.location_name || ''}
+                        onChange={(e) => handleAllocationChange(index, 'location_name', e.target.value)}
+                        placeholder="Enter custom location name"
+                        className="mt-2"
+                        disabled={allocation.location_id && allocation.location_id !== ''}
+                        helpText={allocation.location_id && allocation.location_id !== '' ? 'Clear location dropdown to use custom location' : 'Used when no predefined location is selected'}
+                      />
                     </div>
 
                     {/* Quantity */}
