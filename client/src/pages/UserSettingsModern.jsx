@@ -5,7 +5,6 @@ import CategoryManagerModern from '../components/CategoryManagerModern';
 import LocationManagement from '../components/LocationManagement';
 import DefaultStorageLocations from '../components/DefaultStorageLocations';
 import DatabaseManager from '../components/DatabaseManager';
-import UserManagement from '../components/UserManagement';
 import { Card, Button, Input } from '../components/ui';
 
 // Icons
@@ -66,7 +65,6 @@ const UserSettingsModern = () => {
 
   // Add admin-only tabs
   if (user?.role === 'admin') {
-    tabs.push({ id: 'users', label: 'User Management', icon: <ProfileIcon /> });
     tabs.push({ id: 'equipmentTypes', label: 'Equipment Types', icon: <TagIcon /> });
     tabs.push({ id: 'categories', label: 'Categories', icon: <TagIcon /> });
     tabs.push({ id: 'locations', label: 'Locations', icon: <LocationIcon /> });
@@ -223,13 +221,6 @@ const UserSettingsModern = () => {
                       </Button>
                     </div>
                   </form>
-                </div>
-              )}
-
-              {activeTab === 'users' && user?.role === 'admin' && (
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-800 mb-6">User Management</h2>
-                  <UserManagement />
                 </div>
               )}
 
