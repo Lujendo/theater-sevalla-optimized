@@ -242,27 +242,62 @@ const EquipmentDetailsModern = () => {
   });
 
   // Fetch equipment list for navigation (no sorting - natural order)
-  const { data: allEquipment } = useQuery({
+  const { data: allEquipment, isLoading: allEquipmentLoading, isError: allEquipmentError, error: allEquipmentErrorDetails } = useQuery({
     queryKey: ['allEquipment'],
     queryFn: async () => {
-      const response = await axios.get('/api/equipment');
-      return response.data.equipment || response.data;
-    }
+      console.log('🔍 Fetching all equipment for navigation...');
+      try {
+        const response = await axios.get('/api/equipment');
+        console.log('🔍 All equipment API response:', response.data);
+        const equipmentData = response.data.equipment || response.data;
+        console.log('🔍 Processed equipment data:', {
+          isArray: Array.isArray(equipmentData),
+          length: equipmentData?.length,
+          firstFew: equipmentData?.slice(0, 3)?.map(eq => ({ id: eq.id, type: eq.type, brand: eq.brand }))
+        });
+        return equipmentData;
+      } catch (error) {
+        console.error('❌ Error fetching all equipment:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000 // 10 minutes
   });
 
   // Update equipment list and current index when data changes
   useEffect(() => {
-    if (allEquipment && id) {
+    console.log('🔍 Navigation useEffect triggered:', {
+      allEquipment: allEquipment ? allEquipment.length : 'null',
+      allEquipmentLoading,
+      allEquipmentError,
+      id: id,
+      equipmentListLength: equipmentList.length,
+      currentIndex: currentIndex
+    });
+
+    if (allEquipment && Array.isArray(allEquipment) && id) {
       setEquipmentList(allEquipment);
       const currentIdx = allEquipment.findIndex(item => item.id === parseInt(id));
       setCurrentIndex(currentIdx);
       console.log('🔍 Navigation state updated:', {
         totalEquipment: allEquipment.length,
         currentIndex: currentIdx,
-        currentId: parseInt(id)
+        currentId: parseInt(id),
+        equipmentIds: allEquipment.map(eq => eq.id),
+        canNavigatePrevious: currentIdx > 0,
+        canNavigateNext: currentIdx < allEquipment.length - 1 && currentIdx !== -1
+      });
+    } else {
+      console.log('❌ Navigation update skipped:', {
+        allEquipmentExists: !!allEquipment,
+        allEquipmentIsArray: Array.isArray(allEquipment),
+        allEquipmentLoading,
+        allEquipmentError: allEquipmentError ? allEquipmentErrorDetails?.message : 'none',
+        idExists: !!id
       });
     }
-  }, [allEquipment, id]);
+  }, [allEquipment, id, allEquipmentLoading, allEquipmentError]);
 
   // Fetch equipment availability data using UNIFIED calculation method
   const { data: availabilityData, isLoading: availabilityLoading } = useQuery({
@@ -495,22 +530,40 @@ const EquipmentDetailsModern = () => {
 
   // Navigation functions
   const handlePrevious = () => {
+    console.log('🔙 Previous button clicked:', {
+      currentIndex,
+      equipmentListLength: equipmentList.length,
+      canNavigate: currentIndex > 0 && equipmentList.length > 0
+    });
+
     if (currentIndex > 0 && equipmentList.length > 0) {
       const prevEquipment = equipmentList[currentIndex - 1];
+      console.log('🔙 Navigating to previous equipment:', prevEquipment);
       navigate(`/equipment/${prevEquipment.id}`);
+    } else {
+      console.log('❌ Cannot navigate to previous equipment');
     }
   };
 
   const handleNext = () => {
+    console.log('🔜 Next button clicked:', {
+      currentIndex,
+      equipmentListLength: equipmentList.length,
+      canNavigate: currentIndex < equipmentList.length - 1 && equipmentList.length > 0
+    });
+
     if (currentIndex < equipmentList.length - 1 && equipmentList.length > 0) {
       const nextEquipment = equipmentList[currentIndex + 1];
+      console.log('🔜 Navigating to next equipment:', nextEquipment);
       navigate(`/equipment/${nextEquipment.id}`);
+    } else {
+      console.log('❌ Cannot navigate to next equipment');
     }
   };
 
   // Check if navigation is possible
-  const canNavigatePrevious = currentIndex > 0;
-  const canNavigateNext = currentIndex < equipmentList.length - 1 && currentIndex !== -1;
+  const canNavigatePrevious = currentIndex > 0 && equipmentList.length > 0;
+  const canNavigateNext = currentIndex < equipmentList.length - 1 && currentIndex !== -1 && equipmentList.length > 0;
 
   // Handle edit allocation
   const handleEditAllocation = (allocation) => {
@@ -767,8 +820,15 @@ const EquipmentDetailsModern = () => {
 
                   {/* Position Indicator */}
                   <span className="text-xs text-slate-500 px-2">
-                    {currentIndex + 1} of {equipmentList.length}
+                    {currentIndex !== -1 ? currentIndex + 1 : '?'} of {equipmentList.length}
                   </span>
+
+                  {/* Debug Info - Remove after testing */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="text-xs text-red-500 px-2 border-l border-red-200">
+                      Debug: idx={currentIndex}, len={equipmentList.length}, prev={canNavigatePrevious ? 'Y' : 'N'}, next={canNavigateNext ? 'Y' : 'N'}
+                    </span>
+                  )}
 
                   {/* Next Button */}
                   <Button
