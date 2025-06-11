@@ -161,6 +161,63 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Get navigation info for equipment (previous/next equipment IDs)
+router.get('/:id/navigation', authenticate, async (req, res) => {
+  try {
+    const currentId = parseInt(req.params.id);
+
+    if (!currentId) {
+      return res.status(400).json({ message: 'Invalid equipment ID' });
+    }
+
+    // Get all equipment IDs in natural order (by ID)
+    const allEquipment = await Equipment.findAll({
+      attributes: ['id'],
+      order: [['id', 'ASC']]
+    });
+
+    if (allEquipment.length === 0) {
+      return res.status(404).json({ message: 'No equipment found' });
+    }
+
+    // Find current equipment index
+    const currentIndex = allEquipment.findIndex(eq => eq.id === currentId);
+
+    if (currentIndex === -1) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    // Calculate navigation info
+    const totalCount = allEquipment.length;
+    const currentPosition = currentIndex + 1; // 1-based position
+    const previousId = currentIndex > 0 ? allEquipment[currentIndex - 1].id : null;
+    const nextId = currentIndex < totalCount - 1 ? allEquipment[currentIndex + 1].id : null;
+    const canNavigatePrevious = currentIndex > 0;
+    const canNavigateNext = currentIndex < totalCount - 1;
+
+    console.log(`🔍 Navigation info for equipment ${currentId}:`, {
+      currentPosition,
+      totalCount,
+      previousId,
+      nextId,
+      canNavigatePrevious,
+      canNavigateNext
+    });
+
+    res.json({
+      currentPosition,
+      totalCount,
+      previousId,
+      nextId,
+      canNavigatePrevious,
+      canNavigateNext
+    });
+  } catch (error) {
+    console.error('Get equipment navigation error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Create new equipment with files (admin and advanced users only)
 router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
   { name: 'files', maxCount: MAX_FILES },

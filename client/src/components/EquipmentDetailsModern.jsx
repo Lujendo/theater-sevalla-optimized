@@ -241,63 +241,41 @@ const EquipmentDetailsModern = () => {
     queryFn: () => getEquipmentById(id),
   });
 
-  // Fetch equipment list for navigation (no sorting - natural order)
-  const { data: allEquipment, isLoading: allEquipmentLoading, isError: allEquipmentError, error: allEquipmentErrorDetails } = useQuery({
-    queryKey: ['allEquipment'],
+  // Fetch navigation info for current equipment (server-side approach)
+  const { data: navigationInfo, isLoading: navigationLoading } = useQuery({
+    queryKey: ['equipmentNavigation', id],
     queryFn: async () => {
-      console.log('🔍 Fetching all equipment for navigation...');
+      console.log('🔍 Fetching navigation info for equipment:', id);
       try {
-        const response = await axios.get('/api/equipment');
-        console.log('🔍 All equipment API response:', response.data);
-        const equipmentData = response.data.equipment || response.data;
-        console.log('🔍 Processed equipment data:', {
-          isArray: Array.isArray(equipmentData),
-          length: equipmentData?.length,
-          firstFew: equipmentData?.slice(0, 3)?.map(eq => ({ id: eq.id, type: eq.type, brand: eq.brand }))
-        });
-        return equipmentData;
+        const response = await axios.get(`/api/equipment/${id}/navigation`);
+        console.log('🔍 Navigation API response:', response.data);
+        return response.data;
       } catch (error) {
-        console.error('❌ Error fetching all equipment:', error);
-        throw error;
+        console.error('❌ Error fetching navigation info:', error);
+        // Fallback: return basic info
+        return {
+          currentPosition: 1,
+          totalCount: 1,
+          previousId: null,
+          nextId: null,
+          canNavigatePrevious: false,
+          canNavigateNext: false
+        };
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000 // 10 minutes
+    enabled: !!id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    cacheTime: 5 * 60 * 1000 // 5 minutes
   });
 
-  // Update equipment list and current index when data changes
+  // Update navigation state when navigation info changes
   useEffect(() => {
-    console.log('🔍 Navigation useEffect triggered:', {
-      allEquipment: allEquipment ? allEquipment.length : 'null',
-      allEquipmentLoading,
-      allEquipmentError,
-      id: id,
-      equipmentListLength: equipmentList.length,
-      currentIndex: currentIndex
-    });
-
-    if (allEquipment && Array.isArray(allEquipment) && id) {
-      setEquipmentList(allEquipment);
-      const currentIdx = allEquipment.findIndex(item => item.id === parseInt(id));
-      setCurrentIndex(currentIdx);
-      console.log('🔍 Navigation state updated:', {
-        totalEquipment: allEquipment.length,
-        currentIndex: currentIdx,
-        currentId: parseInt(id),
-        equipmentIds: allEquipment.map(eq => eq.id),
-        canNavigatePrevious: currentIdx > 0,
-        canNavigateNext: currentIdx < allEquipment.length - 1 && currentIdx !== -1
-      });
-    } else {
-      console.log('❌ Navigation update skipped:', {
-        allEquipmentExists: !!allEquipment,
-        allEquipmentIsArray: Array.isArray(allEquipment),
-        allEquipmentLoading,
-        allEquipmentError: allEquipmentError ? allEquipmentErrorDetails?.message : 'none',
-        idExists: !!id
-      });
+    if (navigationInfo) {
+      console.log('🔍 Navigation info updated:', navigationInfo);
+      setCurrentIndex(navigationInfo.currentPosition - 1); // Convert to 0-based index
+      setEquipmentList({ length: navigationInfo.totalCount }); // Mock list for display
     }
-  }, [allEquipment, id, allEquipmentLoading, allEquipmentError]);
+  }, [navigationInfo]);
 
   // Fetch equipment availability data using UNIFIED calculation method
   const { data: availabilityData, isLoading: availabilityLoading } = useQuery({
@@ -528,18 +506,16 @@ const EquipmentDetailsModern = () => {
     navigate('/equipment');
   };
 
-  // Navigation functions
+  // Navigation functions using server-side navigation
   const handlePrevious = () => {
     console.log('🔙 Previous button clicked:', {
-      currentIndex,
-      equipmentListLength: equipmentList.length,
-      canNavigate: currentIndex > 0 && equipmentList.length > 0
+      navigationInfo,
+      canNavigate: navigationInfo?.canNavigatePrevious
     });
 
-    if (currentIndex > 0 && equipmentList.length > 0) {
-      const prevEquipment = equipmentList[currentIndex - 1];
-      console.log('🔙 Navigating to previous equipment:', prevEquipment);
-      navigate(`/equipment/${prevEquipment.id}`);
+    if (navigationInfo?.canNavigatePrevious && navigationInfo?.previousId) {
+      console.log('🔙 Navigating to previous equipment:', navigationInfo.previousId);
+      navigate(`/equipment/${navigationInfo.previousId}`);
     } else {
       console.log('❌ Cannot navigate to previous equipment');
     }
@@ -547,23 +523,21 @@ const EquipmentDetailsModern = () => {
 
   const handleNext = () => {
     console.log('🔜 Next button clicked:', {
-      currentIndex,
-      equipmentListLength: equipmentList.length,
-      canNavigate: currentIndex < equipmentList.length - 1 && equipmentList.length > 0
+      navigationInfo,
+      canNavigate: navigationInfo?.canNavigateNext
     });
 
-    if (currentIndex < equipmentList.length - 1 && equipmentList.length > 0) {
-      const nextEquipment = equipmentList[currentIndex + 1];
-      console.log('🔜 Navigating to next equipment:', nextEquipment);
-      navigate(`/equipment/${nextEquipment.id}`);
+    if (navigationInfo?.canNavigateNext && navigationInfo?.nextId) {
+      console.log('🔜 Navigating to next equipment:', navigationInfo.nextId);
+      navigate(`/equipment/${navigationInfo.nextId}`);
     } else {
       console.log('❌ Cannot navigate to next equipment');
     }
   };
 
-  // Check if navigation is possible
-  const canNavigatePrevious = currentIndex > 0 && equipmentList.length > 0;
-  const canNavigateNext = currentIndex < equipmentList.length - 1 && currentIndex !== -1 && equipmentList.length > 0;
+  // Check if navigation is possible using server data
+  const canNavigatePrevious = navigationInfo?.canNavigatePrevious || false;
+  const canNavigateNext = navigationInfo?.canNavigateNext || false;
 
   // Handle edit allocation
   const handleEditAllocation = (allocation) => {
@@ -820,13 +794,13 @@ const EquipmentDetailsModern = () => {
 
                   {/* Position Indicator */}
                   <span className="text-xs text-slate-500 px-2">
-                    {currentIndex !== -1 ? currentIndex + 1 : '?'} of {equipmentList.length}
+                    {navigationInfo ? navigationInfo.currentPosition : '?'} of {navigationInfo ? navigationInfo.totalCount : '?'}
                   </span>
 
                   {/* Debug Info - Remove after testing */}
                   {process.env.NODE_ENV === 'development' && (
                     <span className="text-xs text-red-500 px-2 border-l border-red-200">
-                      Debug: idx={currentIndex}, len={equipmentList.length}, prev={canNavigatePrevious ? 'Y' : 'N'}, next={canNavigateNext ? 'Y' : 'N'}
+                      Debug: pos={navigationInfo?.currentPosition}, total={navigationInfo?.totalCount}, prev={canNavigatePrevious ? 'Y' : 'N'}, next={canNavigateNext ? 'Y' : 'N'}
                     </span>
                   )}
 
