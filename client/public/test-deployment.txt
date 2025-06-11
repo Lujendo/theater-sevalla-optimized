@@ -1,0 +1,3 @@
+DEPLOYMENT TEST - June 11, 2025 - 21:15
+This file should appear if Sevalla is deploying correctly.
+If you can access this file at https://tonlager.kinsta.app/test-deployment.txt then deployment is working.
