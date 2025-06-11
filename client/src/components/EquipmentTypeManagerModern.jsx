@@ -50,7 +50,7 @@ const EquipmentTypeManagerModern = () => {
 
   // Fetch equipment types
   const { data: typesData, isLoading, isError } = useQuery({
-    queryKey: ['equipmentTypes'],
+    queryKey: ['equipment-types'],
     queryFn: getEquipmentTypes
   });
 
@@ -61,7 +61,9 @@ const EquipmentTypeManagerModern = () => {
   const createMutation = useMutation({
     mutationFn: createEquipmentType,
     onSuccess: () => {
-      queryClient.invalidateQueries(['equipmentTypes']);
+      // Comprehensive cache invalidation for equipment types
+      queryClient.invalidateQueries(['equipment-types']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setNewTypeName('');
       setError('');
     },
@@ -74,7 +76,9 @@ const EquipmentTypeManagerModern = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, name }) => updateEquipmentType(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries(['equipmentTypes']);
+      // Comprehensive cache invalidation for equipment types
+      queryClient.invalidateQueries(['equipment-types']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setEditingType(null);
       setEditedName('');
       setError('');
@@ -88,7 +92,9 @@ const EquipmentTypeManagerModern = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteEquipmentType,
     onSuccess: () => {
-      queryClient.invalidateQueries(['equipmentTypes']);
+      // Comprehensive cache invalidation for equipment types
+      queryClient.invalidateQueries(['equipment-types']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setError('');
     },
     onError: (error) => {

@@ -26,7 +26,10 @@ const LocationManagement = () => {
   // Create location mutation
   const createMutation = useMutation(createLocation, {
     onSuccess: () => {
+      // Comprehensive cache invalidation for locations
       queryClient.invalidateQueries(['locations']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
+      queryClient.invalidateQueries(['equipment-list']);
       setIsAddModalOpen(false);
       setFormData({ name: '', street: '', postal_code: '', city: '', region: '', country: '' });
       alert('Location created successfully');
@@ -41,7 +44,10 @@ const LocationManagement = () => {
     (data) => updateLocation(data.id, data.locationData),
     {
       onSuccess: () => {
+        // Comprehensive cache invalidation for locations
         queryClient.invalidateQueries(['locations']);
+        queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
+        queryClient.invalidateQueries(['equipment-list']);
         setIsEditModalOpen(false);
         setSelectedLocation(null);
         alert('Location updated successfully');
@@ -55,7 +61,10 @@ const LocationManagement = () => {
   // Delete location mutation
   const deleteMutation = useMutation(deleteLocation, {
     onSuccess: () => {
+      // Comprehensive cache invalidation for locations
       queryClient.invalidateQueries(['locations']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
+      queryClient.invalidateQueries(['equipment-list']);
       setIsDeleteModalOpen(false);
       setSelectedLocation(null);
       alert('Location deleted successfully');

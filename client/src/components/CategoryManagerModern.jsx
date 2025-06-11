@@ -63,7 +63,9 @@ const CategoryManagerModern = () => {
   const createMutation = useMutation({
     mutationFn: ({ name, description }) => createCategory(name, description),
     onSuccess: () => {
+      // Comprehensive cache invalidation for categories
       queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setNewCategoryName('');
       setNewCategoryDescription('');
       setError('');
@@ -77,7 +79,9 @@ const CategoryManagerModern = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, name, description }) => updateCategory(id, name, description),
     onSuccess: () => {
+      // Comprehensive cache invalidation for categories
       queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setEditingCategory(null);
       setEditedName('');
       setEditedDescription('');
@@ -92,7 +96,9 @@ const CategoryManagerModern = () => {
   const deleteMutation = useMutation({
     mutationFn: deleteCategory,
     onSuccess: () => {
+      // Comprehensive cache invalidation for categories
       queryClient.invalidateQueries(['categories']);
+      queryClient.invalidateQueries(['equipment']); // Also invalidate equipment lists
       setError('');
     },
     onError: (error) => {
