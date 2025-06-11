@@ -43,7 +43,7 @@ export const getEquipmentById = async (id) => {
 };
 
 // Create new equipment
-export const createEquipment = async (params) => {
+export const createEquipment = async (params, filesParam = [], referenceImageFileParam = null) => {
   // Handle both old signature (equipmentData, files, referenceImageFile) and new object signature
   let equipmentData, files, referenceImageFile;
 
@@ -56,8 +56,8 @@ export const createEquipment = async (params) => {
   } else {
     // Old signature for backward compatibility
     equipmentData = params;
-    files = arguments[1] || [];
-    referenceImageFile = arguments[2] || null;
+    files = filesParam || [];
+    referenceImageFile = referenceImageFileParam || null;
     console.log('📱 Service received individual params:', JSON.stringify(equipmentData, null, 2));
   }
 
