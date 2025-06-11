@@ -247,13 +247,22 @@ const EquipmentDetailsModern = () => {
     queryFn: async () => {
       const response = await axios.get('/api/equipment');
       return response.data.equipment || response.data;
-    },
-    onSuccess: (data) => {
-      setEquipmentList(data);
-      const currentIdx = data.findIndex(item => item.id === parseInt(id));
-      setCurrentIndex(currentIdx);
     }
   });
+
+  // Update equipment list and current index when data changes
+  useEffect(() => {
+    if (allEquipment && id) {
+      setEquipmentList(allEquipment);
+      const currentIdx = allEquipment.findIndex(item => item.id === parseInt(id));
+      setCurrentIndex(currentIdx);
+      console.log('🔍 Navigation state updated:', {
+        totalEquipment: allEquipment.length,
+        currentIndex: currentIdx,
+        currentId: parseInt(id)
+      });
+    }
+  }, [allEquipment, id]);
 
   // Fetch equipment availability data using UNIFIED calculation method
   const { data: availabilityData, isLoading: availabilityLoading } = useQuery({
