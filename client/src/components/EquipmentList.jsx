@@ -570,6 +570,7 @@ const EquipmentList = () => {
                     currentSortOrder={sortOrder}
                     onSort={handleSortChange}
                     className="w-16"
+                    title="Sort by Equipment ID"
                   />
                   {/* Thumbnail column removed */}
                   <SortableHeader
