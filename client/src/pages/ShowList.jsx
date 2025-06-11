@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Card, Button, Input, Select } from '../components/ui';
 import { ShowListIcon, AddIcon, ViewIcon, EditIcon, TrashIcon, ListViewIcon, CardViewIcon } from '../components/Icons';
-import { getShows, createShow, updateShow, deleteShow } from '../services/showService';
+import { getShows, createShow, updateShow, deleteShow, getShowEquipment } from '../services/showService';
 import { getLocations } from '../services/locationService';
+import axios from 'axios';
 
 const ShowList = () => {
   const navigate = useNavigate();
@@ -29,6 +30,53 @@ const ShowList = () => {
     onError: (error) => {
       console.error('Failed to load locations:', error);
     }
+  });
+
+  // Fetch missing equipment data for all shows
+  const { data: missingEquipmentData } = useQuery({
+    queryKey: ['showsMissingEquipment'],
+    queryFn: async () => {
+      const missingData = {};
+
+      // Fetch equipment data for each show
+      for (const show of shows) {
+        try {
+          const equipmentResponse = await getShowEquipment(show.id);
+          const equipment = equipmentResponse?.equipment || [];
+
+          // Calculate missing equipment for this show
+          const missingItems = equipment.reduce((acc, item) => {
+            const needed = parseInt(item.quantity_needed) || 0;
+            const allocated = parseInt(item.quantity_allocated) || 0;
+            const missing = Math.max(0, needed - allocated);
+
+            if (missing > 0) {
+              acc.items.push({
+                id: item.id,
+                equipment_id: item.equipment_id,
+                name: item.equipment?.name || item.equipment?.type,
+                brand: item.equipment?.brand,
+                model: item.equipment?.model,
+                missing: missing,
+                needed: needed,
+                allocated: allocated
+              });
+              acc.totalMissing += missing;
+            }
+            return acc;
+          }, { items: [], totalMissing: 0 });
+
+          missingData[show.id] = missingItems;
+        } catch (error) {
+          console.error(`Failed to fetch equipment for show ${show.id}:`, error);
+          missingData[show.id] = { items: [], totalMissing: 0 };
+        }
+      }
+
+      return missingData;
+    },
+    enabled: shows.length > 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const locations = locationsData?.locations || [];
@@ -154,8 +202,91 @@ const ShowList = () => {
     );
   }
 
+  // Calculate overall missing equipment summary
+  const overallMissingSummary = Object.entries(missingEquipmentData || {}).reduce((acc, [showId, data]) => {
+    if (data.totalMissing > 0) {
+      const show = shows.find(s => s.id.toString() === showId);
+      if (show) {
+        acc.showsWithMissing.push({
+          show: show,
+          missing: data.totalMissing,
+          items: data.items
+        });
+        acc.totalMissingItems += data.totalMissing;
+      }
+    }
+    return acc;
+  }, { showsWithMissing: [], totalMissingItems: 0 });
+
   return (
     <div className="space-y-6">
+      {/* Missing Equipment Alert */}
+      {overallMissingSummary.totalMissingItems > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                Missing Equipment Alert
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p className="mb-3">
+                  <strong>{overallMissingSummary.totalMissingItems}</strong> equipment items are missing across <strong>{overallMissingSummary.showsWithMissing.length}</strong> production{overallMissingSummary.showsWithMissing.length !== 1 ? 's' : ''}:
+                </p>
+                <div className="space-y-2">
+                  {overallMissingSummary.showsWithMissing.map(({ show, missing }) => (
+                    <div key={show.id} className="flex items-center justify-between bg-red-100 rounded px-3 py-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => navigate(`/show/${show.id}`)}
+                          className="font-medium text-red-800 hover:text-red-900 hover:underline"
+                          title="View production details"
+                        >
+                          {show.name}
+                        </button>
+                        <span className="text-red-600 text-xs">
+                          {show.venue} • {new Date(show.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="bg-red-200 text-red-800 px-2 py-1 rounded font-bold text-xs">
+                        {missing} missing
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center space-x-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // Navigate to the first show with missing equipment
+                      if (overallMissingSummary.showsWithMissing.length > 0) {
+                        navigate(`/show/${overallMissingSummary.showsWithMissing[0].show.id}`);
+                      }
+                    }}
+                    className="bg-white text-red-700 border-red-300 hover:bg-red-50"
+                  >
+                    Review First Show
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('/equipment')}
+                    className="bg-white text-red-700 border-red-300 hover:bg-red-50"
+                  >
+                    Check Equipment Inventory
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -263,7 +394,19 @@ const ShowList = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-medium text-primary-600">{show.equipmentCount}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium text-primary-600">{show.equipmentCount}</span>
+                          {missingEquipmentData?.[show.id]?.totalMissing > 0 && (
+                            <div className="flex items-center space-x-1">
+                              <div className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <span>{missingEquipmentData[show.id].totalMissing} missing</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
@@ -339,7 +482,17 @@ const ShowList = () => {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Equipment Items:</span>
-                    <span className="font-medium text-primary-600">{show.equipmentCount}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium text-primary-600">{show.equipmentCount}</span>
+                      {missingEquipmentData?.[show.id]?.totalMissing > 0 && (
+                        <div className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          <span>{missingEquipmentData[show.id].totalMissing} missing</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Card.Body>

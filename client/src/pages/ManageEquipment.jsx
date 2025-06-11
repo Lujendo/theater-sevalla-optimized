@@ -308,13 +308,113 @@ const ManageEquipment = () => {
     );
   }
 
+  // Calculate missing equipment summary
+  const missingEquipmentSummary = showEquipment.reduce((acc, item) => {
+    const missing = calculateMissingQuantity(item.quantity_needed, item.quantity_allocated);
+    if (missing > 0) {
+      acc.items.push({
+        id: item.id,
+        equipment_id: item.equipment_id,
+        name: item.equipment?.name || item.equipment?.type,
+        brand: item.equipment?.brand,
+        model: item.equipment?.model,
+        missing: missing,
+        needed: item.quantity_needed,
+        allocated: item.quantity_allocated
+      });
+      acc.totalMissing += missing;
+    }
+    return acc;
+  }, { items: [], totalMissing: 0 });
+
   return (
     <div className="space-y-6">
+      {/* Missing Equipment Alert */}
+      {missingEquipmentSummary.totalMissing > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="ml-3 flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                Missing Equipment Alert
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p className="mb-2">
+                  <strong>{missingEquipmentSummary.totalMissing}</strong> items are missing from this production.
+                  The following equipment needs attention:
+                </p>
+                <div className="space-y-1">
+                  {missingEquipmentSummary.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between bg-red-100 rounded px-3 py-2">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleNavigateToEquipment(item.equipment_id)}
+                          className="font-medium text-red-800 hover:text-red-900 hover:underline"
+                          title="View equipment details"
+                        >
+                          {item.name}
+                        </button>
+                        <span className="text-red-600 text-xs">
+                          {item.brand} {item.model}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3 text-xs">
+                        <span className="text-red-600">
+                          Need: <strong>{item.needed}</strong>
+                        </span>
+                        <span className="text-red-600">
+                          Have: <strong>{item.allocated}</strong>
+                        </span>
+                        <span className="bg-red-200 text-red-800 px-2 py-1 rounded font-bold">
+                          Missing: {item.missing}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center space-x-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowAddModal(true)}
+                    className="bg-white text-red-700 border-red-300 hover:bg-red-50"
+                  >
+                    Add More Equipment
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      // Scroll to equipment list
+                      document.querySelector('.equipment-list')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="bg-white text-red-700 border-red-300 hover:bg-red-50"
+                  >
+                    Review Allocations
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-800">Equipment Management</h2>
-          <p className="text-slate-600">Manage equipment allocation for this show</p>
+          <p className="text-slate-600">
+            Manage equipment allocation for this show
+            {missingEquipmentSummary.totalMissing > 0 && (
+              <span className="ml-2 text-red-600 font-medium">
+                • {missingEquipmentSummary.totalMissing} items missing
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex items-center space-x-4">
           {/* View Toggle */}
@@ -366,6 +466,7 @@ const ManageEquipment = () => {
       </div>
 
       {/* Equipment List */}
+      <div className="equipment-list">
       {showEquipment.length === 0 ? (
         <Card className="text-center py-12">
           <Card.Body>
@@ -700,6 +801,7 @@ const ManageEquipment = () => {
           ))}
         </div>
       )}
+      </div>
 
       {/* Add Equipment Modal */}
       {showAddModal && (
