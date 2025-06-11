@@ -30,9 +30,12 @@ router.post('/login', authLimiter, async (req, res) => {
     }
 
     // Check password
+    console.log(`🔑 Login attempt for user: ${user.username} (ID: ${user.id})`);
     const isMatch = await user.checkPassword(password);
+    console.log(`🔑 Password match result: ${isMatch}`);
 
     if (!isMatch) {
+      console.log(`🔑 Login failed for user: ${user.username} - Invalid password`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -316,9 +319,20 @@ router.put('/users/:userId/password', authenticate, restrictTo('admin'), async (
     }
 
     // Update password (will be hashed by the beforeUpdate hook)
+    console.log(`🔑 Resetting password for user: ${user.username} (ID: ${user.id})`);
+    console.log(`🔑 New password length: ${newPassword.length}`);
+
     await user.update({
       password: newPassword
     });
+
+    // Verify the password was updated by checking if it can be validated
+    const updatedUser = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'password', 'role', 'created_at']
+    });
+
+    const passwordVerification = await updatedUser.checkPassword(newPassword);
+    console.log(`🔑 Password verification after reset: ${passwordVerification}`);
 
     res.json({
       message: 'Password reset successfully',
