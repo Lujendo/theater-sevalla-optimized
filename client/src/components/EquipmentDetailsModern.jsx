@@ -231,10 +231,29 @@ const EquipmentDetailsModern = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [layout, setLayout] = useState('grid');
 
+  // Navigation state
+  const [sortOrder, setSortOrder] = useState('name'); // Default sorting
+  const [equipmentList, setEquipmentList] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(-1);
+
   // Fetch equipment details
   const { data: equipment, isLoading, isError, error } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id),
+  });
+
+  // Fetch equipment list for navigation
+  const { data: allEquipment } = useQuery({
+    queryKey: ['allEquipment', sortOrder],
+    queryFn: async () => {
+      const response = await axios.get(`/api/equipment?sort=${sortOrder}`);
+      return response.data.equipment || response.data;
+    },
+    onSuccess: (data) => {
+      setEquipmentList(data);
+      const currentIdx = data.findIndex(item => item.id === parseInt(id));
+      setCurrentIndex(currentIdx);
+    }
   });
 
   // Fetch equipment availability data using UNIFIED calculation method
@@ -466,6 +485,25 @@ const EquipmentDetailsModern = () => {
     navigate('/equipment');
   };
 
+  // Navigation functions
+  const handlePrevious = () => {
+    if (currentIndex > 0 && equipmentList.length > 0) {
+      const prevEquipment = equipmentList[currentIndex - 1];
+      navigate(`/equipment/${prevEquipment.id}`);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < equipmentList.length - 1 && equipmentList.length > 0) {
+      const nextEquipment = equipmentList[currentIndex + 1];
+      navigate(`/equipment/${nextEquipment.id}`);
+    }
+  };
+
+  // Check if navigation is possible
+  const canNavigatePrevious = currentIndex > 0;
+  const canNavigateNext = currentIndex < equipmentList.length - 1 && currentIndex !== -1;
+
   // Handle edit allocation
   const handleEditAllocation = (allocation) => {
     setEditingAllocation(allocation);
@@ -682,24 +720,79 @@ const EquipmentDetailsModern = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Equipment Details</h1>
-            <p className="text-slate-500 text-sm">
-              {equipment.brand} {equipment.model} • {equipment.serial_number}
-            </p>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800">Equipment Details</h1>
+                <p className="text-slate-500 text-sm">
+                  {equipment.brand} {equipment.model} • {equipment.serial_number}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 ml-6">
+                {/* Back to List Button */}
+                <Button
+                  variant="outline"
+                  onClick={handleBack}
+                  className="flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to List
+                </Button>
+
+                {/* Navigation Controls */}
+                <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
+                  {/* Sort Order Selector */}
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="text-xs px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="name">Sort by Name</option>
+                    <option value="brand">Sort by Brand</option>
+                    <option value="type">Sort by Type</option>
+                    <option value="created_at">Sort by Date</option>
+                  </select>
+
+                  {/* Previous Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevious}
+                    disabled={!canNavigatePrevious}
+                    className="flex items-center px-2 py-1"
+                    title="Previous Equipment"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Button>
+
+                  {/* Position Indicator */}
+                  <span className="text-xs text-slate-500 px-2">
+                    {currentIndex + 1} of {equipmentList.length}
+                  </span>
+
+                  {/* Next Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNext}
+                    disabled={!canNavigateNext}
+                    className="flex items-center px-2 py-1"
+                    title="Next Equipment"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="flex space-x-3">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            className="flex items-center"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to List
-          </Button>
           {(user?.role === 'admin' || user?.role === 'advanced') && (
             <>
               <Button
@@ -971,8 +1064,29 @@ const EquipmentDetailsModern = () => {
                                   <div className="bg-white border border-slate-200 rounded-lg p-3">
                                     <h4 className="text-xs font-medium text-slate-700 mb-2 uppercase tracking-wide">Detailed Breakdown</h4>
                                     <div className="space-y-2">
-                                      {/* Show allocations */}
-                                      {availabilityData && availabilityData.show_allocated > 0 && (
+                                      {/* Show allocations with specific show names */}
+                                      {showAllocations && showAllocations.length > 0 && showAllocations.map((allocation, index) => (
+                                        <div key={`show-${index}`} className="flex items-center justify-between text-sm">
+                                          <div className="flex items-center">
+                                            <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                                            <span className="text-slate-700">
+                                              {allocation.show_name}
+                                              {allocation.venue && (
+                                                <span className="text-xs text-slate-500 ml-1">@ {allocation.venue}</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center space-x-2">
+                                            <span className="font-medium text-slate-800">{allocation.quantity_allocated || allocation.quantity_needed || 0}</span>
+                                            <span className="text-xs text-orange-600">
+                                              ({allocation.status || 'allocated'})
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+
+                                      {/* Fallback for show allocations without details */}
+                                      {availabilityData && availabilityData.show_allocated > 0 && (!showAllocations || showAllocations.length === 0) && (
                                         <div className="flex items-center justify-between text-sm">
                                           <div className="flex items-center">
                                             <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
@@ -985,16 +1099,26 @@ const EquipmentDetailsModern = () => {
                                         </div>
                                       )}
 
-                                      {/* Installation allocations */}
+                                      {/* Installation allocations with specific location */}
                                       {availabilityData && availabilityData.installation_allocated > 0 && (
                                         <div className="flex items-center justify-between text-sm">
                                           <div className="flex items-center">
                                             <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                                            <span className="text-slate-700">Installed</span>
+                                            <span className="text-slate-700">
+                                              Installed
+                                              {equipment?.installation_location && (
+                                                <span className="text-xs text-slate-500 ml-1">@ {equipment.installation_location}</span>
+                                              )}
+                                              {!equipment?.installation_location && equipment?.installation_location_id && currentLocationInfo?.isInstallation && (
+                                                <span className="text-xs text-slate-500 ml-1">@ {currentLocationInfo.displayName}</span>
+                                              )}
+                                            </span>
                                           </div>
                                           <div className="flex items-center space-x-2">
                                             <span className="font-medium text-slate-800">{availabilityData.installation_allocated}</span>
-                                            <span className="text-xs text-purple-600">(fixed)</span>
+                                            <span className="text-xs text-purple-600">
+                                              ({equipment?.installation_type || 'fixed'})
+                                            </span>
                                           </div>
                                         </div>
                                       )}
@@ -1242,8 +1366,29 @@ const EquipmentDetailsModern = () => {
                                 <div className="bg-white border border-slate-200 rounded-lg p-3">
                                   <h4 className="text-xs font-medium text-slate-700 mb-2 uppercase tracking-wide">Current Distribution</h4>
                                   <div className="space-y-2">
-                                    {/* Show allocations */}
-                                    {availabilityData && availabilityData.show_allocated > 0 && (
+                                    {/* Show allocations with specific show names */}
+                                    {showAllocations && showAllocations.length > 0 && showAllocations.map((allocation, index) => (
+                                      <div key={`show-location-${index}`} className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center">
+                                          <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                                          <span className="text-slate-700">
+                                            {allocation.show_name}
+                                            {allocation.venue && (
+                                              <span className="text-xs text-slate-500 ml-1">@ {allocation.venue}</span>
+                                            )}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                          <span className="font-medium text-slate-800">{allocation.quantity_allocated || allocation.quantity_needed || 0}</span>
+                                          <span className="text-xs text-orange-600">
+                                            ({allocation.status || 'allocated'})
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+
+                                    {/* Fallback for show allocations without details */}
+                                    {availabilityData && availabilityData.show_allocated > 0 && (!showAllocations || showAllocations.length === 0) && (
                                       <div className="flex items-center justify-between text-sm">
                                         <div className="flex items-center">
                                           <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
@@ -1256,16 +1401,26 @@ const EquipmentDetailsModern = () => {
                                       </div>
                                     )}
 
-                                    {/* Installation allocations */}
+                                    {/* Installation allocations with specific location */}
                                     {availabilityData && availabilityData.installation_allocated > 0 && (
                                       <div className="flex items-center justify-between text-sm">
                                         <div className="flex items-center">
                                           <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
-                                          <span className="text-slate-700">Installed</span>
+                                          <span className="text-slate-700">
+                                            Installed
+                                            {equipment?.installation_location && (
+                                              <span className="text-xs text-slate-500 ml-1">@ {equipment.installation_location}</span>
+                                            )}
+                                            {!equipment?.installation_location && equipment?.installation_location_id && currentLocationInfo?.isInstallation && (
+                                              <span className="text-xs text-slate-500 ml-1">@ {currentLocationInfo.displayName}</span>
+                                            )}
+                                          </span>
                                         </div>
                                         <div className="flex items-center space-x-2">
                                           <span className="font-medium text-slate-800">{availabilityData.installation_allocated}</span>
-                                          <span className="text-xs text-purple-600">(fixed)</span>
+                                          <span className="text-xs text-purple-600">
+                                            ({equipment?.installation_type || 'fixed'})
+                                          </span>
                                         </div>
                                       </div>
                                     )}
