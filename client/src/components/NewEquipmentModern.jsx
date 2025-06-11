@@ -518,6 +518,9 @@ const NewEquipmentModern = () => {
     // Prepare equipment data with allocation overrides
     const equipmentData = { ...formData };
 
+    // Add custom_location field based on whether location_id is set
+    equipmentData.custom_location = equipmentData.location_id ? null : equipmentData.location;
+
     // Override form values with allocation values when allocation is not default storage
     if (showAllocationOptions && allocationData.allocationType !== 'storage') {
       console.log('🔄 ALLOCATION OVERRIDE: Form values will be overridden by allocation settings');

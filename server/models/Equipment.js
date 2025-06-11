@@ -92,6 +92,11 @@ const Equipment = sequelize.define('Equipment', {
     type: DataTypes.INTEGER,
     allowNull: true
   },
+  custom_location: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Custom location name when not using predefined locations'
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true

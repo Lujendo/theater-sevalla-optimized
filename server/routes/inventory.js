@@ -294,12 +294,112 @@ router.get('/equipment/:id/allocations', authenticate, async (req, res) => {
     const equipmentId = parseInt(req.params.id);
     const { sequelize } = require('../config/database');
 
-    // For now, return empty array since we're focusing on location-based inventory
-    // This will be enhanced later with proper inventory allocation system
-    res.json([]);
+    // Get current allocations from inventory_allocation table
+    const [allocations] = await sequelize.query(`
+      SELECT
+        ia.id,
+        ia.equipment_id,
+        ia.location_id,
+        ia.custom_location,
+        ia.quantity_allocated as quantity,
+        ia.status,
+        ia.allocation_type,
+        ia.notes,
+        ia.allocated_date,
+        l.name as location_name
+      FROM inventory_allocation ia
+      LEFT JOIN locations l ON ia.location_id = l.id
+      WHERE ia.equipment_id = ?
+        AND ia.status IN ('allocated', 'in-use', 'reserved', 'maintenance')
+      ORDER BY ia.allocated_date DESC
+    `, { replacements: [equipmentId] });
+
+    res.json(allocations);
   } catch (error) {
     console.error('Error getting equipment inventory allocations:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+/**
+ * Update inventory allocations for specific equipment
+ * PUT /api/inventory/equipment/:id/allocations
+ */
+router.put('/equipment/:id/allocations', authenticate, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const equipmentId = parseInt(req.params.id);
+    const { allocations } = req.body;
+    const userId = req.user.id;
+
+    console.log(`[INVENTORY] Updating allocations for equipment ${equipmentId}:`, allocations);
+
+    // Clear existing allocations for this equipment
+    await sequelize.query(`
+      DELETE FROM inventory_allocation
+      WHERE equipment_id = ? AND allocation_type = 'location'
+    `, {
+      replacements: [equipmentId],
+      type: sequelize.QueryTypes.DELETE,
+      transaction
+    });
+
+    console.log(`[INVENTORY] Cleared existing allocations for equipment ${equipmentId}`);
+
+    // Create new allocations
+    for (const allocation of allocations) {
+      const insertData = {
+        equipment_id: equipmentId,
+        location_id: allocation.location_id || null,
+        custom_location: allocation.location_name || null,
+        quantity_allocated: allocation.quantity,
+        status: allocation.status || 'allocated',
+        allocation_type: 'location',
+        allocated_by: userId,
+        notes: allocation.notes || 'Location allocation',
+        allocated_date: new Date()
+      };
+
+      await sequelize.query(`
+        INSERT INTO inventory_allocation (
+          equipment_id, location_id, custom_location, quantity_allocated,
+          status, allocation_type, allocated_by, notes, allocated_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, {
+        replacements: [
+          insertData.equipment_id,
+          insertData.location_id,
+          insertData.custom_location,
+          insertData.quantity_allocated,
+          insertData.status,
+          insertData.allocation_type,
+          insertData.allocated_by,
+          insertData.notes,
+          insertData.allocated_date
+        ],
+        type: sequelize.QueryTypes.INSERT,
+        transaction
+      });
+
+      console.log(`[INVENTORY] Created allocation: ${allocation.quantity} items to ${allocation.location_name || 'location ID ' + allocation.location_id}`);
+    }
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      message: 'Inventory allocations updated successfully'
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('[INVENTORY] Error updating allocations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update inventory allocations',
+      error: error.message
+    });
   }
 });
 

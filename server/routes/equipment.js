@@ -726,6 +726,7 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       status,
       location,
       location_id,
+      custom_location,
       description,
       reference_image_id,
       location_id_is_null,
@@ -829,6 +830,7 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       status: status || equipment.status,
       location: location !== undefined ? location : equipment.location,
       location_id: location_id_is_null === 'true' ? null : (location_id !== undefined ? location_id : equipment.location_id),
+      custom_location: custom_location !== undefined ? custom_location : equipment.custom_location,
       description: description !== undefined ? description : equipment.description,
       quantity: equipmentQuantity,
       // Installation fields with proper date handling

@@ -385,6 +385,8 @@ const EditEquipmentModern = () => {
       category_id: formData.category_id ? parseInt(formData.category_id) : null,
       location_id: formData.location_id ? parseInt(formData.location_id) : null,
       installation_location_id: formData.installation_location_id ? parseInt(formData.installation_location_id) : null,
+      // Add custom_location field based on whether location_id is set
+      custom_location: formData.location_id ? null : formData.location,
       // If reference_image_id is 'new', it will be handled by the backend
       reference_image_id: formData.reference_image_id === 'new' ? 'new' : formData.reference_image_id,
     };
