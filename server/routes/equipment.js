@@ -1603,14 +1603,15 @@ router.get('/:id/allocations', authenticate, async (req, res) => {
         ia.id,
         ia.equipment_id,
         ia.location_id,
+        ia.custom_location,
         ia.quantity_allocated,
         ia.status,
         ia.allocation_type,
         ia.notes,
         ia.allocated_date,
-        l.name as location_name
+        COALESCE(l.name, ia.custom_location) as location_name
       FROM inventory_allocation ia
-      JOIN locations l ON ia.location_id = l.id
+      LEFT JOIN locations l ON ia.location_id = l.id
       WHERE ia.equipment_id = ?
         AND ia.status IN ('allocated', 'in-use', 'reserved', 'maintenance')
       ORDER BY ia.allocated_date DESC
@@ -1713,13 +1714,14 @@ router.post('/:id/allocations', authenticate, async (req, res) => {
     for (const allocation of allocations) {
       await sequelize.query(`
         INSERT INTO inventory_allocation (
-          equipment_id, location_id, quantity_allocated, status,
+          equipment_id, location_id, custom_location, quantity_allocated, status,
           allocation_type, allocated_by, notes, allocated_date
-        ) VALUES (?, ?, ?, ?, 'location', ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, 'location', ?, ?, NOW())
       `, {
         replacements: [
           id,
-          allocation.location_id,
+          allocation.location_id || null,
+          allocation.location_name || null,
           allocation.quantity,
           allocation.status,
           userId,
@@ -1729,7 +1731,7 @@ router.post('/:id/allocations', authenticate, async (req, res) => {
         transaction
       });
 
-      console.log(`[ALLOCATIONS] Created allocation: ${allocation.quantity} items to location ${allocation.location_id}`);
+      console.log(`[ALLOCATIONS] Created allocation: ${allocation.quantity} items to ${allocation.location_name || 'location ID ' + allocation.location_id}`);
     }
 
     // Note: Unallocated items remain in equipment's current location without explicit allocation records
