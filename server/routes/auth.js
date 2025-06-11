@@ -207,4 +207,184 @@ router.get('/users', authenticate, restrictTo('admin'), async (req, res) => {
   }
 });
 
+/**
+ * Update user route (admin only)
+ * Updates user information like username and role
+ */
+router.put('/users/:userId', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { username, role } = req.body;
+
+    // Validate input
+    if (!username) {
+      return res.status(400).json({ message: 'Username is required' });
+    }
+
+    // Validate role
+    const validRoles = ['admin', 'advanced', 'basic'];
+    if (role && !validRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    // Find user
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'role', 'created_at']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if username already exists (if changed)
+    if (username !== user.username) {
+      const existingUser = await User.findOne({
+        where: { username },
+        attributes: ['id', 'username']
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
+    }
+
+    // Update user
+    await user.update({
+      username,
+      role: role || user.role
+    });
+
+    res.json({
+      message: 'User updated successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        created_at: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    console.error('Update user error details:', {
+      message: error.message,
+      name: error.name,
+      sql: error.sql,
+      original: error.original
+    });
+
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        message: 'Validation error: ' + error.errors.map(e => e.message).join(', ')
+      });
+    }
+
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        message: 'Username already exists'
+      });
+    }
+
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Reset user password route (admin only)
+ * Resets a user's password to a new value
+ */
+router.put('/users/:userId/password', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    // Validate input
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Find user
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'role', 'created_at']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update password (will be hashed by the beforeUpdate hook)
+    await user.update({
+      password: newPassword
+    });
+
+    res.json({
+      message: 'Password reset successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    console.error('Reset password error details:', {
+      message: error.message,
+      name: error.name,
+      sql: error.sql,
+      original: error.original
+    });
+
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Delete user route (admin only)
+ * Permanently deletes a user from the system
+ */
+router.delete('/users/:userId', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Prevent admin from deleting themselves
+    if (parseInt(userId) === req.user.id) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    // Find user
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'role', 'created_at']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete user
+    await user.destroy();
+
+    res.json({
+      message: 'User deleted successfully',
+      deletedUser: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    console.error('Delete user error details:', {
+      message: error.message,
+      name: error.name,
+      sql: error.sql,
+      original: error.original
+    });
+
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
