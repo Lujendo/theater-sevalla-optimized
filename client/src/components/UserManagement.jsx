@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import PasswordInput from './ui/PasswordInput';
 import axios from 'axios';
 
 const UserManagement = () => {
@@ -436,22 +437,15 @@ const UserManagement = () => {
                   )}
                 </div>
                 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border ${formErrors.password ? 'border-red-500' : 'border-slate-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                  />
-                  {formErrors.password && (
-                    <p className="mt-1 text-sm text-red-500">{formErrors.password}</p>
-                  )}
-                </div>
+                <PasswordInput
+                  id="password"
+                  label="Password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter password (min 6 characters)"
+                  error={formErrors.password}
+                  required
+                />
                 
                 <div>
                   <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">
@@ -564,41 +558,25 @@ const UserManagement = () => {
 
             <form onSubmit={handlePasswordSubmit}>
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-1">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="new-password"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordInputChange}
-                    className={`w-full px-3 py-2 border ${formErrors.newPassword ? 'border-red-500' : 'border-slate-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                    placeholder="Enter new password"
-                  />
-                  {formErrors.newPassword && (
-                    <p className="mt-1 text-sm text-red-500">{formErrors.newPassword}</p>
-                  )}
-                </div>
+                <PasswordInput
+                  id="new-password"
+                  label="New Password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter new password (min 6 characters)"
+                  error={formErrors.newPassword}
+                  required
+                />
 
-                <div>
-                  <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirm-password"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordInputChange}
-                    className={`w-full px-3 py-2 border ${formErrors.confirmPassword ? 'border-red-500' : 'border-slate-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500`}
-                    placeholder="Confirm new password"
-                  />
-                  {formErrors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-500">{formErrors.confirmPassword}</p>
-                  )}
-                </div>
+                <PasswordInput
+                  id="confirm-password"
+                  label="Confirm Password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                  error={formErrors.confirmPassword}
+                  required
+                />
               </div>
 
               <div className="flex justify-end space-x-3 mt-6">

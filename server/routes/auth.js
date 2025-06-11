@@ -6,6 +6,7 @@ const { User } = (process.env.DB_TYPE === 'mysql')
   : require('../models/index.local');
 const { authenticate, isAdmin, restrictTo, logImpersonation } = require('../middleware/auth');
 const { authLimiter } = require('../middleware/rateLimiter');
+const { fixUnhashedPasswords } = require('../scripts/fix-unhashed-passwords');
 
 const router = express.Router();
 
@@ -398,6 +399,36 @@ router.delete('/users/:userId', authenticate, restrictTo('admin'), async (req, r
     });
 
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Fix unhashed passwords route (admin only)
+ * Finds and hashes any plain text passwords in the database
+ */
+router.post('/fix-passwords', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    console.log('🔧 Admin requested password hash fix');
+
+    // Run the password fix script
+    await fixUnhashedPasswords();
+
+    res.json({
+      message: 'Password hash fix completed successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Fix passwords error:', error);
+    console.error('Fix passwords error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+
+    res.status(500).json({
+      message: 'Failed to fix passwords: ' + error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

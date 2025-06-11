@@ -5,7 +5,9 @@ import CategoryManagerModern from '../components/CategoryManagerModern';
 import LocationManagement from '../components/LocationManagement';
 import DefaultStorageLocations from '../components/DefaultStorageLocations';
 import DatabaseManager from '../components/DatabaseManager';
+import PasswordInput from '../components/ui/PasswordInput';
 import { Card, Button, Input } from '../components/ui';
+import axios from 'axios';
 
 // Icons
 const ProfileIcon = () => (
@@ -73,7 +75,7 @@ const UserSettingsModern = () => {
   }
 
   // Handle password change
-  const handlePasswordChange = (e) => {
+  const handlePasswordChange = async (e) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess('');
@@ -94,17 +96,25 @@ const UserSettingsModern = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
       return;
     }
 
-    // Here you would call the API to change the password
-    // For now, we'll just simulate success
-    setPasswordSuccess('Password changed successfully');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      // Call the API to change the password
+      await axios.put(`/api/auth/users/${user.id}/password`, {
+        newPassword: newPassword
+      });
+
+      setPasswordSuccess('Password changed successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Password change error:', error);
+      setPasswordError(error.response?.data?.message || 'Failed to change password');
+    }
   };
 
   return (
@@ -185,31 +195,31 @@ const UserSettingsModern = () => {
                   )}
 
                   <form onSubmit={handlePasswordChange} className="space-y-4">
-                    <Input
-                      type="password"
+                    <PasswordInput
                       id="current-password"
                       label="Current Password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter your current password"
+                      required
                     />
 
-                    <Input
-                      type="password"
+                    <PasswordInput
                       id="new-password"
                       label="New Password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter your new password"
+                      placeholder="Enter your new password (min 6 characters)"
+                      required
                     />
 
-                    <Input
-                      type="password"
+                    <PasswordInput
                       id="confirm-password"
                       label="Confirm New Password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm your new password"
+                      required
                     />
 
                     <div>
