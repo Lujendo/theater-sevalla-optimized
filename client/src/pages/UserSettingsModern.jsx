@@ -102,12 +102,17 @@ const UserSettingsModern = () => {
     }
 
     try {
-      // Call the API to change the password
-      await axios.put(`/api/auth/users/${user.id}/password`, {
+      // Call the direct password reset API to avoid double hashing
+      const response = await axios.post(`/api/auth/users/${user.id}/reset-password-direct`, {
         newPassword: newPassword
       });
 
-      setPasswordSuccess('Password changed successfully');
+      if (response.data.verification) {
+        setPasswordSuccess('Password changed successfully and verified');
+      } else {
+        setPasswordSuccess('Password changed but verification failed - please try logging in');
+      }
+
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');

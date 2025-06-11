@@ -75,18 +75,24 @@ const UserManagement = () => {
     }
   });
 
-  // Reset password mutation
+  // Reset password mutation (using direct reset to avoid double hashing)
   const resetPasswordMutation = useMutation({
     mutationFn: async ({ userId, newPassword }) => {
-      const response = await axios.put(`/api/auth/users/${userId}/password`, { newPassword });
+      const response = await axios.post(`/api/auth/users/${userId}/reset-password-direct`, { newPassword });
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries(['users']);
       setShowPasswordModal(false);
       setSelectedUser(null);
       setPasswordData({ newPassword: '', confirmPassword: '' });
-      toast.success('Password reset successfully');
+
+      // Show enhanced success message with verification status
+      if (data.verification) {
+        toast.success(`Password reset successfully and verified for ${data.user.username}`);
+      } else {
+        toast.warning(`Password reset completed but verification failed for ${data.user.username}`);
+      }
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || 'Failed to reset password');

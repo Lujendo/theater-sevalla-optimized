@@ -232,7 +232,6 @@ const EquipmentDetailsModern = () => {
   const [layout, setLayout] = useState('grid');
 
   // Navigation state
-  const [sortOrder, setSortOrder] = useState('name'); // Default sorting
   const [equipmentList, setEquipmentList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
 
@@ -242,11 +241,11 @@ const EquipmentDetailsModern = () => {
     queryFn: () => getEquipmentById(id),
   });
 
-  // Fetch equipment list for navigation
+  // Fetch equipment list for navigation (no sorting - natural order)
   const { data: allEquipment } = useQuery({
-    queryKey: ['allEquipment', sortOrder],
+    queryKey: ['allEquipment'],
     queryFn: async () => {
-      const response = await axios.get(`/api/equipment?sort=${sortOrder}`);
+      const response = await axios.get('/api/equipment');
       return response.data.equipment || response.data;
     },
     onSuccess: (data) => {
@@ -743,18 +742,6 @@ const EquipmentDetailsModern = () => {
 
                 {/* Navigation Controls */}
                 <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-                  {/* Sort Order Selector */}
-                  <select
-                    value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value)}
-                    className="text-xs px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  >
-                    <option value="name">Sort by Name</option>
-                    <option value="brand">Sort by Brand</option>
-                    <option value="type">Sort by Type</option>
-                    <option value="created_at">Sort by Date</option>
-                  </select>
-
                   {/* Previous Button */}
                   <Button
                     variant="outline"
