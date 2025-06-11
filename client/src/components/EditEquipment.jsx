@@ -362,7 +362,7 @@ const EditEquipment = () => {
               {/* Serial Number */}
               <div>
                 <label htmlFor="serial_number" className="block text-sm font-medium text-gray-700 mb-1">
-                  Serial Number
+                  Serial Number (Optional)
                 </label>
                 <div className="flex" style={{ display: 'flex', width: '100%' }}>
                   <input
@@ -373,7 +373,7 @@ const EditEquipment = () => {
                     onChange={handleInputChange}
                     style={{ width: 'calc(100% - 120px)' }}
                     className="rounded-l-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
+                    placeholder="Enter serial number (optional)"
                   />
                   <button
                     type="button"
