@@ -111,12 +111,25 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
     const updated = [...allocations];
     updated[index] = { ...updated[index], [field]: value };
 
-    // If location_id is changed, update location_name
+    // Handle location_id changes
     if (field === 'location_id') {
-      const location = locations.find(loc => loc.id.toString() === value.toString());
-      if (location) {
-        updated[index].location_name = location.name;
+      if (value && value !== '') {
+        // Predefined location selected - set location_name from database and clear custom location
+        const location = locations.find(loc => loc.id.toString() === value.toString());
+        if (location) {
+          updated[index].location_name = location.name;
+          updated[index].location_id = value;
+        }
+      } else {
+        // Custom location selected - clear location_id but keep location_name for custom entry
+        updated[index].location_id = '';
+        // Don't clear location_name here - let user enter custom location
       }
+    }
+
+    // If location_name changes and location_id is set, clear location_id to use custom location
+    if (field === 'location_name' && updated[index].location_id) {
+      updated[index].location_id = '';
     }
 
     setAllocations(updated);
@@ -170,8 +183,8 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
 
     // Check individual allocations
     allocations.forEach((alloc, index) => {
-      if (!alloc.location_id) {
-        errors.push(`Allocation #${index + 1}: Location must be selected`);
+      if (!alloc.location_id && !alloc.location_name) {
+        errors.push(`Allocation #${index + 1}: Location must be selected or custom location must be entered`);
       }
       if (!alloc.quantity || parseInt(alloc.quantity) <= 0) {
         errors.push(`Allocation #${index + 1}: Quantity must be greater than 0`);
@@ -200,9 +213,10 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
       return;
     }
 
-    // Prepare data for submission - don't send IDs to avoid duplication
+    // Prepare data for submission - include custom locations
     const submitData = allocations.map(alloc => ({
-      location_id: parseInt(alloc.location_id),
+      location_id: alloc.location_id ? parseInt(alloc.location_id) : null,
+      location_name: alloc.location_name,
       quantity: parseInt(alloc.quantity) || 1,
       status: alloc.status,
       notes: alloc.notes
@@ -537,20 +551,33 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
                             <select
-                              value={allocation.location_id}
+                              value={allocation.location_id || ''}
                               onChange={(e) => updateAllocation(index, 'location_id', e.target.value)}
                               className={`w-full text-sm rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
                                 isLocationDuplicate ? 'border-yellow-300' : 'border-gray-300'
                               }`}
-                              required
                             >
-                              <option value="">Select Location</option>
+                              <option value="">Custom Location (enter below)</option>
                               {locations.map((location) => (
                                 <option key={location.id} value={location.id}>
                                   {location.name}
                                 </option>
                               ))}
                             </select>
+                            <input
+                              type="text"
+                              value={allocation.location_name || ''}
+                              onChange={(e) => updateAllocation(index, 'location_name', e.target.value)}
+                              placeholder="Enter custom location name"
+                              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 mt-2"
+                              disabled={allocation.location_id && allocation.location_id !== ''}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              {allocation.location_id && allocation.location_id !== ''
+                                ? 'Clear dropdown to use custom location'
+                                : 'Used when no predefined location is selected'
+                              }
+                            </p>
                             {isLocationDuplicate && (
                               <p className="text-xs text-yellow-600 mt-1">This location is already selected</p>
                             )}
