@@ -239,6 +239,8 @@ const EquipmentDetailsModern = () => {
   const { data: equipment, isLoading, isError, error } = useQuery({
     queryKey: ['equipment', id],
     queryFn: () => getEquipmentById(id),
+    staleTime: 0, // Always refetch when navigating
+    cacheTime: 0, // Don't cache to ensure fresh data
   });
 
   // Fetch navigation info for current equipment (server-side approach)
@@ -277,6 +279,16 @@ const EquipmentDetailsModern = () => {
     }
   }, [navigationInfo]);
 
+  // Force refresh all queries when equipment ID changes (navigation)
+  useEffect(() => {
+    console.log('🔄 Equipment ID changed, invalidating all queries for:', id);
+    queryClient.invalidateQueries(['equipment', id]);
+    queryClient.invalidateQueries(['equipmentAvailability', id]);
+    queryClient.invalidateQueries(['equipmentShowAllocations', id]);
+    queryClient.invalidateQueries(['inventoryAllocations', id]);
+    queryClient.invalidateQueries(['equipmentNavigation', id]);
+  }, [id, queryClient]);
+
   // Fetch equipment availability data using UNIFIED calculation method
   const { data: availabilityData, isLoading: availabilityLoading } = useQuery({
     queryKey: ['equipmentAvailability', id],
@@ -290,7 +302,9 @@ const EquipmentDetailsModern = () => {
       console.log('📊 Available quantity:', response.data?.available_quantity);
       return response.data;
     },
-    enabled: !!id
+    enabled: !!id,
+    staleTime: 0, // Always refetch when navigating
+    cacheTime: 0 // Don't cache to ensure fresh data
   });
 
   // Fetch show allocations for this equipment
@@ -310,7 +324,9 @@ const EquipmentDetailsModern = () => {
       })));
       return response.data;
     },
-    enabled: !!id
+    enabled: !!id,
+    staleTime: 0, // Always refetch when navigating
+    cacheTime: 0 // Don't cache to ensure fresh data
   });
 
   // Fetch locations for inventory management
@@ -343,7 +359,9 @@ const EquipmentDetailsModern = () => {
         return [];
       }
     },
-    enabled: !!id
+    enabled: !!id,
+    staleTime: 0, // Always refetch when navigating
+    cacheTime: 0 // Don't cache to ensure fresh data
   });
 
   // Get current location details for this equipment
