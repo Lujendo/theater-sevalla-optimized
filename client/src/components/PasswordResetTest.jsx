@@ -139,6 +139,48 @@ const PasswordResetTest = () => {
     }
   };
 
+  const directPasswordReset = async () => {
+    if (!testData.userId || !testData.newPassword) {
+      toast.error('Please fill in User ID and New Password');
+      return;
+    }
+
+    setLoading(true);
+    setTestResults(null);
+
+    try {
+      console.log('🔧 Testing DIRECT password reset...');
+      const resetResponse = await axios.post(`/api/auth/users/${testData.userId}/reset-password-direct`, {
+        newPassword: testData.newPassword
+      });
+
+      console.log('🔧 Direct reset response:', resetResponse.data);
+
+      setTestResults({
+        resetSuccess: true,
+        resetMessage: resetResponse.data.message,
+        user: resetResponse.data.user,
+        verification: resetResponse.data.verification,
+        testPassword: resetResponse.data.testPassword,
+        timestamp: new Date().toISOString(),
+        method: 'DIRECT'
+      });
+
+      toast.success('Direct password reset completed successfully');
+    } catch (error) {
+      console.error('🔧 Direct password reset failed:', error);
+      setTestResults({
+        resetSuccess: false,
+        error: error.response?.data?.message || error.message,
+        timestamp: new Date().toISOString(),
+        method: 'DIRECT'
+      });
+      toast.error('Direct password reset failed: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold mb-6 text-slate-800">Password Reset Test Tool</h2>
@@ -193,22 +235,36 @@ const PasswordResetTest = () => {
         </div>
 
         {/* Test Section */}
-        <div className="flex space-x-4">
-          <button
-            onClick={testPasswordReset}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? 'Testing...' : 'Test Password Reset'}
-          </button>
+        <div className="space-y-3">
+          <div className="flex space-x-4">
+            <button
+              onClick={testPasswordReset}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Testing...' : 'Test Password Reset'}
+            </button>
 
-          <button
-            onClick={testLogin}
-            disabled={loading || !testResults?.user}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-          >
-            {loading ? 'Testing...' : 'Test Login'}
-          </button>
+            <button
+              onClick={directPasswordReset}
+              disabled={loading}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+            >
+              {loading ? 'Testing...' : 'Direct Password Reset'}
+            </button>
+
+            <button
+              onClick={testLogin}
+              disabled={loading || !testResults?.user}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+            >
+              {loading ? 'Testing...' : 'Test Login'}
+            </button>
+          </div>
+
+          <div className="text-sm text-slate-600">
+            <strong>Direct Password Reset:</strong> Bypasses hooks and sets password directly (recommended for troubleshooting)
+          </div>
         </div>
       </div>
 
@@ -243,7 +299,7 @@ const PasswordResetTest = () => {
           
           <div className="space-y-3">
             <div>
-              <strong>Password Reset:</strong>
+              <strong>Password Reset ({testResults.method || 'NORMAL'}):</strong>
               <span className={`ml-2 px-2 py-1 rounded text-sm ${
                 testResults.resetSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
               }`}>
@@ -254,6 +310,18 @@ const PasswordResetTest = () => {
               )}
               {testResults.error && (
                 <div className="text-sm text-red-600 mt-1">{testResults.error}</div>
+              )}
+              {testResults.verification !== undefined && (
+                <div className="text-sm text-slate-600 mt-1">
+                  Password Verification: <span className={testResults.verification ? 'text-green-600' : 'text-red-600'}>
+                    {testResults.verification ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+              )}
+              {testResults.testPassword && (
+                <div className="text-sm text-slate-600 mt-1">
+                  Test Password: "{testResults.testPassword}"
+                </div>
               )}
             </div>
 

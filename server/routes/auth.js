@@ -319,6 +319,9 @@ router.put('/users/:userId/password', authenticate, restrictTo('admin'), async (
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Store the plain text password for verification
+    const plainTextPassword = newPassword;
+
     // Update password (will be hashed by the beforeUpdate hook)
     console.log(`🔑 Resetting password for user: ${user.username} (ID: ${user.id})`);
     console.log(`🔑 New password length: ${newPassword.length}`);
@@ -332,7 +335,10 @@ router.put('/users/:userId/password', authenticate, restrictTo('admin'), async (
       attributes: ['id', 'username', 'password', 'role', 'created_at']
     });
 
-    const passwordVerification = await updatedUser.checkPassword(newPassword);
+    console.log(`🔑 Updated user password hash: ${updatedUser.password.substring(0, 30)}...`);
+
+    // Test the password verification
+    const passwordVerification = await updatedUser.checkPassword(plainTextPassword);
     console.log(`🔑 Password verification after reset: ${passwordVerification}`);
 
     res.json({
@@ -429,6 +435,76 @@ router.post('/fix-passwords', authenticate, restrictTo('admin'), async (req, res
       message: 'Failed to fix passwords: ' + error.message,
       timestamp: new Date().toISOString()
     });
+  }
+});
+
+/**
+ * Direct password reset route (admin only)
+ * Sets a password directly with proper hashing
+ */
+router.post('/users/:userId/reset-password-direct', authenticate, restrictTo('admin'), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    // Validate input
+    if (!newPassword) {
+      return res.status(400).json({ message: 'New password is required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Find user
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'role', 'created_at']
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`🔑 DIRECT reset for user: ${user.username} (ID: ${user.id})`);
+    console.log(`🔑 New password: "${newPassword}"`);
+
+    // Hash the password manually using bcrypt
+    const bcrypt = require('bcryptjs');
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    console.log(`🔑 Hashed password: ${hashedPassword.substring(0, 30)}...`);
+
+    // Update password directly without hooks to avoid double hashing
+    await User.update(
+      { password: hashedPassword },
+      {
+        where: { id: userId },
+        hooks: false // Skip beforeUpdate hook
+      }
+    );
+
+    // Verify the password works
+    const updatedUser = await User.findByPk(userId, {
+      attributes: ['id', 'username', 'password', 'role', 'created_at']
+    });
+
+    const verification = await bcrypt.compare(newPassword, updatedUser.password);
+    console.log(`🔑 Direct verification result: ${verification}`);
+
+    res.json({
+      message: 'Password reset directly and verified successfully',
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role
+      },
+      verification: verification,
+      testPassword: newPassword
+    });
+  } catch (error) {
+    console.error('Direct password reset error:', error);
+    res.status(500).json({ message: 'Server error: ' + error.message });
   }
 });
 
