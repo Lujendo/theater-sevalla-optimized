@@ -416,7 +416,7 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
       category_id: category_id || null,
       brand,
       model,
-      serial_number,
+      serial_number: serial_number && serial_number.trim() !== '' ? serial_number.trim() : null,
       status: finalStatus,
       location: locationName, // This will be the current location (installation or storage)
       location_id: finalLocationId, // This will be the storage location_id for database compatibility
