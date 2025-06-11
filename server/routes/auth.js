@@ -86,7 +86,7 @@ router.post('/register', authenticate, isAdmin, async (req, res) => {
     const user = await User.create({
       username,
       password,
-      role: role || 'user'
+      role: role || 'basic'
     });
 
     res.status(201).json({
@@ -99,6 +99,26 @@ router.post('/register', authenticate, isAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Register error:', error);
+    console.error('Register error details:', {
+      message: error.message,
+      name: error.name,
+      sql: error.sql,
+      original: error.original
+    });
+
+    // Send more specific error message
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        message: 'Validation error: ' + error.errors.map(e => e.message).join(', ')
+      });
+    }
+
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        message: 'Username already exists'
+      });
+    }
+
     res.status(500).json({ message: 'Server error' });
   }
 });
