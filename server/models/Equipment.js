@@ -60,10 +60,14 @@ const Equipment = sequelize.define('Equipment', {
   },
   serial_number: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     // Removed unique constraint to avoid database issues
     validate: {
-      notEmpty: true
+      // Only validate if value is provided (not null/empty)
+      notEmpty: {
+        msg: 'Serial number cannot be empty if provided',
+        args: false
+      }
     }
   },
   status: {
@@ -163,6 +167,11 @@ const Equipment = sequelize.define('Equipment', {
       // Convert empty string category_id to null
       if (equipment.category_id === '') {
         equipment.category_id = null;
+      }
+
+      // Convert empty string serial_number to null
+      if (equipment.serial_number === '') {
+        equipment.serial_number = null;
       }
     },
     beforeUpdate: async (equipment) => {
