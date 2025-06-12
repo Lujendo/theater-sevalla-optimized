@@ -677,7 +677,7 @@ const EquipmentDetailsModern = () => {
         data = {
           title: 'All Equipment Locations',
           items: allItems,
-          totalCount: (availabilityData?.total_allocated || 0) + (availabilityData?.show_allocated || 0) + (availabilityData?.installation_allocated || 0),
+          totalCount: (availabilityData?.total_allocated || 0) + (availabilityData?.show_allocated || 0),
           icon: 'all',
           color: 'gray'
         };
@@ -1426,10 +1426,10 @@ const EquipmentDetailsModern = () => {
                             <button
                               onClick={() => handleShowAllocationDetail('all')}
                               className="group hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
-                              disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0) === 0}
+                              disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0}
                             >
                               <div className="text-xl font-bold text-gray-600 group-hover:text-gray-700">
-                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0)}
+                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
                               </div>
                               <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-gray-600">
                                 All Locations
@@ -1449,7 +1449,7 @@ const EquipmentDetailsModern = () => {
                                     <span className="text-sm font-medium text-blue-800">Equipment Allocated</span>
                                   </div>
                                   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                    {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0)} allocated
+                                    {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)} allocated
                                   </span>
                                 </div>
 
@@ -1457,12 +1457,12 @@ const EquipmentDetailsModern = () => {
                                 <div className="mb-3">
                                   <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
                                     <span>Distribution</span>
-                                    <span>{(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0)} / {availabilityData.total_quantity}</span>
+                                    <span>{(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)} / {availabilityData.total_quantity}</span>
                                   </div>
                                   <div className="w-full bg-blue-200 rounded-full h-2">
                                     <div
                                       className="h-2 bg-blue-500 rounded-full transition-all duration-300"
-                                      style={{ width: `${((availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0)) / availabilityData.total_quantity * 100}%` }}
+                                      style={{ width: `${((availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)) / availabilityData.total_quantity * 100}%` }}
                                     ></div>
                                   </div>
                                 </div>
@@ -1622,7 +1622,7 @@ const EquipmentDetailsModern = () => {
                                   <span className="text-sm font-medium text-blue-800">Items Allocated</span>
                                 </div>
                                 <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">
-                                  {(availabilityData?.show_allocated || 0) + (availabilityData?.total_allocated || 0) + (availabilityData?.installation_allocated || 0)} allocated
+                                  {(availabilityData?.show_allocated || 0) + (availabilityData?.total_allocated || 0)} allocated
                                 </span>
                               </div>
                               <p className="text-sm text-blue-700">
