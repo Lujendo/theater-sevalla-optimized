@@ -1452,10 +1452,12 @@ const EquipmentDetailsModern = () => {
                               onClick={() => {
                                 console.log('🔍 All Locations button clicked!');
                                 console.log('🔍 Calling handleShowAllocationDetail with "all"');
+                                console.log('🔍 Button disabled state:', (availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0);
+                                console.log('🔍 Availability data:', availabilityData);
                                 handleShowAllocationDetail('all');
                               }}
                               className="group hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
-                              disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0}
+                              disabled={false}
                             >
                               <div className="text-xl font-bold text-gray-600 group-hover:text-gray-700">
                                 {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
