@@ -130,25 +130,38 @@ class InventoryService {
       let inventoryReserved = 0;
 
       try {
-        const inventoryResults = await sequelize.query(`
+        const inventoryQuery = `
           SELECT
             status,
             COALESCE(SUM(quantity_allocated), 0) as quantity
           FROM inventory_allocation
           WHERE equipment_id = ?
           GROUP BY status
-        `, {
+        `;
+
+        console.log('🔍 Inventory allocation query:', inventoryQuery);
+        console.log('🔍 Equipment ID for inventory query:', equipmentId);
+
+        const inventoryResults = await sequelize.query(inventoryQuery, {
           replacements: [equipmentId],
           type: sequelize.QueryTypes.SELECT
         });
 
+        console.log('🔍 Raw inventory results from database:', inventoryResults);
+
         inventoryResults.forEach(row => {
           inventoryStatusBreakdown[row.status] = parseInt(row.quantity);
 
+          console.log(`🔍 Processing inventory status: ${row.status}, quantity: ${row.quantity}`);
+          console.log(`🔍 Is ${row.status} in unavailableStatuses?`, statusRules.unavailableStatuses.includes(row.status));
+          console.log(`🔍 Is ${row.status} in reservedStatuses?`, statusRules.reservedStatuses.includes(row.status));
+
           if (statusRules.unavailableStatuses.includes(row.status)) {
             inventoryUnavailable += parseInt(row.quantity);
+            console.log(`🔍 Added ${row.quantity} to inventoryUnavailable, total now: ${inventoryUnavailable}`);
           } else if (statusRules.reservedStatuses.includes(row.status)) {
             inventoryReserved += parseInt(row.quantity);
+            console.log(`🔍 Added ${row.quantity} to inventoryReserved, total now: ${inventoryReserved}`);
           }
         });
 
