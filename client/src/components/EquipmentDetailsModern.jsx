@@ -1108,21 +1108,28 @@ const EquipmentDetailsModern = () => {
                         <div className="p-4">
                           <div className="space-y-3">
                             {/* Summary Stats - Clickable */}
-                            <div className="grid grid-cols-5 gap-3 text-center bg-slate-50 p-4 rounded-lg">
-                              <div>
-                                <div className="text-xl font-bold text-slate-800">{availabilityData.total_quantity}</div>
-                                <div className="text-xs text-slate-600 uppercase tracking-wide">Total</div>
-                              </div>
+                            <div className="grid grid-cols-6 gap-2 text-center bg-slate-50 p-4 rounded-lg">
                               <button
-                                onClick={() => handleShowAllocationDetail('locations')}
+                                onClick={() => handleShowAllocationDetail('total')}
+                                className="group hover:bg-slate-100 rounded-lg p-2 transition-colors cursor-pointer"
+                              >
+                                <div className="text-xl font-bold text-slate-800 group-hover:text-slate-900">
+                                  {availabilityData.total_quantity}
+                                </div>
+                                <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-slate-700">
+                                  Total
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => handleShowAllocationDetail('inventory')}
                                 className="group hover:bg-blue-50 rounded-lg p-2 transition-colors cursor-pointer"
-                                disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0}
+                                disabled={!inventoryAllocations || inventoryAllocations.length === 0}
                               >
                                 <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700">
-                                  {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
+                                  {inventoryAllocations ? inventoryAllocations.reduce((sum, alloc) => sum + (parseInt(alloc.quantity_allocated) || 0), 0) : 0}
                                 </div>
                                 <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-blue-600">
-                                  Locations
+                                  Location Allocations
                                 </div>
                               </button>
                               <button
@@ -1149,12 +1156,30 @@ const EquipmentDetailsModern = () => {
                                   Installed
                                 </div>
                               </button>
-                              <div>
-                                <div className={`text-xl font-bold ${availabilityData.available_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              <button
+                                onClick={() => handleShowAllocationDetail('available')}
+                                className="group hover:bg-green-50 rounded-lg p-2 transition-colors cursor-pointer"
+                                disabled={availabilityData.available_quantity === 0}
+                              >
+                                <div className={`text-xl font-bold ${availabilityData.available_quantity > 0 ? 'text-green-600 group-hover:text-green-700' : 'text-red-600'}`}>
                                   {availabilityData.available_quantity}
                                 </div>
-                                <div className="text-xs text-slate-600 uppercase tracking-wide">Available</div>
-                              </div>
+                                <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-green-600">
+                                  Available
+                                </div>
+                              </button>
+                              <button
+                                onClick={() => handleShowAllocationDetail('all')}
+                                className="group hover:bg-gray-100 rounded-lg p-2 transition-colors cursor-pointer"
+                                disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0}
+                              >
+                                <div className="text-xl font-bold text-gray-600 group-hover:text-gray-700">
+                                  {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
+                                </div>
+                                <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-gray-600">
+                                  All Locations
+                                </div>
+                              </button>
                             </div>
 
                             {/* Detailed Allocation Breakdown */}
