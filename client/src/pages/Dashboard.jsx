@@ -245,7 +245,7 @@ const AnalyticsSummary = ({ equipmentData, onFilterChange, currentFilters, isLoa
 };
 
 const Dashboard = () => {
-  // Advanced Dashboard with Analytics and Filtering - v4 FINAL
+  // Advanced Dashboard with Analytics and Filtering - v5 WITH THUMBNAILS
   const { user, canEditEquipment } = useAuth();
   const queryClient = useQueryClient();
   const observerTarget = useRef(null);
@@ -910,8 +910,8 @@ const Dashboard = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50 text-left">
+            <table className="w-full border-4 border-red-500">
+              <thead className="bg-red-200 text-left">
                 <tr>
                   <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider w-20 bg-blue-50">
                     📷 Image
