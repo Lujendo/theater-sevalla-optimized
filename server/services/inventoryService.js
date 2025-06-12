@@ -206,7 +206,7 @@ class InventoryService {
         effectively_available: effectivelyAvailable,
 
         // Legacy fields for backward compatibility
-        total_allocated: inventoryUnavailable,
+        total_allocated: inventoryUnavailable + installationQuantity, // Include both inventory allocations AND installations
         show_allocated: showUnavailable,
 
         // Installation information
@@ -229,7 +229,10 @@ class InventoryService {
         total_unavailable: totalUnavailable,
         total_reserved: totalReserved,
         available_quantity: availableQuantity,
-        effectively_available: effectivelyAvailable
+        effectively_available: effectivelyAvailable,
+        // Frontend display values
+        total_allocated_for_frontend: inventoryUnavailable + installationQuantity,
+        installation_allocated_for_frontend: installationQuantity
       });
 
       console.log('🔍 Returning enhanced availability result:', result);
