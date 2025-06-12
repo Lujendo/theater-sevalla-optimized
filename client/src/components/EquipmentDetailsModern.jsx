@@ -533,9 +533,9 @@ const EquipmentDetailsModern = () => {
 
   // Handle allocation detail popup
   const handleShowAllocationDetail = (type) => {
-    let data = null;
+    console.log('🔍 handleShowAllocationDetail called with type:', type);
 
-    // Get installation location name for display
+    // Get installation location name for display - MOVED TO TOP
     const installationLocationName = (() => {
       // Priority 1: installation_location_id (find location record)
       if (equipment?.installation_location_id) {
@@ -551,6 +551,10 @@ const EquipmentDetailsModern = () => {
       // Fallback
       return 'Installation Location';
     })();
+
+    console.log('🔍 installationLocationName:', installationLocationName);
+
+    let data = null;
 
     switch (type) {
       case 'inventory':
