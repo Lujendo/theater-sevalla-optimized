@@ -1985,9 +1985,10 @@ const EquipmentDetailsModern = () => {
                       alt={`${equipment.brand} ${equipment.model}`}
                       className="w-full h-auto object-contain rounded-md"
                       onError={(e) => {
-                        console.error('Error loading thumbnail, falling back to original image');
-                        e.target.src = getFileUrl(referenceImage.id); // Fallback to original image
-                        e.target.onerror = null;
+                        console.error('Error loading image for file ID:', referenceImage.id);
+                        // Prevent infinite loop by setting a placeholder image
+                        e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02MCA2MEgxNDBWMTQwSDYwVjYwWiIgZmlsbD0iI0Q1RDlERiIvPgo8cGF0aCBkPSJNODAgODBIMTIwVjEyMEg4MFY4MFoiIGZpbGw9IiNBN0IyQzIiLz4KPC9zdmc+';
+                        e.target.onerror = null; // Prevent further error events
                       }}
                     />
                     {(user?.role === 'admin' || user?.role === 'advanced') && (
