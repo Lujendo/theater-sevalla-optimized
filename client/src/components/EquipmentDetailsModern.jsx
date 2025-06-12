@@ -535,6 +535,23 @@ const EquipmentDetailsModern = () => {
   const handleShowAllocationDetail = (type) => {
     let data = null;
 
+    // Get installation location name for display
+    const installationLocationName = (() => {
+      // Priority 1: installation_location_id (find location record)
+      if (equipment?.installation_location_id) {
+        const installationLocationRecord = locationsArray.find(loc => loc.id === equipment.installation_location_id);
+        if (installationLocationRecord) {
+          return installationLocationRecord.name;
+        }
+      }
+      // Priority 2: installation_location (text field)
+      if (equipment?.installation_location) {
+        return equipment.installation_location;
+      }
+      // Fallback
+      return 'Installation Location';
+    })();
+
     switch (type) {
       case 'inventory':
         // Show only location allocations (from inventory_allocation table)
@@ -1364,6 +1381,14 @@ const EquipmentDetailsModern = () => {
                         <div className="space-y-3">
                           {/* Summary Stats - Clickable */}
                           <div className="grid grid-cols-6 gap-2 text-center bg-slate-50 p-4 rounded-lg">
+                            {/* Debug info */}
+                            {console.log('🔍 Availability Data for All Locations button:', {
+                              total_allocated: availabilityData.total_allocated,
+                              show_allocated: availabilityData.show_allocated,
+                              installation_allocated: availabilityData.installation_allocated,
+                              calculated_total: (availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0),
+                              button_disabled: (availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0
+                            })}
                             <button
                               onClick={() => handleShowAllocationDetail('total')}
                               className="group hover:bg-slate-100 rounded-lg p-2 transition-colors cursor-pointer"
