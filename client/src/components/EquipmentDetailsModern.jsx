@@ -1456,14 +1456,14 @@ const EquipmentDetailsModern = () => {
                                 console.log('🔍 Availability data:', availabilityData);
                                 handleShowAllocationDetail('all');
                               }}
-                              className="group hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+                              className="group hover:bg-red-200 rounded-lg p-2 transition-colors cursor-pointer border-4 border-red-500"
                               disabled={false}
                             >
                               <div className="text-xl font-bold text-gray-600 group-hover:text-gray-700">
-                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
+                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)} 🔍TEST
                               </div>
                               <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-gray-600">
-                                All Locations
+                                All Locations 🔍TEST
                               </div>
                             </button>
                           </div>
