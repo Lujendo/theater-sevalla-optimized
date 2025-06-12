@@ -687,7 +687,21 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
                       <div>
                         <label className="text-sm font-medium text-slate-700">Installation Location</label>
                         <p className="text-lg font-medium text-slate-800 mt-1">
-                          {equipment?.installation_location || 'Location not specified'}
+                          {(() => {
+                            // Priority 1: installation_location_id (find location record)
+                            if (equipment?.installation_location_id) {
+                              const installationLocationRecord = locations.find(loc => loc.id === equipment.installation_location_id);
+                              if (installationLocationRecord) {
+                                return installationLocationRecord.name;
+                              }
+                            }
+                            // Priority 2: installation_location (text field)
+                            if (equipment?.installation_location) {
+                              return equipment.installation_location;
+                            }
+                            // Fallback
+                            return 'Location not specified';
+                          })()}
                         </p>
                       </div>
 
