@@ -87,17 +87,25 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
   };
 
   const getUnallocatedQuantity = () => {
-    // Use available quantity from availability data (which accounts for show allocations)
-    // plus any currently allocated to locations (since we're redistributing)
-    const availableForAllocation = (availabilityData?.available_quantity || 0) + getCurrentlyAllocated();
-    const currentlyAllocated = getCurrentlyAllocated();
-    return availableForAllocation - currentlyAllocated;
+    // Calculate items that are not allocated to specific locations or installations
+    const totalQuantity = equipment?.quantity || 0;
+    const currentlyAllocatedToLocations = getCurrentlyAllocated();
+    const installationQuantity = (equipment?.installation_type !== 'portable' && equipment?.installation_quantity) ? parseInt(equipment.installation_quantity) : 0;
+    const showAllocated = availabilityData?.show_allocated || 0;
+
+    // Items remaining in default storage = Total - Location Allocations - Installations - Show Allocations
+    return Math.max(0, totalQuantity - currentlyAllocatedToLocations - installationQuantity - showAllocated);
   };
 
-  // Get the total quantity available for location allocation (excludes show allocations)
+  // Get the total quantity available for location allocation (excludes show allocations and installations)
   const getTotalAvailableForLocationAllocation = () => {
-    if (!availabilityData) return equipment?.quantity || 1;
+    if (!availabilityData) {
+      const totalQuantity = equipment?.quantity || 1;
+      const installationQuantity = (equipment?.installation_type !== 'portable' && equipment?.installation_quantity) ? parseInt(equipment.installation_quantity) : 0;
+      return Math.max(0, totalQuantity - installationQuantity);
+    }
     // Available quantity + currently allocated to locations (since we can redistribute those)
+    // Note: available_quantity already excludes installations and show allocations
     return (availabilityData.available_quantity || 0) + getCurrentlyAllocated();
   };
 
@@ -326,21 +334,53 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
                   </div>
                 </div>
 
-                {/* Current Allocations Summary */}
-                {currentAllocations.length > 0 && (
+                {/* Current Distribution Summary - Including ALL allocations */}
+                {(currentAllocations.length > 0 || (equipment?.installation_type !== 'portable' && equipment?.installation_quantity > 0)) && (
                   <div className="mb-3">
-                    <div className="text-xs font-medium text-slate-700 mb-2">Current Distribution:</div>
+                    <div className="text-xs font-medium text-slate-700 mb-2">Current Distribution Across All Locations:</div>
                     <div className="grid grid-cols-2 gap-2">
+                      {/* Location Allocations */}
                       {currentAllocations.map((alloc, index) => (
-                        <div key={index} className="bg-white p-2 rounded border text-xs">
+                        <div key={`location-${index}`} className="bg-white p-2 rounded border text-xs">
                           <div className="font-medium text-slate-800">{alloc.location_name}</div>
                           <div className="text-slate-600">{alloc.quantity_allocated} items</div>
+                          <div className="text-xs text-blue-600">Location Allocation</div>
                         </div>
                       ))}
+
+                      {/* Installation Allocation */}
+                      {equipment?.installation_type !== 'portable' && equipment?.installation_quantity > 0 && (
+                        <div className="bg-purple-50 p-2 rounded border border-purple-200 text-xs">
+                          <div className="font-medium text-purple-800">
+                            {(() => {
+                              // Priority 1: installation_location_id (find location record)
+                              if (equipment?.installation_location_id) {
+                                const installationLocationRecord = locations.find(loc => loc.id === equipment.installation_location_id);
+                                if (installationLocationRecord) {
+                                  return installationLocationRecord.name;
+                                }
+                              }
+                              // Priority 2: installation_location (text field)
+                              if (equipment?.installation_location) {
+                                return equipment.installation_location;
+                              }
+                              // Fallback
+                              return 'Installation Location';
+                            })()}
+                          </div>
+                          <div className="text-purple-600">{equipment.installation_quantity} items</div>
+                          <div className="text-xs text-purple-600">
+                            {equipment.installation_type === 'fixed' ? 'Fixed Installation' : 'Semi-Permanent Installation'}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Unallocated items in default storage */}
                       {getUnallocatedQuantity() > 0 && (
                         <div className="bg-blue-50 p-2 rounded border border-blue-200 text-xs">
                           <div className="font-medium text-blue-800">Default Storage</div>
                           <div className="text-blue-600">{getUnallocatedQuantity()} items</div>
+                          <div className="text-xs text-blue-600">Available for Allocation</div>
                         </div>
                       )}
                     </div>
