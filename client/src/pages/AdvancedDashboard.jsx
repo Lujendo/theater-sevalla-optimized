@@ -435,11 +435,44 @@ const EquipmentListRow = ({ equipment, canEdit, navigate }) => {
     navigate(`/equipment/${id}`);
   };
 
+  // Get image URL for thumbnail
+  let imageUrl = null;
+  if (equipment.reference_image_id) {
+    imageUrl = `/api/files/${equipment.reference_image_id}?thumbnail=true`;
+  } else if (equipment.files && equipment.files.length > 0) {
+    const imageFile = equipment.files.find(file => file.file_type === 'image');
+    if (imageFile) {
+      imageUrl = `/api/files/${imageFile.id}?thumbnail=true`;
+    }
+  }
+
   return (
     <tr
       className="table-row hover:bg-slate-50 cursor-pointer"
       onClick={(e) => handleRowClick(equipment.id, e)}
     >
+      <td className="table-cell">
+        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={`${equipment.brand} ${equipment.model}`}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error('Error loading thumbnail for equipment ID:', equipment.id);
+                // Show placeholder on error
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className={`w-full h-full flex items-center justify-center ${imageUrl ? 'hidden' : 'flex'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+      </td>
       <td className="table-cell">
         <span className="font-medium text-slate-800">
           {equipment.brand} {equipment.model}
@@ -1429,6 +1462,7 @@ const AdvancedDashboard = () => {
                   <table className="table-wide">
                     <thead className="table-header">
                       <tr>
+                        <th className="table-header-cell w-20">📷 Image</th>
                         <th className="table-header-cell">Equipment</th>
                         <th className="table-header-cell">Type</th>
                         <th className="table-header-cell">Category</th>
