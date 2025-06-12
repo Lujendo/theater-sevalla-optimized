@@ -682,6 +682,87 @@ const EquipmentDetailsModern = () => {
           color: 'gray'
         };
         break;
+      case 'total':
+        // Show complete equipment overview - all items and their status
+        const totalItems = [];
+
+        // Add all allocated items (same as 'all' case)
+        if (inventoryAllocations && inventoryAllocations.length > 0) {
+          inventoryAllocations.forEach(allocation => {
+            totalItems.push({
+              ...allocation,
+              allocation_type: 'location',
+              display_type: 'Location Allocation',
+              icon_color: 'blue'
+            });
+          });
+        }
+
+        if (showAllocations && showAllocations.length > 0) {
+          showAllocations.forEach(allocation => {
+            totalItems.push({
+              location_name: allocation.show_name,
+              venue: allocation.venue,
+              show_date: allocation.show_date,
+              quantity_allocated: allocation.quantity_allocated || allocation.quantity_needed || 0,
+              status: allocation.status,
+              allocation_type: 'show',
+              display_type: 'Show Allocation',
+              icon_color: 'orange'
+            });
+          });
+        }
+
+        if (equipment?.installation_type && equipment?.installation_type !== 'portable' && availabilityData?.installation_allocated > 0) {
+          totalItems.push({
+            location_name: installationLocationName,
+            quantity_allocated: availabilityData.installation_allocated,
+            status: 'installed',
+            allocation_type: 'installation',
+            display_type: equipment.installation_type === 'fixed' ? 'Fixed Installation' : 'Semi-Permanent Installation',
+            installation_notes: equipment.installation_notes,
+            installation_date: equipment.installation_date,
+            icon_color: 'purple'
+          });
+        }
+
+        // Add available items in default storage
+        if (availabilityData?.available_quantity > 0) {
+          totalItems.push({
+            location_name: 'Default Storage',
+            quantity_allocated: availabilityData.available_quantity,
+            status: 'available',
+            allocation_type: 'storage',
+            display_type: 'Available in Storage',
+            icon_color: 'green'
+          });
+        }
+
+        data = {
+          title: 'Total Equipment Overview',
+          items: totalItems,
+          totalCount: availabilityData?.total_quantity || 0,
+          icon: 'total',
+          color: 'slate'
+        };
+        break;
+      case 'available':
+        // Show available items in default storage
+        data = {
+          title: 'Available Equipment',
+          items: availabilityData?.available_quantity > 0 ? [{
+            location_name: 'Default Storage',
+            quantity_allocated: availabilityData.available_quantity,
+            status: 'available',
+            allocation_type: 'storage',
+            display_type: 'Available in Storage',
+            notes: 'Items available for allocation to locations, shows, or installations'
+          }] : [],
+          totalCount: availabilityData?.available_quantity || 0,
+          icon: 'available',
+          color: 'green'
+        };
+        break;
       default:
         return;
     }
@@ -1283,10 +1364,17 @@ const EquipmentDetailsModern = () => {
                         <div className="space-y-3">
                           {/* Summary Stats - Clickable */}
                           <div className="grid grid-cols-6 gap-2 text-center bg-slate-50 p-4 rounded-lg">
-                            <div>
-                              <div className="text-xl font-bold text-slate-800">{availabilityData.total_quantity}</div>
-                              <div className="text-xs text-slate-600 uppercase tracking-wide">Total</div>
-                            </div>
+                            <button
+                              onClick={() => handleShowAllocationDetail('total')}
+                              className="group hover:bg-slate-100 rounded-lg p-2 transition-colors cursor-pointer"
+                            >
+                              <div className="text-xl font-bold text-slate-800 group-hover:text-slate-900">
+                                {availabilityData.total_quantity}
+                              </div>
+                              <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-slate-700">
+                                Total
+                              </div>
+                            </button>
                             <button
                               onClick={() => handleShowAllocationDetail('inventory')}
                               className="group hover:bg-blue-50 rounded-lg p-2 transition-colors cursor-pointer"
@@ -1323,12 +1411,18 @@ const EquipmentDetailsModern = () => {
                                 Installed
                               </div>
                             </button>
-                            <div>
-                              <div className={`text-xl font-bold ${availabilityData.available_quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <button
+                              onClick={() => handleShowAllocationDetail('available')}
+                              className="group hover:bg-green-50 rounded-lg p-2 transition-colors cursor-pointer"
+                              disabled={availabilityData.available_quantity === 0}
+                            >
+                              <div className={`text-xl font-bold ${availabilityData.available_quantity > 0 ? 'text-green-600 group-hover:text-green-700' : 'text-red-600'}`}>
                                 {availabilityData.available_quantity}
                               </div>
-                              <div className="text-xs text-slate-600 uppercase tracking-wide">Available</div>
-                            </div>
+                              <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-green-600">
+                                Available
+                              </div>
+                            </button>
                             <button
                               onClick={() => handleShowAllocationDetail('all')}
                               className="group hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
