@@ -3,7 +3,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-quer
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ListViewIcon, CardViewIcon } from '../components/Icons';
-import { getEquipment, getFileUrl } from '../services/equipmentService';
+import { getEquipment, getFileUrl, deleteEquipment } from '../services/equipmentService';
 import { getSavedSearches, saveSearch, deleteSavedSearch } from '../services/savedSearchService';
 import { getCategories } from '../services/categoryService';
 import { getEquipmentTypes } from '../services/equipmentTypeService';
@@ -61,6 +61,12 @@ const ClearIcon = () => (
 const SortIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
     <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
   </svg>
 );
 
@@ -420,7 +426,7 @@ const EquipmentCard = ({ equipment, canEdit, searchTerm }) => {
 };
 
 // Equipment list row component for table view
-const EquipmentListRow = ({ equipment, canEdit, navigate }) => {
+const EquipmentListRow = ({ equipment, canEdit, navigate, onDelete }) => {
   // Handle row click to navigate to equipment details
   const handleRowClick = (id, event) => {
     // Prevent navigation if clicking on a button or link
@@ -512,16 +518,28 @@ const EquipmentListRow = ({ equipment, canEdit, navigate }) => {
             View
           </Link>
           {canEdit ? (
-            <Link
-              to={`/equipment/${equipment.id}/edit`}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('Edit link clicked for equipment:', equipment.id);
-              }}
-            >
-              Edit
-            </Link>
+            <>
+              <Link
+                to={`/equipment/${equipment.id}/edit`}
+                className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log('Edit link clicked for equipment:', equipment.id);
+                }}
+              >
+                Edit
+              </Link>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(equipment);
+                }}
+                className="text-red-600 hover:text-red-700 text-sm font-medium underline"
+                title="Delete equipment"
+              >
+                Delete
+              </button>
+            </>
           ) : (
             <span className="text-gray-400 text-sm">Edit</span>
           )}
@@ -607,6 +625,10 @@ const AdvancedDashboard = () => {
 
   // View mode state (list or card) with list as default
   const [viewMode, setViewMode] = useState('list');
+
+  // State for delete confirmation
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [equipmentToDelete, setEquipmentToDelete] = useState(null);
 
   // Fetch equipment with infinite query
   const {
@@ -902,6 +924,40 @@ const AdvancedDashboard = () => {
   // Handle analytics filter changes
   const handleAnalyticsFilterChange = (newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+  };
+
+  // Handle delete equipment
+  const handleDeleteEquipment = (equipment) => {
+    setEquipmentToDelete(equipment);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Confirm delete equipment
+  const confirmDeleteEquipment = async () => {
+    if (!equipmentToDelete) return;
+
+    try {
+      await deleteEquipment(equipmentToDelete.id);
+
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries(['equipment']);
+      queryClient.invalidateQueries(['equipment-analytics']);
+
+      toast.success(`Equipment "${equipmentToDelete.brand} ${equipmentToDelete.model}" deleted successfully`);
+
+      // Reset state
+      setShowDeleteConfirmation(false);
+      setEquipmentToDelete(null);
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      toast.error('Failed to delete equipment. Please try again.');
+    }
+  };
+
+  // Cancel delete equipment
+  const cancelDeleteEquipment = () => {
+    setShowDeleteConfirmation(false);
+    setEquipmentToDelete(null);
   };
 
   return (
@@ -1480,6 +1536,7 @@ const AdvancedDashboard = () => {
                           equipment={equipment}
                           canEdit={canEditEquipment()}
                           navigate={navigate}
+                          onDelete={handleDeleteEquipment}
                         />
                       ))}
                     </tbody>
@@ -1504,6 +1561,53 @@ const AdvancedDashboard = () => {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirmation && equipmentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <TrashIcon />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Delete Equipment
+                </h3>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-500">
+                Are you sure you want to delete this equipment? This action cannot be undone.
+              </p>
+              <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                <p className="text-sm font-medium text-gray-900">
+                  {equipmentToDelete.brand} {equipmentToDelete.model}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Serial: {equipmentToDelete.serial_number || 'N/A'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={cancelDeleteEquipment}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteEquipment}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
