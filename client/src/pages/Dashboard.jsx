@@ -913,8 +913,8 @@ const Dashboard = () => {
             <table className="w-full">
               <thead className="bg-slate-50 text-left">
                 <tr>
-                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
-                    Image
+                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider w-20 bg-blue-50">
+                    📷 Image
                   </th>
                   <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Type
@@ -963,15 +963,31 @@ const Dashboard = () => {
                   </tr>
                 ) : (
                   equipmentList.map((item) => {
+                    // Debug: Log equipment data to see what we're getting
+                    console.log('🔍 Dashboard Equipment Item:', {
+                      id: item.id,
+                      brand: item.brand,
+                      model: item.model,
+                      reference_image_id: item.reference_image_id,
+                      files: item.files,
+                      hasFiles: item.files ? item.files.length : 0
+                    });
+
                     // Get image URL for thumbnail
                     let imageUrl = null;
                     if (item.reference_image_id) {
                       imageUrl = `/api/files/${item.reference_image_id}?thumbnail=true`;
+                      console.log('🖼️ Using reference image:', imageUrl);
                     } else if (item.files && item.files.length > 0) {
                       const imageFile = item.files.find(file => file.file_type === 'image');
                       if (imageFile) {
                         imageUrl = `/api/files/${imageFile.id}?thumbnail=true`;
+                        console.log('🖼️ Using file image:', imageUrl);
                       }
+                    }
+
+                    if (!imageUrl) {
+                      console.log('❌ No image found for equipment:', item.id);
                     }
 
                     return (
