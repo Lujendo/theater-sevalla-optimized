@@ -628,6 +628,60 @@ const EquipmentDetailsModern = () => {
           color: 'purple'
         };
         break;
+      case 'all':
+        // Show ALL allocations - Location Allocations + Shows + Installations
+        const allItems = [];
+
+        // Add location allocations
+        if (inventoryAllocations && inventoryAllocations.length > 0) {
+          inventoryAllocations.forEach(allocation => {
+            allItems.push({
+              ...allocation,
+              allocation_type: 'location',
+              display_type: 'Location Allocation',
+              icon_color: 'blue'
+            });
+          });
+        }
+
+        // Add show allocations
+        if (showAllocations && showAllocations.length > 0) {
+          showAllocations.forEach(allocation => {
+            allItems.push({
+              location_name: allocation.show_name,
+              venue: allocation.venue,
+              show_date: allocation.show_date,
+              quantity_allocated: allocation.quantity_allocated || allocation.quantity_needed || 0,
+              status: allocation.status,
+              allocation_type: 'show',
+              display_type: 'Show Allocation',
+              icon_color: 'orange'
+            });
+          });
+        }
+
+        // Add installation allocations
+        if (equipment?.installation_type && equipment?.installation_type !== 'portable' && availabilityData?.installation_allocated > 0) {
+          allItems.push({
+            location_name: installationLocationName,
+            quantity_allocated: availabilityData.installation_allocated,
+            status: 'installed',
+            allocation_type: 'installation',
+            display_type: equipment.installation_type === 'fixed' ? 'Fixed Installation' : 'Semi-Permanent Installation',
+            installation_notes: equipment.installation_notes,
+            installation_date: equipment.installation_date,
+            icon_color: 'purple'
+          });
+        }
+
+        data = {
+          title: 'All Equipment Locations',
+          items: allItems,
+          totalCount: (availabilityData?.total_allocated || 0) + (availabilityData?.show_allocated || 0) + (availabilityData?.installation_allocated || 0),
+          icon: 'all',
+          color: 'gray'
+        };
+        break;
       default:
         return;
     }
@@ -1228,7 +1282,7 @@ const EquipmentDetailsModern = () => {
                       {availabilityData ? (
                         <div className="space-y-3">
                           {/* Summary Stats - Clickable */}
-                          <div className="grid grid-cols-5 gap-3 text-center bg-slate-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-6 gap-2 text-center bg-slate-50 p-4 rounded-lg">
                             <div>
                               <div className="text-xl font-bold text-slate-800">{availabilityData.total_quantity}</div>
                               <div className="text-xs text-slate-600 uppercase tracking-wide">Total</div>
@@ -1275,6 +1329,18 @@ const EquipmentDetailsModern = () => {
                               </div>
                               <div className="text-xs text-slate-600 uppercase tracking-wide">Available</div>
                             </div>
+                            <button
+                              onClick={() => handleShowAllocationDetail('all')}
+                              className="group hover:bg-gray-50 rounded-lg p-2 transition-colors cursor-pointer"
+                              disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0) === 0}
+                            >
+                              <div className="text-xl font-bold text-gray-600 group-hover:text-gray-700">
+                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) + (availabilityData.installation_allocated || 0)}
+                              </div>
+                              <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-gray-600">
+                                All Locations
+                              </div>
+                            </button>
                           </div>
 
                           {/* Detailed Allocation Breakdown */}
