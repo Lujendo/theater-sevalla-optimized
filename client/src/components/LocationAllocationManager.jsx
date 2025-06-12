@@ -37,6 +37,9 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
       const response = await axios.get(`/api/equipment/${equipment.id}/allocations`);
       const fetchedAllocations = response.data.allocations || [];
 
+      console.log('🔍 LocationAllocationManager - Fetched allocations:', fetchedAllocations);
+      console.log('🔍 LocationAllocationManager - Response data:', response.data);
+
       // Store current allocations for reference
       setCurrentAllocations(fetchedAllocations);
 
@@ -335,7 +338,14 @@ const LocationAllocationManager = ({ equipment, locations, onClose, isOpen }) =>
                 </div>
 
                 {/* Current Distribution Summary - Including ALL allocations */}
-                {(currentAllocations.length > 0 || (equipment?.installation_type !== 'portable' && equipment?.installation_quantity > 0)) && (
+                {(() => {
+                  console.log('🔍 Current Distribution - currentAllocations:', currentAllocations);
+                  console.log('🔍 Current Distribution - equipment installation:', {
+                    installation_type: equipment?.installation_type,
+                    installation_quantity: equipment?.installation_quantity
+                  });
+                  return (currentAllocations.length > 0 || (equipment?.installation_type !== 'portable' && equipment?.installation_quantity > 0));
+                })() && (
                   <div className="mb-3">
                     <div className="text-xs font-medium text-slate-700 mb-2">Current Distribution Across All Locations:</div>
                     <div className="grid grid-cols-2 gap-2">

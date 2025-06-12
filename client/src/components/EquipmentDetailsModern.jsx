@@ -536,8 +536,22 @@ const EquipmentDetailsModern = () => {
     let data = null;
 
     switch (type) {
+      case 'inventory':
+        // Show only location allocations (from inventory_allocation table)
+        data = {
+          title: 'Location Allocations',
+          items: inventoryAllocations ? inventoryAllocations.map(allocation => ({
+            ...allocation,
+            allocation_type: 'location',
+            display_type: 'Location Allocation'
+          })) : [],
+          totalCount: inventoryAllocations ? inventoryAllocations.reduce((sum, alloc) => sum + (parseInt(alloc.quantity_allocated) || 0), 0) : 0,
+          icon: 'location',
+          color: 'blue'
+        };
+        break;
       case 'locations':
-        // Combine both inventory allocations and show allocations for "LOCATIONS" popup
+        // Combine both inventory allocations and show allocations for "ALL LOCATIONS" popup
         const combinedItems = [];
 
         // Add inventory allocations (physical location allocations)
@@ -1220,15 +1234,15 @@ const EquipmentDetailsModern = () => {
                               <div className="text-xs text-slate-600 uppercase tracking-wide">Total</div>
                             </div>
                             <button
-                              onClick={() => handleShowAllocationDetail('locations')}
+                              onClick={() => handleShowAllocationDetail('inventory')}
                               className="group hover:bg-blue-50 rounded-lg p-2 transition-colors cursor-pointer"
-                              disabled={(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0) === 0}
+                              disabled={!inventoryAllocations || inventoryAllocations.length === 0}
                             >
                               <div className="text-xl font-bold text-blue-600 group-hover:text-blue-700">
-                                {(availabilityData.total_allocated || 0) + (availabilityData.show_allocated || 0)}
+                                {inventoryAllocations ? inventoryAllocations.reduce((sum, alloc) => sum + (parseInt(alloc.quantity_allocated) || 0), 0) : 0}
                               </div>
                               <div className="text-xs text-slate-600 uppercase tracking-wide group-hover:text-blue-600">
-                                Locations
+                                Location Allocations
                               </div>
                             </button>
                             <button
