@@ -913,6 +913,9 @@ const Dashboard = () => {
             <table className="w-full">
               <thead className="bg-slate-50 text-left">
                 <tr>
+                  <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider w-20">
+                    Image
+                  </th>
                   <th className="px-6 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Type
                   </th>
@@ -939,7 +942,7 @@ const Dashboard = () => {
               <tbody className="divide-y divide-slate-200">
                 {isLoading ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-slate-500">
+                    <td colSpan="8" className="px-6 py-4 text-center text-slate-500">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mr-2"></div>
                         Loading...
@@ -948,71 +951,106 @@ const Dashboard = () => {
                   </tr>
                 ) : isError ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-red-500">
+                    <td colSpan="8" className="px-6 py-4 text-center text-red-500">
                       Error loading equipment: {error.message}
                     </td>
                   </tr>
                 ) : equipmentList.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-6 py-4 text-center text-slate-500">
+                    <td colSpan="8" className="px-6 py-4 text-center text-slate-500">
                       No equipment found matching your search criteria
                     </td>
                   </tr>
                 ) : (
-                  equipmentList.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.type}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.brand}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.model}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.serial_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            item.status === 'available'
-                              ? 'bg-green-100 text-green-800'
-                              : item.status === 'in-use'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                        {item.location || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        <div className="flex space-x-2">
-                          <Link
-                            to={`/equipment/${item.id}`}
-                            className="text-primary-600 hover:text-primary-900"
-                            title="View details"
+                  equipmentList.map((item) => {
+                    // Get image URL for thumbnail
+                    let imageUrl = null;
+                    if (item.reference_image_id) {
+                      imageUrl = `/api/files/${item.reference_image_id}?thumbnail=true`;
+                    } else if (item.files && item.files.length > 0) {
+                      const imageFile = item.files.find(file => file.file_type === 'image');
+                      if (imageFile) {
+                        imageUrl = `/api/files/${imageFile.id}?thumbnail=true`;
+                      }
+                    }
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                            {imageUrl ? (
+                              <img
+                                src={imageUrl}
+                                alt={`${item.brand} ${item.model}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.error('Error loading thumbnail for equipment ID:', item.id);
+                                  // Show placeholder on error
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-full h-full flex items-center justify-center ${imageUrl ? 'hidden' : 'flex'}`}>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                          {item.type}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                          {item.brand}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                          {item.model}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                          {item.serial_number}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              item.status === 'available'
+                                ? 'bg-green-100 text-green-800'
+                                : item.status === 'in-use'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}
                           >
-                            <ViewIcon className="w-5 h-5" />
-                          </Link>
-                          {canEditEquipment() && (
-                            <>
-                              <Link
-                                to={`/equipment/${item.id}/edit`}
-                                className="text-slate-600 hover:text-slate-900"
-                                title="Edit equipment"
-                              >
-                                <EditIcon className="w-5 h-5" />
-                              </Link>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                          {item.location || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                          <div className="flex space-x-2">
+                            <Link
+                              to={`/equipment/${item.id}`}
+                              className="text-primary-600 hover:text-primary-900"
+                              title="View details"
+                            >
+                              <ViewIcon className="w-5 h-5" />
+                            </Link>
+                            {canEditEquipment() && (
+                              <>
+                                <Link
+                                  to={`/equipment/${item.id}/edit`}
+                                  className="text-slate-600 hover:text-slate-900"
+                                  title="Edit equipment"
+                                >
+                                  <EditIcon className="w-5 h-5" />
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
