@@ -11,6 +11,23 @@ const auth = require('../middleware/flexAuth');
 const mediaAccess = require('../middleware/mediaAccess');
 const { upload, processFiles, MAX_FILES, storageService } = require('../middleware/upload');
 
+// Convert fs functions to promise-based
+const unlinkAsync = promisify(fs.unlink);
+const existsAsync = promisify(fs.exists);
+
+const router = express.Router();
+
+// Environment debug route
+router.get('/debug-env', auth.required, (req, res) => {
+  res.json({
+    NODE_ENV: process.env.NODE_ENV,
+    STORAGE_TYPE: process.env.STORAGE_TYPE,
+    SEVALLA_STORAGE_PATH: process.env.SEVALLA_STORAGE_PATH,
+    storageServiceDir: storageService.localStorageDir,
+    userRole: req.user.role
+  });
+});
+
 // Test upload route for debugging
 router.post('/test-upload', auth.required, upload.single('testFile'), async (req, res) => {
   try {
@@ -45,12 +62,6 @@ router.post('/test-upload', auth.required, upload.single('testFile'), async (req
     });
   }
 });
-
-// Convert fs functions to promise-based
-const unlinkAsync = promisify(fs.unlink);
-const existsAsync = promisify(fs.exists);
-
-const router = express.Router();
 
 // Get file by ID - using flexible authentication and media access control
 router.get('/:id',

@@ -33,6 +33,17 @@ class StorageService {
           ? '/var/lib/data/tonlager'
           : path.join(__dirname, '..', 'uploads'));
       console.log(`[STORAGE] Local storage directory: ${this.localStorageDir}`);
+
+      // Ensure the base storage directory exists
+      if (!fs.existsSync(this.localStorageDir)) {
+        console.log(`[STORAGE] Creating base storage directory: ${this.localStorageDir}`);
+        try {
+          fs.mkdirSync(this.localStorageDir, { recursive: true });
+          console.log(`[STORAGE] Base storage directory created successfully`);
+        } catch (error) {
+          console.error(`[STORAGE] Failed to create base storage directory:`, error);
+        }
+      }
     }
   }
 
