@@ -1,7 +1,7 @@
 {
   "name": "theater-equipment-catalog",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Theater Equipment Catalog Management System - Vite React Frontend with Node.js Backend",
   "main": "server/index.js",

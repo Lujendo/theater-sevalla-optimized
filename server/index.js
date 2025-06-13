@@ -608,9 +608,11 @@ const startServer = async () => {
 
     // Start listening on all interfaces for cloud deployment
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`🚀 Server running on port ${PORT} [DEPLOYMENT v3]`);
       console.log(`Environment: ${process.env.NODE_ENV}`);
       console.log(`Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+      console.log(`Deployment Time: ${new Date().toISOString()}`);
+      console.log(`🎭 Theater Equipment Catalog - Upload Fix Deployed`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
