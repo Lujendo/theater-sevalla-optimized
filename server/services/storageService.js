@@ -7,7 +7,12 @@ const sharp = require('sharp');
 class StorageService {
   constructor() {
     this.storageType = process.env.STORAGE_TYPE || 'local';
-    
+
+    console.log(`[STORAGE] Initializing storage service`);
+    console.log(`[STORAGE] Storage type: ${this.storageType}`);
+    console.log(`[STORAGE] NODE_ENV: ${process.env.NODE_ENV}`);
+    console.log(`[STORAGE] SEVALLA_STORAGE_PATH: ${process.env.SEVALLA_STORAGE_PATH}`);
+
     if (this.storageType === 'r2') {
       // Initialize Cloudflare R2 client
       this.s3Client = new S3Client({
@@ -20,12 +25,14 @@ class StorageService {
       });
       this.bucketName = process.env.R2_BUCKET_NAME || 'tonlager-files';
       this.publicUrl = process.env.R2_PUBLIC_URL;
+      console.log(`[STORAGE] R2 configured with bucket: ${this.bucketName}`);
     } else {
       // Local storage configuration
       this.localStorageDir = process.env.SEVALLA_STORAGE_PATH ||
         (process.env.NODE_ENV === 'production'
           ? '/var/lib/data/tonlager'
           : path.join(__dirname, '..', 'uploads'));
+      console.log(`[STORAGE] Local storage directory: ${this.localStorageDir}`);
     }
   }
 
@@ -91,19 +98,30 @@ class StorageService {
    */
   async uploadToLocal(fileBuffer, fileName, mimeType, fileType) {
     try {
+      console.log(`[STORAGE] Uploading to local storage: ${fileName}`);
+      console.log(`[STORAGE] Storage directory: ${this.localStorageDir}`);
+      console.log(`[STORAGE] File type: ${fileType}`);
+
       // Ensure directories exist
       const typeDir = path.join(this.localStorageDir, `${fileType}s`);
       const thumbnailDir = path.join(this.localStorageDir, 'thumbnails');
-      
+
+      console.log(`[STORAGE] Type directory: ${typeDir}`);
+      console.log(`[STORAGE] Thumbnail directory: ${thumbnailDir}`);
+
       if (!fs.existsSync(typeDir)) {
+        console.log(`[STORAGE] Creating type directory: ${typeDir}`);
         fs.mkdirSync(typeDir, { recursive: true });
       }
       if (!fs.existsSync(thumbnailDir)) {
+        console.log(`[STORAGE] Creating thumbnail directory: ${thumbnailDir}`);
         fs.mkdirSync(thumbnailDir, { recursive: true });
       }
 
       const filePath = path.join(typeDir, fileName);
+      console.log(`[STORAGE] Writing file to: ${filePath}`);
       fs.writeFileSync(filePath, fileBuffer);
+      console.log(`[STORAGE] File written successfully`);
 
       // Create thumbnail for images
       let thumbnailPath = null;

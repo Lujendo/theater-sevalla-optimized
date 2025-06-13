@@ -11,6 +11,41 @@ const auth = require('../middleware/flexAuth');
 const mediaAccess = require('../middleware/mediaAccess');
 const { upload, processFiles, MAX_FILES, storageService } = require('../middleware/upload');
 
+// Test upload route for debugging
+router.post('/test-upload', auth.required, upload.single('testFile'), async (req, res) => {
+  try {
+    console.log('[FILES] Test upload started');
+    console.log('[FILES] File received:', req.file ? req.file.originalname : 'No file');
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Test storage service directly
+    const result = await storageService.uploadFile(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype,
+      'image'
+    );
+
+    console.log('[FILES] Upload result:', result);
+    res.json({
+      message: 'Test upload successful',
+      result: result,
+      storageType: process.env.STORAGE_TYPE,
+      storagePath: process.env.SEVALLA_STORAGE_PATH
+    });
+  } catch (error) {
+    console.error('[FILES] Test upload error:', error);
+    res.status(500).json({
+      message: 'Test upload failed',
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Convert fs functions to promise-based
 const unlinkAsync = promisify(fs.unlink);
 const existsAsync = promisify(fs.exists);
