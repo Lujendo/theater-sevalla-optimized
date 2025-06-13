@@ -6,7 +6,7 @@ const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE ==
   : require('../models');
 const { Equipment, File, Location, Category, EquipmentType, DefaultStorageLocation, sequelize } = models;
 const { authenticate, restrictTo, isAdvancedOrAdmin } = require('../middleware/auth');
-const { upload, processImages, MAX_FILES } = require('../middleware/upload');
+const { upload, processFiles, MAX_FILES } = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs').promises;
 const equipmentLogService = require('../services/equipmentLogService');
@@ -222,7 +222,7 @@ router.get('/:id/navigation', authenticate, async (req, res) => {
 router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
   { name: 'files', maxCount: MAX_FILES },
   { name: 'referenceImage', maxCount: 1 }
-]), processImages, async (req, res) => {
+]), processFiles, async (req, res) => {
   try {
     const {
       type_id,
@@ -460,69 +460,28 @@ router.post('/', authenticate, restrictTo('admin', 'advanced'), upload.fields([
     // Handle file uploads if any
     let createdFiles = [];
 
-    // Process regular files
-    if (req.files && req.files.files && req.files.files.length > 0) {
-      console.log(`Processing ${req.files.files.length} regular files for equipment`);
+    // Process regular files using storage service results
+    if (req.uploadResults && req.uploadResults.length > 0) {
+      console.log(`Processing ${req.uploadResults.length} files from storage service`);
 
-      const fileRecords = req.files.files.map(file => {
-        // Get file type from mimetype
-        let fileType = 'image';
-        if (file.mimetype.startsWith('audio/')) {
-          fileType = 'audio';
-        } else if (file.mimetype === 'application/pdf') {
-          fileType = 'pdf';
-        }
-
-        // Normalize file path for Docker environment
-        const normalizedPath = file.path.replace(/\\/g, '/');
-
-        // Get thumbnail path if available (for images)
-        let thumbnailPath = null;
-        if (fileType === 'image' && file.thumbnailPath) {
-          thumbnailPath = file.thumbnailPath.replace(/\\/g, '/');
-          console.log(`Found thumbnail for ${file.originalname}: ${thumbnailPath}`);
-        }
-
-        console.log(`File saved at: ${normalizedPath}`);
-        if (thumbnailPath) {
-          console.log(`Thumbnail saved at: ${thumbnailPath}`);
-        }
+      const fileRecords = req.uploadResults.map(uploadResult => {
+        console.log(`Creating file record for: ${uploadResult.originalName}`);
 
         return {
           equipment_id: equipment.id,
-          file_type: fileType,
-          file_path: normalizedPath,
-          file_name: file.originalFilename || file.originalname,
-          thumbnail_path: thumbnailPath
+          file_type: uploadResult.fileType,
+          file_path: uploadResult.storagePath,
+          file_name: uploadResult.originalName,
+          thumbnail_path: uploadResult.thumbnailPath
         };
       });
 
       createdFiles = await File.bulkCreate(fileRecords);
     }
 
-    // Process reference image if provided
-    if (req.files && req.files.referenceImage && req.files.referenceImage.length > 0) {
-      const referenceImageFile = req.files.referenceImage[0];
-
-      // Normalize file path for Docker environment
-      const normalizedPath = referenceImageFile.path.replace(/\\/g, '/');
-      console.log(`Reference image saved at: ${normalizedPath}`);
-
-      // Create file record for reference image
-      const referenceFileRecord = await File.create({
-        equipment_id: equipment.id,
-        file_type: 'image',
-        file_path: normalizedPath,
-        file_name: referenceImageFile.originalname
-      });
-
-      // Update equipment with the reference image ID
-      await equipment.update({
-        reference_image_id: referenceFileRecord.id
-      });
-
-      console.log(`Set reference_image_id to ${referenceFileRecord.id}`);
-    }
+    // Process reference image if provided (handled by storage service)
+    // Note: Reference image processing is now handled by the storage service
+    // and included in req.uploadResults if a referenceImage was uploaded
 
     // Get equipment with files
     const equipmentWithFiles = await Equipment.findByPk(equipment.id, {
@@ -710,11 +669,63 @@ router.put('/:id/installation', authenticate, isAdvancedOrAdmin, async (req, res
   }
 });
 
+// Update equipment reference image only (admin and advanced users only)
+router.patch('/:id/reference-image', authenticate, restrictTo('admin', 'advanced'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reference_image_id } = req.body;
+
+    console.log(`[EQUIPMENT] Updating reference image for equipment ID: ${id} to file ID: ${reference_image_id}`);
+
+    // Find equipment
+    const equipment = await Equipment.findByPk(id);
+
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    // Update equipment with the reference image ID
+    // Use direct SQL to avoid issues with empty location_id
+    await sequelize.query(
+      'UPDATE equipment SET reference_image_id = ? WHERE id = ?',
+      {
+        replacements: [reference_image_id || null, equipment.id],
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+
+    console.log(`[EQUIPMENT] Set reference_image_id to ${reference_image_id || 'NULL'}`);
+
+    // Get updated equipment
+    const updatedEquipment = await Equipment.findByPk(equipment.id, {
+      include: [
+        {
+          model: File,
+          as: 'files',
+          attributes: ['id', 'file_type', 'file_name', 'file_path']
+        }
+      ]
+    });
+
+    res.json(updatedEquipment);
+  } catch (error) {
+    console.error('Update equipment reference image error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Update equipment (admin and advanced users only)
 router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields([
   { name: 'files', maxCount: MAX_FILES },
   { name: 'referenceImage', maxCount: 1 }
-]), processImages, async (req, res) => {
+]), (req, res, next) => {
+  // Only run processFiles if there are actually files to process
+  if (req.files && (req.files.files || req.files.referenceImage)) {
+    return processFiles(req, res, next);
+  }
+  // Skip file processing if no files uploaded
+  next();
+}, async (req, res) => {
   try {
     const {
       type_id,
@@ -1026,34 +1037,38 @@ router.put('/:id', authenticate, restrictTo('admin', 'advanced'), upload.fields(
       createdFiles = await File.bulkCreate(fileRecords);
     }
 
-    // Process reference image if provided
-    if (req.files && req.files.referenceImage && req.files.referenceImage.length > 0) {
+    // Process reference image if provided (using storage service results)
+    if (req.uploadResults && req.uploadResults.length > 0) {
       try {
-        const referenceImageFile = req.files.referenceImage[0];
-
-        // Normalize file path for Docker environment
-        const normalizedPath = referenceImageFile.path.replace(/\\/g, '/');
-        console.log(`Reference image saved at: ${normalizedPath}`);
-
-        // Create file record for reference image
-        const referenceFileRecord = await File.create({
-          equipment_id: equipment.id,
-          file_type: 'image',
-          file_path: normalizedPath,
-          file_name: referenceImageFile.originalname
-        });
-
-        // Update equipment with the reference image ID
-        // Use direct SQL to avoid issues with empty location_id
-        await sequelize.query(
-          'UPDATE equipment SET reference_image_id = ? WHERE id = ?',
-          {
-            replacements: [referenceFileRecord.id, equipment.id],
-            type: sequelize.QueryTypes.UPDATE
-          }
+        // Find reference image in upload results (if any)
+        const referenceImageResult = req.uploadResults.find(result =>
+          result.fileType === 'image' && result.originalName.includes('referenceImage')
         );
 
-        console.log(`Set reference_image_id to ${referenceFileRecord.id}`);
+        if (referenceImageResult) {
+          console.log(`Processing reference image from storage service: ${referenceImageResult.originalName}`);
+
+          // Create file record for reference image
+          const referenceFileRecord = await File.create({
+            equipment_id: equipment.id,
+            file_type: 'image',
+            file_path: referenceImageResult.storagePath,
+            file_name: referenceImageResult.originalName,
+            thumbnail_path: referenceImageResult.thumbnailPath
+          });
+
+          // Update equipment with the reference image ID
+          // Use direct SQL to avoid issues with empty location_id
+          await sequelize.query(
+            'UPDATE equipment SET reference_image_id = ? WHERE id = ?',
+            {
+              replacements: [referenceFileRecord.id, equipment.id],
+              type: sequelize.QueryTypes.UPDATE
+            }
+          );
+
+          console.log(`Set reference_image_id to ${referenceFileRecord.id}`);
+        }
       } catch (error) {
         console.error('Error processing reference image:', error);
         throw error;
