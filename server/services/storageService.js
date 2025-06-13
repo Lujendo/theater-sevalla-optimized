@@ -27,22 +27,30 @@ class StorageService {
       this.publicUrl = process.env.R2_PUBLIC_URL;
       console.log(`[STORAGE] R2 configured with bucket: ${this.bucketName}`);
     } else {
-      // Local storage configuration
-      this.localStorageDir = process.env.SEVALLA_STORAGE_PATH ||
-        (process.env.NODE_ENV === 'production'
-          ? '/var/lib/data/tonlager'
-          : path.join(__dirname, '..', 'uploads'));
+      // Local storage configuration - use single consistent path
+      if (process.env.NODE_ENV === 'production') {
+        // For Sevalla production, use the persistent disk path
+        this.localStorageDir = '/var/lib/data/tonlager';
+      } else {
+        // For development, use local uploads directory
+        this.localStorageDir = path.join(__dirname, '..', 'uploads');
+      }
+
       console.log(`[STORAGE] Local storage directory: ${this.localStorageDir}`);
+      console.log(`[STORAGE] Environment: ${process.env.NODE_ENV}`);
 
       // Ensure the base storage directory exists
-      if (!fs.existsSync(this.localStorageDir)) {
-        console.log(`[STORAGE] Creating base storage directory: ${this.localStorageDir}`);
-        try {
+      try {
+        if (!fs.existsSync(this.localStorageDir)) {
+          console.log(`[STORAGE] Creating base storage directory: ${this.localStorageDir}`);
           fs.mkdirSync(this.localStorageDir, { recursive: true });
           console.log(`[STORAGE] Base storage directory created successfully`);
-        } catch (error) {
-          console.error(`[STORAGE] Failed to create base storage directory:`, error);
+        } else {
+          console.log(`[STORAGE] Base storage directory already exists`);
         }
+      } catch (error) {
+        console.error(`[STORAGE] Failed to create base storage directory:`, error);
+        console.error(`[STORAGE] Error details:`, error.message);
       }
     }
   }
@@ -140,12 +148,18 @@ class StorageService {
         thumbnailPath = await this.createThumbnailLocal(fileBuffer, fileName, thumbnailDir);
       }
 
+      // Generate public URLs for file access
+      const publicUrl = `/sevalla-files/${fileType}s/${fileName}`;
+      const thumbnailUrl = thumbnailPath ? `/sevalla-files/thumbnails/${path.basename(thumbnailPath)}` : null;
+
+      console.log(`[STORAGE] Generated URLs - Public: ${publicUrl}, Thumbnail: ${thumbnailUrl}`);
+
       return {
         filePath: filePath,
         fileName: fileName,
         thumbnailPath: thumbnailPath,
-        publicUrl: `/sevalla-files/${fileType}s/${fileName}`,
-        thumbnailUrl: thumbnailPath ? `/sevalla-files/thumbnails/${path.basename(thumbnailPath)}` : null
+        publicUrl: publicUrl,
+        thumbnailUrl: thumbnailUrl
       };
     } catch (error) {
       console.error('Error uploading to local storage:', error);
