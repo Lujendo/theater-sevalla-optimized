@@ -103,6 +103,12 @@ if (process.env.NODE_ENV === 'production') {
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve static files from Sevalla persistent disk (production)
+if (process.env.SEVALLA_STORAGE_PATH && fs.existsSync(process.env.SEVALLA_STORAGE_PATH)) {
+  console.log(`[SERVER] Setting up static file serving from Sevalla disk: ${process.env.SEVALLA_STORAGE_PATH}`);
+  app.use('/sevalla-files', express.static(process.env.SEVALLA_STORAGE_PATH));
+}
+
 // Redirect /public-files/:id to /api/files/:id for backward compatibility
 app.get('/public-files/:id', (req, res) => {
   const fileId = req.params.id;
@@ -126,7 +132,9 @@ const resolveFilePath = (storedPath) => {
 
   // Get the correct storage directory for current environment
   const getStorageDir = () => {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.SEVALLA_STORAGE_PATH) {
+      return process.env.SEVALLA_STORAGE_PATH;
+    } else if (process.env.NODE_ENV === 'production') {
       return '/var/lib/data/tonlager';
     } else {
       return path.join(__dirname, 'uploads');
@@ -141,9 +149,11 @@ const resolveFilePath = (storedPath) => {
   const possiblePaths = [
     path.join(storageDir, filename), // Direct in storage root
     path.join(storageDir, 'images', filename), // In images subdirectory
-    path.join(storageDir, 'audio', filename), // In audio subdirectory
+    path.join(storageDir, 'audios', filename), // In audios subdirectory
     path.join(storageDir, 'pdfs', filename), // In pdfs subdirectory
     path.join(storageDir, 'thumbnails', filename), // In thumbnails subdirectory
+    // Also check the stored path relative to storage dir
+    path.join(storageDir, storedPath.replace(/^\/+/, '')), // Remove leading slashes
   ];
 
   // Return the first path that exists

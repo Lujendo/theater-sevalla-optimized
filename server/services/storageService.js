@@ -22,9 +22,10 @@ class StorageService {
       this.publicUrl = process.env.R2_PUBLIC_URL;
     } else {
       // Local storage configuration
-      this.localStorageDir = process.env.NODE_ENV === 'production' 
-        ? '/var/lib/data/tonlager' 
-        : path.join(__dirname, '..', 'uploads');
+      this.localStorageDir = process.env.SEVALLA_STORAGE_PATH ||
+        (process.env.NODE_ENV === 'production'
+          ? '/var/lib/data/tonlager'
+          : path.join(__dirname, '..', 'uploads'));
     }
   }
 
@@ -114,8 +115,8 @@ class StorageService {
         filePath: filePath,
         fileName: fileName,
         thumbnailPath: thumbnailPath,
-        publicUrl: `/api/files/local/${fileType}s/${fileName}`,
-        thumbnailUrl: thumbnailPath ? `/api/files/local/thumbnails/${path.basename(thumbnailPath)}` : null
+        publicUrl: `/sevalla-files/${fileType}s/${fileName}`,
+        thumbnailUrl: thumbnailPath ? `/sevalla-files/thumbnails/${path.basename(thumbnailPath)}` : null
       };
     } catch (error) {
       console.error('Error uploading to local storage:', error);
@@ -250,7 +251,15 @@ class StorageService {
     if (this.storageType === 'r2') {
       return `${this.publicUrl}/${filePath}`;
     } else {
-      return `/api/files/serve/${encodeURIComponent(filePath)}${thumbnail ? '?thumbnail=true' : ''}`;
+      // For local storage, use the direct static file serving
+      if (process.env.SEVALLA_STORAGE_PATH) {
+        // Extract relative path from the full path
+        const relativePath = filePath.replace(process.env.SEVALLA_STORAGE_PATH, '').replace(/^\/+/, '');
+        return `/sevalla-files/${relativePath}`;
+      } else {
+        // Fallback to API file serving for development
+        return `/api/files/serve/${encodeURIComponent(filePath)}${thumbnail ? '?thumbnail=true' : ''}`;
+      }
     }
   }
 }
