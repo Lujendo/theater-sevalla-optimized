@@ -1,6 +1,6 @@
 {
   "name": "theater-equipment-catalog-backend",
-  "version": "1.0.0",
+  "version": "1.0.4",
   "description": "Backend for Theater Equipment Catalog Management System",
   "main": "index.js",
   "scripts": {

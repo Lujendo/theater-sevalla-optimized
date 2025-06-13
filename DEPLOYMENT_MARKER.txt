@@ -1,0 +1,19 @@
+DEPLOYMENT v4 - UPLOAD FIX
+========================
+
+Timestamp: 2025-06-13T18:10:00Z
+Commit: FORCE DEPLOYMENT v4
+Purpose: Fix upload functionality with Sevalla Persistent Disk storage
+
+Changes:
+- Simplified storage service configuration
+- Fixed routing issues
+- Added proper error handling
+- Configured for /var/lib/data/tonlager storage path
+
+Expected logs:
+- [STORAGE] Initializing storage service - v2
+- SERVER STARTED - DEPLOYMENT v4 - UPLOAD FIX
+- Storage Service v2
+
+This file forces Sevalla to recognize changes and redeploy.
