@@ -9,7 +9,7 @@ const models = (process.env.NODE_ENV === 'development' && process.env.DB_TYPE ==
 const { File, sequelize, Equipment } = models;
 const auth = require('../middleware/flexAuth');
 const mediaAccess = require('../middleware/mediaAccess');
-const { upload, processImages, MAX_FILES } = require('../middleware/upload');
+const { upload, processFiles, MAX_FILES, storageService } = require('../middleware/upload');
 
 // Convert fs functions to promise-based
 const unlinkAsync = promisify(fs.unlink);
@@ -63,26 +63,14 @@ router.delete('/:id', auth.required, async (req, res) => {
       console.log(`[FILES] Cleared reference_image_id from equipment ID: ${referencingEquipment.id}`);
     }
 
-    // Delete main file from disk if it exists
-    const filePath = path.resolve(file.file_path);
-    if (await existsAsync(filePath)) {
-      console.log(`[FILES] Deleting file from disk: ${filePath}`);
-      await unlinkAsync(filePath);
-      console.log(`[FILES] Successfully deleted file from disk`);
-    } else {
-      console.log(`[FILES] Original file not found on disk: ${filePath}`);
-    }
+    // Delete file from storage using storage service
+    console.log(`[FILES] Deleting file from storage: ${file.file_path}`);
+    const deleteSuccess = await storageService.deleteFile(file.file_path, file.thumbnail_path);
 
-    // Delete thumbnail if it exists
-    if (file.thumbnail_path) {
-      const thumbnailPath = path.resolve(file.thumbnail_path);
-      if (await existsAsync(thumbnailPath)) {
-        console.log(`[FILES] Deleting thumbnail from disk: ${thumbnailPath}`);
-        await unlinkAsync(thumbnailPath);
-        console.log(`[FILES] Successfully deleted thumbnail from disk`);
-      } else {
-        console.log(`[FILES] Thumbnail not found on disk: ${thumbnailPath}`);
-      }
+    if (deleteSuccess) {
+      console.log(`[FILES] Successfully deleted file from storage`);
+    } else {
+      console.log(`[FILES] Warning: Could not delete file from storage, but continuing with database cleanup`);
     }
 
     // Delete file record from database
@@ -152,7 +140,7 @@ router.get('/:id/metadata', auth.optional, async (req, res) => {
 });
 
 // Upload files for a specific equipment
-router.post('/upload/:equipmentId', auth.required, upload.array('files', MAX_FILES), processImages, async (req, res) => {
+router.post('/upload/:equipmentId', auth.required, upload.array('files', MAX_FILES), processFiles, async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
@@ -184,40 +172,34 @@ router.post('/upload/:equipmentId', auth.required, upload.array('files', MAX_FIL
 
     console.log(`[FILES] Processing ${req.files.length} files for equipment ID ${equipmentId}`);
 
-    // Process uploaded files
+    // Check if upload results are available from processFiles middleware
+    if (!req.uploadResults || req.uploadResults.length === 0) {
+      await transaction.rollback();
+      console.log(`[FILES] No upload results from storage service`);
+      return res.status(500).json({ message: 'File processing failed' });
+    }
+
+    // Process uploaded files using storage service results
     const fileRecords = [];
 
-    for (const file of req.files) {
-      // Get file type from mimetype
-      let fileType = 'image';
-      if (file.mimetype.startsWith('audio/')) {
-        fileType = 'audio';
-      } else if (file.mimetype === 'application/pdf') {
-        fileType = 'pdf';
-      }
+    for (const uploadResult of req.uploadResults) {
+      console.log(`[FILES] Creating database record for: ${uploadResult.originalName}`);
 
-      // Normalize file path for Docker environment
-      const normalizedPath = file.path.replace(/\\/g, '/');
-
-      // Get thumbnail path if available (for images)
-      let thumbnailPath = null;
-      if (fileType === 'image' && file.thumbnailPath) {
-        thumbnailPath = file.thumbnailPath.replace(/\\/g, '/');
-        console.log(`[FILES] Found thumbnail for ${file.originalname}: ${thumbnailPath}`);
-      }
-
-      console.log(`[FILES] File saved at: ${normalizedPath}`);
-
-      // Create file record
+      // Create file record with storage service paths
       const fileRecord = await File.create({
         equipment_id: equipmentId,
-        file_type: fileType,
-        file_path: normalizedPath,
-        file_name: file.originalname,
-        thumbnail_path: thumbnailPath
+        file_type: uploadResult.fileType,
+        file_path: uploadResult.storagePath,
+        file_name: uploadResult.originalName,
+        thumbnail_path: uploadResult.thumbnailPath
       }, { transaction });
 
+      // Add public URLs to the response
+      fileRecord.dataValues.publicUrl = uploadResult.publicUrl;
+      fileRecord.dataValues.thumbnailUrl = uploadResult.thumbnailUrl;
+
       fileRecords.push(fileRecord);
+      console.log(`[FILES] Created database record for file ID: ${fileRecord.id}`);
     }
 
     // Commit the transaction

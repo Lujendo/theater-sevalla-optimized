@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp');
 const { promisify } = require('util');
+const storageService = require('../services/storageService');
 const mkdirAsync = promisify(fs.mkdir);
 const existsAsync = promisify(fs.exists);
 
@@ -18,8 +19,19 @@ const ALLOWED_MIME_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_AUDIO_TYPES, ...A
 const IMAGE_THUMBNAIL_SIZE = 300; // 300px width for thumbnails
 const IMAGE_QUALITY = 80; // JPEG quality (0-100)
 
+// Determine upload directory based on environment
+const getUploadDir = () => {
+  if (process.env.NODE_ENV === 'production') {
+    // Production: Use Sevalla disk storage
+    return '/var/lib/data/tonlager';
+  } else {
+    // Development: Use local uploads directory
+    return path.join(__dirname, '../uploads');
+  }
+};
+
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../uploads');
+const uploadsDir = getUploadDir();
 const imageDir = path.join(uploadsDir, 'images');
 const audioDir = path.join(uploadsDir, 'audio');
 const pdfDir = path.join(uploadsDir, 'pdfs');
@@ -66,32 +78,8 @@ const getDirectoryFromFileType = (fileType) => {
   }
 };
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const fileType = getFileTypeFromMimetype(file.mimetype);
-    const destinationDir = getDirectoryFromFileType(fileType);
-
-    // Ensure directory exists
-    if (!fs.existsSync(destinationDir)) {
-      fs.mkdirSync(destinationDir, { recursive: true });
-    }
-
-    cb(null, destinationDir);
-  },
-  filename: (req, file, cb) => {
-    // Create unique filename with original extension
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname).toLowerCase();
-    const sanitizedFilename = file.fieldname + '-' + uniqueSuffix + ext;
-
-    // Store original filename in file object for later use
-    file.originalFilename = file.originalname;
-    file.storedFilename = sanitizedFilename;
-
-    cb(null, sanitizedFilename);
-  }
-});
+// Configure storage - use memory storage for cloud uploads
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
@@ -113,78 +101,59 @@ const upload = multer({
   }
 });
 
-// Middleware to process uploaded images
-const processImages = async (req, res, next) => {
+// Middleware to process uploaded files using storage service
+const processFiles = async (req, res, next) => {
   try {
     // Skip if no files were uploaded
     if (!req.files) {
       return next();
     }
 
-    console.log('Processing uploaded images...');
+    console.log('Processing uploaded files...');
 
-    // Process all image files
+    // Process all files
     const processPromises = [];
+    const uploadResults = [];
 
     // Helper function to process a single file
     const processFile = async (file) => {
-      // Only process image files
-      if (!file.mimetype.startsWith('image/')) {
-        console.log(`Skipping non-image file: ${file.originalname} (${file.mimetype})`);
-        return;
-      }
-
-      console.log(`Processing image file: ${file.originalname}`);
-
       try {
-        // Create thumbnail filename with same extension as original
-        const fileExt = path.extname(file.path);
-        const thumbnailFilename = `thumb-${path.basename(file.path, fileExt)}${fileExt}`;
-        const thumbnailPath = path.join(thumbnailsDir, thumbnailFilename);
+        console.log(`Processing file: ${file.originalname} (${file.mimetype})`);
 
-        console.log(`Creating thumbnail at: ${thumbnailPath}`);
-
-        // Create thumbnail using sharp
-        await sharp(file.path)
-          .resize({
-            width: IMAGE_THUMBNAIL_SIZE,
-            height: IMAGE_THUMBNAIL_SIZE,
-            fit: 'inside',
-            withoutEnlargement: true
-          })
-          .toFormat(fileExt === '.png' ? 'png' : 'jpeg', {
-            quality: IMAGE_QUALITY
-          })
-          .toFile(thumbnailPath);
-
-        // Add thumbnail path to file object
-        file.thumbnailPath = thumbnailPath;
-        console.log(`Thumbnail created successfully: ${thumbnailPath}`);
-
-        // Optimize original image if it's a JPEG or PNG
-        if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-          console.log(`Optimizing original image: ${file.path}`);
-          const optimizedPath = file.path + '.optimized';
-
-          await sharp(file.path)
-            .resize({
-              width: 1920, // Limit max width to 1920px
-              height: 1080, // Limit max height to 1080px
-              fit: 'inside',
-              withoutEnlargement: true
-            })
-            .toFormat(fileExt === '.png' ? 'png' : 'jpeg', {
-              quality: IMAGE_QUALITY
-            })
-            .toFile(optimizedPath);
-
-          // Replace original file with optimized version
-          fs.renameSync(optimizedPath, file.path);
-          console.log(`Original image optimized: ${file.path}`);
+        const fileType = getFileTypeFromMimetype(file.mimetype);
+        if (!fileType) {
+          throw new Error(`Unsupported file type: ${file.mimetype}`);
         }
+
+        // Upload file using storage service
+        const result = await storageService.uploadFile(
+          file.buffer,
+          file.originalname,
+          file.mimetype,
+          fileType
+        );
+
+        // Add storage result to file object
+        file.storagePath = result.filePath;
+        file.thumbnailPath = result.thumbnailPath;
+        file.publicUrl = result.publicUrl;
+        file.thumbnailUrl = result.thumbnailUrl;
+        file.storedFilename = result.fileName;
+
+        uploadResults.push({
+          originalName: file.originalname,
+          storagePath: result.filePath,
+          thumbnailPath: result.thumbnailPath,
+          publicUrl: result.publicUrl,
+          thumbnailUrl: result.thumbnailUrl,
+          fileType: fileType,
+          mimeType: file.mimetype
+        });
+
+        console.log(`File processed successfully: ${file.originalname}`);
       } catch (error) {
-        console.error(`Error processing image ${file.originalname}:`, error);
-        // Continue with next file even if this one fails
+        console.error(`Error processing file ${file.originalname}:`, error);
+        throw error; // Re-throw to handle in the main catch block
       }
     };
 
@@ -209,19 +178,24 @@ const processImages = async (req, res, next) => {
 
     // Wait for all processing to complete
     await Promise.all(processPromises);
-    console.log('All images processed successfully');
 
+    // Attach upload results to request for use in route handlers
+    req.uploadResults = uploadResults;
+
+    console.log('All files processed successfully');
     next();
   } catch (error) {
-    console.error('Error in image processing middleware:', error);
+    console.error('Error in file processing middleware:', error);
     next(error);
   }
 };
 
-// Export both the upload middleware and the image processing middleware
+// Export both the upload middleware and the file processing middleware
 module.exports = {
   upload,
-  processImages,
+  processFiles,
+  processImages: processFiles, // Backward compatibility alias
   MAX_FILE_SIZE,
-  MAX_FILES
+  MAX_FILES,
+  storageService
 };

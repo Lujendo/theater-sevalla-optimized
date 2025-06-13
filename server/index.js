@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 
@@ -116,6 +117,48 @@ app.get('/public-files/:id', (req, res) => {
 const auth = require('./middleware/flexAuth');
 const mediaAccess = require('./middleware/mediaAccess');
 
+// Helper function to resolve file paths correctly across environments
+const resolveFilePath = (storedPath) => {
+  // If the stored path is already absolute and exists, use it
+  if (path.isAbsolute(storedPath) && fs.existsSync(storedPath)) {
+    return storedPath;
+  }
+
+  // Get the correct storage directory for current environment
+  const getStorageDir = () => {
+    if (process.env.NODE_ENV === 'production') {
+      return '/var/lib/data/tonlager';
+    } else {
+      return path.join(__dirname, 'uploads');
+    }
+  };
+
+  // Extract just the filename from the stored path
+  const filename = path.basename(storedPath);
+
+  // Try to find the file in the correct storage directory structure
+  const storageDir = getStorageDir();
+  const possiblePaths = [
+    path.join(storageDir, filename), // Direct in storage root
+    path.join(storageDir, 'images', filename), // In images subdirectory
+    path.join(storageDir, 'audio', filename), // In audio subdirectory
+    path.join(storageDir, 'pdfs', filename), // In pdfs subdirectory
+    path.join(storageDir, 'thumbnails', filename), // In thumbnails subdirectory
+  ];
+
+  // Return the first path that exists
+  for (const possiblePath of possiblePaths) {
+    if (fs.existsSync(possiblePath)) {
+      console.log(`[FILE-RESOLVER] Found file at: ${possiblePath}`);
+      return possiblePath;
+    }
+  }
+
+  // If nothing found, return the original path (will likely 404)
+  console.log(`[FILE-RESOLVER] File not found in any location, returning original: ${storedPath}`);
+  return storedPath;
+};
+
 // Direct API file access route with NO authentication
 app.get('/api/files/:id', (req, res) => {
   const fileId = req.params.id;
@@ -138,15 +181,30 @@ app.get('/api/files/:id', (req, res) => {
         return res.status(404).json({ message: 'File not found' });
       }
 
-      // Determine which path to use (original or thumbnail)
+      // Check if this is a cloud storage file (R2)
+      const isCloudFile = file.file_path && !path.isAbsolute(file.file_path);
+
+      if (isCloudFile) {
+        // For cloud storage, redirect to the public URL
+        const storageService = require('./services/storageService');
+        const publicUrl = storageService.getFileUrl(
+          thumbnail === 'true' && file.thumbnail_path ? file.thumbnail_path : file.file_path,
+          thumbnail === 'true'
+        );
+
+        console.log(`[PUBLIC-FILES] Redirecting to cloud storage: ${publicUrl}`);
+        return res.redirect(publicUrl);
+      }
+
+      // For local files, serve directly
       const fs = require('fs');
       let filePath;
 
       if (thumbnail === 'true' && file.thumbnail_path) {
-        filePath = path.resolve(file.thumbnail_path);
+        filePath = resolveFilePath(file.thumbnail_path);
         console.log(`[PUBLIC-FILES] Using thumbnail path: ${filePath}`);
       } else {
-        filePath = path.resolve(file.file_path);
+        filePath = resolveFilePath(file.file_path);
         console.log(`[PUBLIC-FILES] Using original file path: ${filePath}`);
       }
 
