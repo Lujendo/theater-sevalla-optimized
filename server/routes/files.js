@@ -17,14 +17,24 @@ const existsAsync = promisify(fs.exists);
 
 const router = express.Router();
 
-// Environment debug route
-router.get('/debug-env', auth.required, (req, res) => {
+// Environment debug route (no auth required for testing)
+router.get('/debug-env', (req, res) => {
   res.json({
     NODE_ENV: process.env.NODE_ENV,
     STORAGE_TYPE: process.env.STORAGE_TYPE,
     SEVALLA_STORAGE_PATH: process.env.SEVALLA_STORAGE_PATH,
     storageServiceDir: storageService.localStorageDir,
-    userRole: req.user.role
+    timestamp: new Date().toISOString(),
+    message: 'Storage debug info'
+  });
+});
+
+// Simple health check
+router.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    message: 'Files route is working'
   });
 });
 
