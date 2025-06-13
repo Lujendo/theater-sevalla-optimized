@@ -8,10 +8,10 @@ class StorageService {
   constructor() {
     this.storageType = process.env.STORAGE_TYPE || 'local';
 
-    console.log(`[STORAGE] Initializing storage service`);
+    console.log(`[STORAGE] Initializing storage service - v2`);
     console.log(`[STORAGE] Storage type: ${this.storageType}`);
     console.log(`[STORAGE] NODE_ENV: ${process.env.NODE_ENV}`);
-    console.log(`[STORAGE] SEVALLA_STORAGE_PATH: ${process.env.SEVALLA_STORAGE_PATH}`);
+    console.log(`[STORAGE] Timestamp: ${new Date().toISOString()}`);
 
     if (this.storageType === 'r2') {
       // Initialize Cloudflare R2 client
